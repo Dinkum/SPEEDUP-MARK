@@ -1,0 +1,38 @@
+# Optional numerical extra for the algorithmic pool.
+# Smoke and extended do not import these packages.
+# Existing numerical versions were at least 14 days old on 2026-09-21.
+# Transitive pins were checked against PyPI release dates on 2026-09-30.
+# Hashes are the macOS arm64 CPython 3.14 wheels used to validate the tasks.
+# Re-hash the same versions before installing on another platform.
+numpy==2.5.2 \
+    --hash=sha256:9e9413326d726c2545bfa65d2c0876871e8d8386e77f992c1d426e180bbd4323
+scipy==1.18.1 \
+    --hash=sha256:011413b7426b75012840e35649e00fe0a2c3bae89fed433876e3a99251572efc
+cvxpy==1.9.2 \
+    --hash=sha256:54a34e4ff10b80659023ba5f1517f4171ea9b905e90c824b467a7a4234379faf
+clarabel==0.11.1 \
+    --hash=sha256:8963687ee250d27310d139eea5a6816f9c3ae31f33691b56579ca4f0f0b64b63
+osqp==1.1.3 \
+    --hash=sha256:e730047c4cba86ad97ca73c03ea4c3cca765b22fa79c3fbefff11b3cce317742
+qdldl==0.1.9.post1 \
+    --hash=sha256:496bebf154c002fb7a36443b9a26cc0f7251e8e9251d3742590300cd2edec7a8
+scs==3.3.1 \
+    --hash=sha256:e8c01e6a943a31be436c55573ce0316494169d9737b4890d96463615693f3cd5
+highspy==1.15.1 \
+    --hash=sha256:9a00e1278ea46a426b1eaa0aea69df9d72ed1d75b18227cad992384ebbdc0c74
+
+# Complete runtime dependency closure for the pinned solvers.
+sparsediffpy==0.3.0 \
+    --hash=sha256:b62d0531c6470d6cea800ff60952857d16b7a3e177369c729a8e5f31dba9a4ea
+cffi==2.0.0 \
+    --hash=sha256:c654de545946e0db659b3400168c9ad31b5d29593291482c43e3564effbcee13
+pycparser==3.0 \
+    --hash=sha256:b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992
+jinja2==3.1.6 \
+    --hash=sha256:85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67
+markupsafe==3.0.3 \
+    --hash=sha256:c47a551199eb8eb2121d4f0f15ae0f923d31350ab9280078d1e5f12b249e0026
+setuptools==80.9.0 \
+    --hash=sha256:062d34222ad13e0cc312a4c02d73f059e86a4acbfbdea8f8f76b28c99f306922
+joblib==1.5.2 \
+    --hash=sha256:4e1f0bdbb987e6d843c70cf43714cb276623def372df3c22fe5266b2670bc241

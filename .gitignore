@@ -1,0 +1,11 @@
+__pycache__/
+.pytest_cache/
+*.py[cod]
+trace.json
+ROADMAP.MD
+# Local agent runners, experiments, and monitoring (outside the benchmark).
+/harness/
+runs/
+/watcher/
+# Private benchmark design notes.
+/wiki/

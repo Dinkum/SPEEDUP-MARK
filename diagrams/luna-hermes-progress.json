@@ -1,0 +1,175 @@
+{
+  "run_id": "20260926T194201Z-layout_aware_pipeline_compiler-d4604060",
+  "created_utc": "2026-09-26T19:42:01.791717+00:00",
+  "task": "layout_aware_pipeline_compiler",
+  "task_version": "1.0.0",
+  "task_revision": "eae93cbad752e277fa2c03cfac312b77f30786dd466e37663d51741f47cf6a4f",
+  "optimizer": {
+    "harness": "hermes-cli",
+    "model": "gpt-6-luna",
+    "effort": "medium",
+    "runtime_notes": "OpenCode Go; Hermes 3d7fc8fc03afcd7c47a1d62914fd56231c0ce46b; fresh session and candidate per task; smoke tasks sequential within this suite; running concurrently with Space Bunny at user request; shared-host wall-clock timings; 3600s agent budget; 200 turns; Python 3.14.6; all declared grading sizes; live medium preflight passed."
+  },
+  "python": "3.14.6",
+  "platform": "macOS-27.0-arm64-arm-64bit-Mach-O",
+  "samples": 3,
+  "source_sha256": {
+    "manifest.json": "f71880d9e51e9b0db446ab3217c7c42b78172641d5fb15df0430cbce33316382",
+    "evaluations.jsonl": "f74fcdb89b99bb97f105f2d2deed5a8b65dcfc6e6a0c4b314aa7a797b95e4fbe"
+  },
+  "metric_unit": "cycles",
+  "grading_sizes": [
+    32,
+    48
+  ],
+  "development_seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "final_seeds": [
+    1000000,
+    1000001,
+    1000002,
+    1000003,
+    1000004,
+    1000005
+  ],
+  "percent_speedup_formula": "(speedup - 1) * 100",
+  "curve": "Best correct, integrity-passing development speedup, available only after each evaluation completes. No interpolation or measured point before the first successful evaluation. Final grading is shown separately.",
+  "evaluations": [
+    {
+      "evaluation": 1,
+      "phase": "development",
+      "started_elapsed_seconds": 72.84982800483704,
+      "elapsed_seconds": 73.79196310043335,
+      "correct": true,
+      "integrity": "passed",
+      "speedup": 1.0,
+      "candidate_sha256": "fb3e32771bd33ef8e85fb03754b6f9fd9a28ea58610ef2071c64afaad710714c"
+    },
+    {
+      "evaluation": 2,
+      "phase": "development",
+      "started_elapsed_seconds": 118.54361009597778,
+      "elapsed_seconds": 118.90452909469604,
+      "correct": false,
+      "integrity": "passed",
+      "speedup": 0.0,
+      "candidate_sha256": "823b82bfb181153879471c5a030afe7719a41a4053ee93e5120f064be18228ef"
+    },
+    {
+      "evaluation": 3,
+      "phase": "development",
+      "started_elapsed_seconds": 131.56316614151,
+      "elapsed_seconds": 132.49888920783997,
+      "correct": true,
+      "integrity": "passed",
+      "speedup": 1.0,
+      "candidate_sha256": "d4c2b2fb546b4098899cc2cb59ece96ae74e805cac29f491d25f2c535a257046"
+    },
+    {
+      "evaluation": 4,
+      "phase": "development",
+      "started_elapsed_seconds": 195.4335699081421,
+      "elapsed_seconds": 196.40378594398499,
+      "correct": true,
+      "integrity": "passed",
+      "speedup": 1.3949424884043355,
+      "candidate_sha256": "356c26eead6071e5eb17a643afa49dc2a4165934049ce5e9efec61227e558046"
+    },
+    {
+      "evaluation": 5,
+      "phase": "development",
+      "started_elapsed_seconds": 227.83151507377625,
+      "elapsed_seconds": 228.7437391281128,
+      "correct": true,
+      "integrity": "passed",
+      "speedup": 1.5901214953890788,
+      "candidate_sha256": "65014828e8f014c4f3aedb6db4d2f48fc3dce29e9487fd29fa7f92679e2fc9af"
+    },
+    {
+      "evaluation": 6,
+      "phase": "development",
+      "started_elapsed_seconds": 277.1327359676361,
+      "elapsed_seconds": 278.0703570842743,
+      "correct": true,
+      "integrity": "passed",
+      "speedup": 1.6658749717765156,
+      "candidate_sha256": "8efaf17e1805cf6e0721ed3c80fe80e943319f94d0ac260ad08352278ad9058f"
+    },
+    {
+      "evaluation": 7,
+      "phase": "development",
+      "started_elapsed_seconds": 307.71252512931824,
+      "elapsed_seconds": 308.60912919044495,
+      "correct": true,
+      "integrity": "passed",
+      "speedup": 1.7757804276047335,
+      "candidate_sha256": "75a9cba28a5845e1fe6ac7960b1470e03ee7fa865fbda528aae7304b5f66c27b"
+    },
+    {
+      "evaluation": 8,
+      "phase": "development",
+      "started_elapsed_seconds": 346.2696461677551,
+      "elapsed_seconds": 347.3563129901886,
+      "correct": true,
+      "integrity": "passed",
+      "speedup": 1.7809984451413716,
+      "candidate_sha256": "880e1f74a82dd74827ac4ee76da29e440a69ddd3b2a3bec57ed2a06d23d3231e"
+    },
+    {
+      "evaluation": 9,
+      "phase": "development",
+      "started_elapsed_seconds": 408.03330087661743,
+      "elapsed_seconds": 408.9303231239319,
+      "correct": true,
+      "integrity": "passed",
+      "speedup": 1.8791626542404882,
+      "candidate_sha256": "6066d47c1af019cc8d1adaef19b31f690464414ea41eef8a6337dcfb69ee5edb"
+    },
+    {
+      "evaluation": 10,
+      "phase": "development",
+      "started_elapsed_seconds": 472.8365170955658,
+      "elapsed_seconds": 473.7061219215393,
+      "correct": true,
+      "integrity": "passed",
+      "speedup": 2.020204265689982,
+      "candidate_sha256": "8d3f451c2b64bdffab0aed0d726ba5dac15c746689269f7b59c4aaae10fe6246"
+    },
+    {
+      "evaluation": 11,
+      "phase": "development",
+      "started_elapsed_seconds": 519.828999042511,
+      "elapsed_seconds": 520.6891062259674,
+      "correct": true,
+      "integrity": "passed",
+      "speedup": 2.094675500336501,
+      "candidate_sha256": "52ddc97c2727745db5ef8d8c05bd21fece8009632524eaf82c70929fca83f572"
+    },
+    {
+      "evaluation": 12,
+      "phase": "development",
+      "started_elapsed_seconds": 560.8714768886566,
+      "elapsed_seconds": 561.7283549308777,
+      "correct": true,
+      "integrity": "passed",
+      "speedup": 2.120734535151678,
+      "candidate_sha256": "427eb59529c05061450353c43b5ad37521484b94796f95487be96da0cf74e734"
+    },
+    {
+      "evaluation": 13,
+      "phase": "final",
+      "started_elapsed_seconds": 583.5473749637604,
+      "elapsed_seconds": 584.4137609004974,
+      "correct": true,
+      "integrity": "passed",
+      "speedup": 2.120734535151678,
+      "candidate_sha256": "427eb59529c05061450353c43b5ad37521484b94796f95487be96da0cf74e734"
+    }
+  ]
+}

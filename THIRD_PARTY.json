@@ -1,0 +1,12 @@
+{
+  "format_version": 1,
+  "scope": "Third-party source inventory for the active benchmark tree; not a complete ownership audit or a license grant.",
+  "components": [],
+  "excluded_local_material": [
+    {
+      "paths": ["runs/", "harness/", "watcher/"],
+      "note": "Local artifacts are excluded from public distributions. Run snapshots can contain Anthropic source and solutions governed by their original terms.",
+      "notice_url": "https://raw.githubusercontent.com/anthropics/original_performance_takehome/5452f74bd977807ac2e74f3d29432b9df6f25197/perf_takehome.py"
+    }
+  ]
+}
