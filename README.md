@@ -8,21 +8,23 @@ Models tweak and submit their `candidate.py` to a central grader, so we can trac
 
 Speedup is reference cost divided by candidate cost: **2.000x means twice as fast, a 100% speed increase**.
 
+**Task Suites:**
+
+- **Smoke** — 10 core tasks to quickly test agent setups.
+- **Extended** — 26 tasks.
+- **All** — 50 tasks.
+
 ![GPT-6 Luna medium with Hermes: verified speedup over time on the layout-aware pipeline compiler](diagrams/luna-hermes-progress.png)
 
-Recorded example from September 26, 2026, using task v1.0.0 and simulated cycles. Final grading measured **2.121x (+112.1%)**. [Chart data](diagrams/luna-hermes-progress.json).
-
-## PRE REQ
+## Prerequisites
 
 - **Python 3.10+** and a local copy of this repository. Run commands from the repository root.
-- **Standard library only** for the `smoke` and `extended` suites. Some additional tasks need the optional packages in [requirements-numerical.txt](requirements-numerical.txt); its wheel hashes target macOS arm64 and CPython 3.14.
-- **Your chosen agent harness**, if you want an agent to optimize the code. Direct grading runs the local candidates without launching a model.
+- **Standard library only** for the `smoke` and `extended` suites. Some additional tasks need the optional packages in [requirements-numerical.txt](requirements-numerical.txt).
+- **Your chosen agent harness**: this repo is agnostic to the specific agent setup used.
 
-No SPEEDUP-MARK package installation, containers, services, model downloads, or GPU is required.
+## Usage
 
-## USAGE
-
-Create a task run:
+### Create a task run
 
 ```console
 python3 -m speedupmark run create temporal_asof_join \
@@ -42,7 +44,9 @@ python3 -m speedupmark run finish runs/<id>
 python3 -m speedupmark run report runs/<id>
 ```
 
-To create and run a task suite, supply your harness’s noninteractive command, configured for the model and effort you record:
+### Run a suite with your agent
+
+Supply your harness’s noninteractive command, configured for the model and effort you record:
 
 ```console
 python3 -m speedupmark run launch smoke \
@@ -61,7 +65,7 @@ python3 -m speedupmark run report runs/suite-<id> --json
 
 Reports include progress measurements and final scores. Final grading selects the fastest correct recorded candidate and evaluates it on fresh seeds by default. Wall-clock comparisons need the same machine and Python version.
 
-## COMMANDS
+### Commands
 
 | Command | Purpose |
 | --- | --- |
@@ -78,3 +82,60 @@ Reports include progress measurements and final scores. Final grading selects th
 Grading uses three samples and fresh seeds by default. Use `--seed` to replay a batch and `--samples` to change the sample count. Direct grading evaluates local candidates without launching a model.
 
 See the [task catalog](GUIDE.md#task-distributions), [suite selection](tasks/SHORTLIST.md), and [grading guide](GUIDE.md) for task contracts, scoring, and validation.
+
+## Task List
+
+`smoke` contains 10 tasks. `extended` includes those 10 plus 16 more. `all` includes all 50 rows below, including the starter template. Each task links to its full contract; use its directory name to run it individually.
+
+| Task | Workload | Included in |
+| --- | --- | --- |
+| [Incremental spreadsheet recalculation](tasks/incremental_spreadsheet_recalculation/README.md) | Formula dependencies, updates, and selective evaluation | smoke, extended, all |
+| [Live fleet dispatch](tasks/live_fleet_dispatch/README.md) | Battery-constrained paths, multi-stop tours, and fleet allocation | smoke, extended, all |
+| [Incremental multiway join](tasks/incremental_multiway_join/README.md) | Weighted triangle aggregates under relation updates | smoke, extended, all |
+| [Ranked BPE tokenization](tasks/ranked_bpe_tokenization/README.md) | Exact ranked token merging | smoke, extended, all |
+| [Dynamic exact ray queries](tasks/dynamic_exact_ray_queries/README.md) | Exact intersections in changing triangle scenes | smoke, extended, all |
+| [Dynamic document search](tasks/dynamic_document_search/README.md) | Mutable document indexes and exact top-k ranking | smoke, extended, all |
+| [Dynamic shortest paths](tasks/dynamic_shortest_paths/README.md) | Distance queries under graph updates | smoke, extended, all |
+| [Adaptive query engine](tasks/adaptive_query_engine/README.md) | Filters, joins, aggregates, and query planning | smoke, extended, all |
+| [Layout-aware pipeline compiler](tasks/layout_aware_pipeline_compiler/README.md) | Tensor layouts, fusion, and scheduling; simulated cycles | smoke, extended, all |
+| [SIMD Traversal Kernel](tasks/simd_traversal_kernel/README.md) | Vectorization, banked gathers, and scheduling; simulated cycles | smoke, extended, all |
+| [Temporal as-of join](tasks/temporal_asof_join/README.md) | Timestamp lookup per entity with deterministic ties | extended, all |
+| [Streaming literal replacement](tasks/streaming_literal_replacement/README.md) | Overlapping byte patterns across chunk boundaries | extended, all |
+| [SQLite analytics reports](tasks/sqlite_analytics_reports/README.md) | Exact grouping, ordering, and SQL NULL semantics | extended, all |
+| [Durable log recovery](tasks/durable_log_recovery/README.md) | Checksummed prefix recovery and duplicate resolution | extended, all |
+| [Labeled graph isomorphism](tasks/labeled_graph_isomorphism/README.md) | Exact graph-equivalence witnesses | extended, all |
+| [Integer factorization](tasks/integer_factorization/README.md) | Prime factors of bounded semiprimes | extended, all |
+| [Minimum spanning tree](tasks/minimum_spanning_tree/README.md) | Optimal tree witnesses with signed edge weights | extended, all |
+| [Articulation points](tasks/articulation_points/README.md) | Vertices whose removal disconnects a graph | extended, all |
+| [Minimum weight assignment](tasks/min_weight_assignment/README.md) | Optimal assignments over signed integer costs | extended, all |
+| [Nearest neighbors](tasks/kd_tree/README.md) | Exact k-nearest neighbors with deterministic ties | extended, all |
+| [Minimum cost maximum flow](tasks/max_flow_min_cost/README.md) | Maximum flow with minimum total cost | extended, all |
+| [Gzip compression](tasks/gzip_compression/README.md) | Exact round trip within a compressed-size bound | extended, all |
+| [Matrix multiplication](tasks/matrix_multiplication/README.md) | Exact signed integer products | extended, all |
+| [Queens with obstacles](tasks/queens_with_obstacles/README.md) | Maximum placement with blocked attack rays | extended, all |
+| [Compiled streaming pattern matching](tasks/compiled_streaming_pattern_matching/README.md) | Pattern compilation and matching across byte chunks | extended, all |
+| [Near-duplicate document clustering](tasks/near_duplicate_document_clustering/README.md) | Exact set similarity and connected components | extended, all |
+| [Capacitated facility location](tasks/capacitated_facility_location/README.md) | Minimum-cost facility opening and customer assignment | all |
+| [Delaunay triangulation](tasks/delaunay/README.md) | Planar triangulation with exact geometric predicates | all |
+| [Discrete logarithm](tasks/discrete_log/README.md) | Exact exponents in prime fields | all |
+| [Earth mover's distance](tasks/earth_movers_distance/README.md) | Minimum-cost transport between mass distributions | all |
+| [FFT convolution](tasks/fft_convolution/README.md) | Exact signed integer signal convolution | all |
+| [Graph coloring](tasks/graph_coloring_assign/README.md) | Proper coloring with the fewest colors | all |
+| [Group lasso](tasks/group_lasso/README.md) | Logistic regression with a group penalty | all |
+| [Job-shop scheduling](tasks/job_shop_scheduling/README.md) | Optimal makespan for fixed operation routes | all |
+| [Matrix completion](tasks/matrix_completion/README.md) | Missing entries that minimize spectral radius | all |
+| [Three-resource knapsack](tasks/multi_dim_knapsack/README.md) | Maximum profit under three resource limits | all |
+| [Robertson kinetics](tasks/ode_stiff_robertson/README.md) | Integration of a stiff chemical system | all |
+| [Out-of-order session windows](tasks/out_of_order_session_windows/README.md) | Session merging, watermarks, and late events | all |
+| [PageRank](tasks/pagerank/README.md) | Weighted graph ranking with a residual certificate | all |
+| [Burgers equation](tasks/pde_burgers1d/README.md) | Integration of a viscous PDE discretization | all |
+| [Randomized SVD](tasks/randomized_svd/README.md) | Low-rank approximation within a quality bound | all |
+| [RBF interpolation](tasks/rbf_interpolation/README.md) | Radial-basis fitting and prediction | all |
+| [Robust Kalman filter](tasks/robust_kalman_filter/README.md) | State estimation with a Huber noise penalty | all |
+| [Rocket landing](tasks/rocket_landing_optimization/README.md) | Minimum-fuel trajectories under thrust constraints | all |
+| [Scratchpad dataflow compiler](tasks/scratchpad_dataflow_compiler/README.md) | Graph scheduling, spilling, and fusion; simulated cycles | all |
+| [Sinkhorn scaling](tasks/sinkhorn/README.md) | Entropy-regularized optimal transport | all |
+| [Smallest sparse eigenvalues](tasks/sparse_lowest_eigenvalues_posdef/README.md) | Lowest eigenvalues of positive-definite sparse matrices | all |
+| [Asymmetric traveling salesperson](tasks/tsp/README.md) | Minimum-cost directed tour | all |
+| [Vehicle routing](tasks/vehicle_routing/README.md) | Optimal depot-returning routes for a fixed fleet size | all |
+| [Example gzip](tasks/example_gzip/README.md) | Starter template with an exact compression round trip | all (template) |
