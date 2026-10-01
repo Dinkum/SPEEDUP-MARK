@@ -4,13 +4,13 @@
     ".gitignore": "8e0135e45b38ce24d381d2f42135c4fc1119193f7b86f5ad057d575ad26e44e9",
     "GUIDE.md": "08733c6208914dbfc0e95f2efa52c1e17f65b6cecc9b797a3ad536ca1384841b",
     "LICENSE": "4c58370a8172fc3976a0077c8860d9dd68943886c278d8f37d07d309bb66584a",
-    "README.md": "a3081ec8832040e59bff16942d1a8076513d7ef6303c0cb594bb1634dbce1af8",
+    "README.md": "665e8976e1b3e04dbd207b09cb3500625ffd1d4b855585ab7bf0e9fec8ab4e48",
     "THIRD_PARTY.json": "c35ea5a24c48a1b74dfb71bb8beb10e8f378b4a29cd6cf3d453d3d943ce8e4a8",
     "diagrams/luna-hermes-progress.json": "befb2e9bd32fa80a527d82ebdd0a7ed70aa11a2c76b7dfeccd9cc56b799a0c27",
     "diagrams/luna-hermes-progress.png": "7b1278a5cefb83c1524e8d68f8260e54f7e17433b632642e4219fd47a381ad8f",
     "diagrams/luna-hermes-progress.svg": "291309c10ab3273ccd1b841a1f485a0bb09f3f3ffadde4d1c7f38ae91f5189f6",
     "requirements-numerical.txt": "98f13c259080e1abe2ec668fc86b1aff93a03fca0b474986a783c89044cfcf28",
-    "scripts/prepare_public.py": "46f24e72d8c345aaf5ab2eefca4783a7e2dbc484ad3a5457482c42283c81e972",
+    "scripts/prepare_public.py": "85f1d72a313bd999da2ba725c4fea7a113e1165e005b215908b348be7b8b340f",
     "speedupmark/__init__.py": "bc46647076891a81cbf26f2b91794423137270a82c3474980b0d0a7dd00d3d40",
     "speedupmark/__main__.py": "7cf6d730eb8d7d1932c7efb435d93f966f3e7e073da27cfcf3403eed657cd362",
     "speedupmark/harness.py": "a78416737f831a1ea3b0494db2eee4c5c81bc9f7167c0b3c8fa6bc2f79e74553",
@@ -207,7 +207,8 @@
     "tests/test_suite_selection.py": "6f933154e460408c4167e05f0f486c26090249108f349baf5b69f244fb8f631e",
     "tests/test_task_crosschecks.py": "4c4fa6b60dd877cbfcc76eac9ff51a0dd4d9bbbd52a93333423ca1e8c6638afd",
     "tests/test_workload_depth.py": "9927ce13ecfcda06bac9c6e9b15ba3ee5f761eb1a9553c8075a56ea4b85fe84d",
-    "tests/test_workload_distributions.py": "ae3781e0dbec3cc5087813887eedd50ea65ef42f5642b527aed6868c268507c2"
+    "tests/test_workload_distributions.py": "ae3781e0dbec3cc5087813887eedd50ea65ef42f5642b527aed6868c268507c2",
+    "version.json": "c4183782e45ec544e34be623297955ef183135347f8b43c944d3579bd6a94e78"
   },
   "format": "speedupmark-public-source-v1"
 }

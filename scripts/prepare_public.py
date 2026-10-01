@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT))
 from speedupmark.task import DEFAULT_CANDIDATE
 
 
-ROOT_FILES = (".gitignore", "LICENSE", "README.md", "GUIDE.md",
+ROOT_FILES = (".gitignore", "LICENSE", "README.md", "GUIDE.md", "version.json",
               "THIRD_PARTY.json", "requirements-numerical.txt",
               "diagrams/luna-hermes-progress.png",
               "diagrams/luna-hermes-progress.svg",

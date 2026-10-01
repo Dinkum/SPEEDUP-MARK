@@ -6,7 +6,7 @@
 
 Models tweak and submit their `candidate.py` to a central grader, so we can track their progress over the course of a run. Each submission must preserve verified correctness.
 
-Speedup is reference cost divided by candidate cost: **2.000x means twice as fast, a 100% speed increase**. Most tasks measure runtime; the three simulated-machine tasks measure cycles.
+Speedup is reference cost divided by candidate cost: **2.000x means twice as fast, a 100% speed increase**.
 
 ![GPT-6 Luna medium with Hermes: verified speedup over time on the layout-aware pipeline compiler](diagrams/luna-hermes-progress.png)
 
