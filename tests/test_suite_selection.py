@@ -22,14 +22,17 @@ class SuiteSelectionTests(unittest.TestCase):
     def test_membership_and_every_selected_task_is_implemented(self):
         implemented = {path.name for path in discover_tasks()}
         self.assertEqual(len(SMOKE_TASKS), 10)
-        self.assertEqual(len(EXTENDED_TASKS), 26)
-        self.assertEqual(len(set(EXTENDED_TASKS)), 26)
+        self.assertEqual(len(EXTENDED_TASKS), 25)
+        self.assertEqual(len(set(EXTENDED_TASKS)), 25)
         self.assertTrue(set(SMOKE_TASKS) <= set(EXTENDED_TASKS) <= implemented)
         self.assertTrue(set(EXTENDED_TASKS) <= implemented)
         self.assertEqual(len(implemented), 50)
         self.assertTrue({
-            "job_shop_scheduling", "multi_dim_knapsack", "pagerank", "tsp", "example_gzip"
+            "job_shop_scheduling", "multi_dim_knapsack", "pagerank", "tsp", "affine_gap_sequence_alignment"
         } <= implemented)
+        self.assertNotIn("example_gzip", implemented)
+        self.assertIn("labeled_graph_isomorphism", implemented)
+        self.assertNotIn("labeled_graph_isomorphism", EXTENDED_TASKS)
         self.assertIn("compiled_streaming_pattern_matching", EXTENDED_TASKS)
         self.assertIn("temporal_asof_join", EXTENDED_TASKS)
         self.assertIn("live_fleet_dispatch", SMOKE_TASKS)
@@ -38,7 +41,7 @@ class SuiteSelectionTests(unittest.TestCase):
 
     def test_direct_cli_lists_selectors_without_running_candidates(self):
         implemented = tuple(path.name for path in discover_tasks())
-        for name in ("default", "smoke", "extended", "all", "example_gzip"):
+        for name in ("default", "smoke", "extended", "all", "affine_gap_sequence_alignment"):
             completed = subprocess.run([sys.executable, "-B", "-m", "speedupmark", name, "--list", "--json"],
                                        cwd=ROOT, text=True, capture_output=True, check=True)
             self.assertEqual(json.loads(completed.stdout), list(selected_tasks(name, implemented)))

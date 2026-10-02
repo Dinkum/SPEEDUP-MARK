@@ -130,7 +130,7 @@ separate identity. A changed content revision requires checking validation again
 
 The task README defines size, family selection, random inputs, and fixed structure.
 The generator is the executable distribution definition. Legal inputs may be
-broader than generated performance inputs. `example_gzip` is an interface template
+broader than generated performance inputs. `examples/example_gzip` is an interface template outside scored suites
 and is excluded from curated suites; its simple round-trip contract is not a deep
 compression challenge. The selected tasks include both algorithmic controls and
 problems with interacting optimization decisions. Selection does not establish a
@@ -149,7 +149,7 @@ model ranking or guaranteed months of optimization runway.
 | [Dynamic Exact Ray Queries](tasks/dynamic_exact_ray_queries/README.md#workload-distribution) | 192, 288 | ms |
 | [Dynamic Shortest-Path Query Engine](tasks/dynamic_shortest_paths/README.md#workload-distribution) | 400, 800 | ms |
 | [Earth Mover's Distance](tasks/earth_movers_distance/README.md#workload-distribution) | 48, 90 | ms |
-| [Example gzip task](tasks/example_gzip/README.md#workload-distribution) | 1000, 2000 | ms |
+| [Affine gap sequence alignment](tasks/affine_gap_sequence_alignment/README.md#workload-distribution) | 256, 384 | ms |
 | [Exact Integer Signal Convolution](tasks/fft_convolution/README.md#workload-distribution) | 420, 840 | ms |
 | [Graph Coloring](tasks/graph_coloring_assign/README.md#workload-distribution) | 14, 20 | ms |
 | [Group Lasso](tasks/group_lasso/README.md#workload-distribution) | 24, 40 | ms |

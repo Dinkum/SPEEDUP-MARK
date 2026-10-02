@@ -30,7 +30,8 @@ def public_payloads(root=ROOT):
     names = list(ROOT_FILES) + [f"speedupmark/{name}" for name in PACKAGE_FILES]
     names += ["tasks/SHORTLIST.md", "scripts/prepare_public.py"]
     names += [path.relative_to(root).as_posix() for path in sorted((root / "tests").glob("*.py"))]
-    candidates = set()
+    names += [f"examples/example_gzip/{name}" for name in ("README.md", "candidate.py", "task_spec.py")]
+    candidates = {"examples/example_gzip/candidate.py"}
     for directory in sorted((root / "tasks").iterdir()):
         if not directory.is_dir() or not (directory / "task_spec.py").is_file():
             continue

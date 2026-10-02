@@ -25,8 +25,11 @@ class PublicDistributionTests(unittest.TestCase):
             self.assertNotIn(name.split('/')[0], ('wiki', 'runs', 'harness', 'watcher', '.git', '.github'))
             self.assertNotIn('__pycache__', name)
             self.assertNotIn(name, ('AGENTS.md', 'ROADMAP.MD'))
-        candidates = [name for name in files if name.endswith('/candidate.py')]
+        candidates = [name for name in files if name.startswith('tasks/') and name.endswith('/candidate.py')]
         self.assertEqual(len(candidates), 50)
+        self.assertIn('examples/example_gzip/README.md', files)
+        self.assertNotIn('tasks/example_gzip/candidate.py', files)
+        self.assertEqual(files['examples/example_gzip/candidate.py'], DEFAULT_CANDIDATE.encode())
         self.assertTrue(all(files[name] == DEFAULT_CANDIDATE.encode() for name in candidates))
 
     def test_public_markdown_links_resolve_inside_distribution(self):

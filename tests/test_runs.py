@@ -602,7 +602,7 @@ class SuiteSummaryTests(unittest.TestCase):
         self.assertIn('1.0.0', output.getvalue())
 
     def test_unrun_expected_tasks_keep_their_contract_versions(self):
-        tasks = ('example_gzip', 'incremental_multiway_join')
+        tasks = ('affine_gap_sequence_alignment', 'incremental_multiway_join')
         versions = run_manager._task_versions(tasks)
         report = run_manager.summarize_suite(tasks, [], task_versions=versions)
         self.assertEqual(report['score_factors'], [

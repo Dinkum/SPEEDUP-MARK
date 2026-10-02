@@ -285,7 +285,7 @@ def _run_isolated(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run SPEEDUP-MARK's smoke 10 (default), extended 26, all implemented tasks, or one task.")
+    parser = argparse.ArgumentParser(description="Run SPEEDUP-MARK's smoke 10 (default), extended 25, all implemented tasks, or one task.")
     parser.add_argument("target", nargs="?", default="smoke", help="default/smoke, extended, all, task name, or task directory")
     parser.add_argument("--list", action="store_true", help="list the selected tasks without loading them")
     parser.add_argument("--n", type=int, default=None, help="override each task's default problem size")

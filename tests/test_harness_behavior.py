@@ -20,9 +20,9 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 class MeasurementTests(unittest.TestCase):
     def test_fresh_seeds_and_explicit_replay(self):
         with patch('speedupmark.harness.secrets.randbits', side_effect=[123, 456]) as entropy:
-            first = run_task(ROOT / 'tasks/example_gzip', samples=3)
-            second = run_task(ROOT / 'tasks/example_gzip', samples=3)
-            replay = run_task(ROOT / 'tasks/example_gzip', seed=123, samples=3)
+            first = run_task(ROOT / 'examples/example_gzip', samples=3)
+            second = run_task(ROOT / 'examples/example_gzip', samples=3)
+            replay = run_task(ROOT / 'examples/example_gzip', seed=123, samples=3)
         self.assertEqual(entropy.call_count, 2)
         self.assertEqual([s.seed for s in first.samples], [123, 124, 125])
         self.assertEqual([s.seed for s in second.samples], [456, 457, 458])
@@ -34,7 +34,7 @@ class MeasurementTests(unittest.TestCase):
                 resolve_seed(bad)
 
     def test_cli_records_random_seed_and_accepts_replay(self):
-        command = [sys.executable, '-B', '-m', 'speedupmark', 'example_gzip', '--json']
+        command = [sys.executable, '-B', '-m', 'speedupmark', 'examples/example_gzip', '--json']
         first = json.loads(subprocess.check_output(command, cwd=ROOT, text=True))
         seed = first['config']['seed']
         self.assertEqual(first['config']['seed_source'], 'random')

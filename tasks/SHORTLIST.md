@@ -5,10 +5,10 @@ The selectors are shared by direct grading and managed launches:
 | Selector | Selection |
 | --- | --- |
 | default invocation, `default`, `smoke` | 10 tasks selected for varied optimization decisions and local practicality |
-| `extended` | 26 tasks including the entire smoke set |
+| `extended` | 25 tasks including the entire smoke set |
 | `all` | All 50 implemented runnable task directories |
 
-`speedupmark/suites.py` owns the ordered selections. `--list` lists the direct-grading selection without importing candidates. The `all` selector includes the selected 26, 23 additional implemented tasks, and the gzip interface example.
+`speedupmark/suites.py` owns the ordered selections. `--list` lists the direct-grading selection without importing candidates. The `all` selector includes the selected 25 and 25 additional benchmark tasks.
 
 ## Smoke ten
 
@@ -29,7 +29,7 @@ Multiway join and dynamic paths include three distinct workload families in ever
 
 ## Extended additions
 
-These 16 tasks complete the extended set of 26:
+These 15 tasks complete the extended set of 25:
 
 | Task | Selection rationale |
 | --- | --- |
@@ -37,7 +37,6 @@ These 16 tasks complete the extended set of 26:
 | `streaming_literal_replacement` | Byte matching, overlaps and simultaneous replacement semantics |
 | `sqlite_analytics_reports` | Exact SQL NULL, grouping, duplicate and ordering behavior |
 | `durable_log_recovery` | Checksums, torn segments, duplicate precedence and durable prefixes |
-| `labeled_graph_isomorphism` | Exact labeled graph witnesses and structural pruning on bounded instances |
 | `integer_factorization` | Balanced and unbalanced semiprimes; exact prime-factor witnesses |
 | `minimum_spanning_tree` | Sparse graph processing and exact minimum-weight tree witnesses |
 | `articulation_points` | Graph connectivity under vertex deletion; traversal reuse |
@@ -56,7 +55,7 @@ The catalog adaptations are independently authored standard-library tasks with b
 
 ## All and the starter template
 
-`example_gzip` is the interface example under `all`. Its verifier checks a round trip without limiting compressed size, so it is excluded from both curated selections. `gzip_compression` instead requires one complete gzip member, an exact round trip, no trailing data, and at most `ceil(1.001 * reference_bytes)` bytes relative to zlib level 9.
+`examples/example_gzip` is an interface example outside scored suites. Its verifier checks a round trip without limiting compressed size. Affine gap sequence alignment is included in `all`. Labeled graph isomorphism remains in `all` and is excluded from `extended`. `gzip_compression` instead requires one complete gzip member, an exact round trip, no trailing data, and at most `ceil(1.001 * reference_bytes)` bytes relative to zlib level 9.
 
 Every retained runnable task declares `task_version` in `task_spec.py`; [Task versions](../GUIDE.md#task-versions) defines when to bump it.
 

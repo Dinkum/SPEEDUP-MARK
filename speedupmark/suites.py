@@ -18,7 +18,6 @@ EXTENDED_TASKS = SMOKE_TASKS + (
     "streaming_literal_replacement",
     "sqlite_analytics_reports",
     "durable_log_recovery",
-    "labeled_graph_isomorphism",
     "integer_factorization",
     "minimum_spanning_tree",
     "articulation_points",
