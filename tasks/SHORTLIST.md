@@ -25,7 +25,7 @@ The selectors are shared by direct grading and managed launches:
 | `layout_aware_pipeline_compiler` | Fusion boundaries, intermediate layouts, recomputation and shuffling under simulated resource limits |
 | `simd_traversal_kernel` | Dependent SIMD traversals with banked gathers, scratch pressure, and private runtime data |
 
-Multiway join and dynamic paths include three distinct workload families in every generated input; the ray task, the query engine, the compiler and the pattern matcher include four, five, four and five. Their baselines respectively implement indexed first-order deltas, heap Dijkstra, brute-force exact intersection, a fixed left-deep plan, a materialize-everything schedule, and per-pattern automata. Independent verification does not rely on candidate-reported timing or correctness.
+Multiway join and dynamic paths include three distinct workload families in every generated input; the ray task, the query engine, the compiler and the pattern matcher include four, five, four and five. Their baselines respectively implement indexed first-order deltas, heap Dijkstra, brute-force exact intersection, a written-order interpreter over varying plans, a materialize-everything schedule, and per-pattern automata. Independent verification does not rely on candidate-reported timing or correctness.
 
 ## Extended additions
 
@@ -34,22 +34,22 @@ These 15 tasks complete the extended set of 25:
 | Task | Selection rationale |
 | --- | --- |
 | `temporal_asof_join` | Useful sorting/indexing control; exact timestamp and sequence ties |
-| `streaming_literal_replacement` | Byte matching, overlaps and simultaneous replacement semantics |
-| `sqlite_analytics_reports` | Exact SQL NULL, grouping, duplicate and ordering behavior |
+| `multi_literal_replacement` | Byte matching, overlaps and simultaneous replacement semantics |
+| `grouped_analytics_reports` | Exact SQL NULL, grouping, duplicate and ordering behavior |
 | `durable_log_recovery` | Checksums, torn segments, duplicate precedence and durable prefixes |
-| `integer_factorization` | Balanced and unbalanced semiprimes; exact prime-factor witnesses |
+| `integer_factorization` | Close, smooth-factor, balanced and unbalanced semiprimes; exact prime-factor witnesses |
 | `minimum_spanning_tree` | Sparse graph processing and exact minimum-weight tree witnesses |
 | `articulation_points` | Graph connectivity under vertex deletion; traversal reuse |
 | `min_weight_assignment` | Signed cost matrices, ties, and exact optimal assignments |
-| `kd_tree` | Exact nearest neighbors across dimensions, ties and clustered points |
-| `max_flow_min_cost` | Residual networks, augmentation, and exact optimal flow witnesses |
+| `exact_k_nearest_neighbors` | Exact nearest neighbors across dimensions, ties and clustered points |
+| `min_cost_max_flow` | Residual networks, augmentation, and exact optimal flow witnesses |
 | `gzip_compression` | Lossless compression with an enforced size ceiling |
 | `matrix_multiplication` | Exact signed integer dense/sparse matrix kernels |
 | `queens_with_obstacles` | Bounded exact combinatorial search with attack-blocking obstacles |
-| `compiled_streaming_pattern_matching` | Representation choice per pattern family; literal scanning, shared automata and a compile-versus-scan budget |
+| `multi_pattern_matching` | Representation choice per pattern family; literal scanning, shared automata and a compile-versus-scan budget |
 | `near_duplicate_document_clustering` | Exact set-similarity search and component closure under size variation, common shingles, and threshold-adjacent overlaps |
 
-As-of join and literal replacement remain useful controls even though their first large improvements often come from familiar algorithms. Graph isomorphism is also bounded and often fast; its small timings are less useful for fine performance ranking. Queens has data-dependent exact-search cost, so its 10/12 board sizes are intentionally bounded. Dispatch measures whether improvements to paths, tours, and allocation survive their integration into one timed pipeline.
+As-of join and literal replacement remain useful controls even though their first large improvements often come from familiar algorithms. Queens has data-dependent exact-search cost, so its 10/12 board sizes are intentionally bounded. Dispatch measures whether improvements to paths, tours, and allocation survive their integration into one timed pipeline.
 
 The catalog adaptations are independently authored standard-library tasks with bounded generators. Each README defines its SPEEDUP-MARK-specific representation, oracle, metric, and provenance.
 

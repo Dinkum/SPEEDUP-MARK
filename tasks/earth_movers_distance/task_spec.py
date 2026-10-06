@@ -16,6 +16,7 @@ os.environ.setdefault("MKL_NUM_THREADS", "1")
 os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
 os.environ.setdefault("VECLIB_MAXIMUM_THREADS", "1")
 
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import load_candidate
 
 
@@ -34,7 +35,7 @@ def _need():
         raise ImportError(
             "earth_movers_distance requires optional dependencies: numpy, scipy. "
             "Install the pinned numerical extra in requirements-numerical.txt. "
-            "Smoke and lightweight do not include this task."
+            "The smoke and extended suites do not include this task."
         ) from exc
     return numpy, scipy.optimize
 
@@ -81,9 +82,32 @@ def _optimal_cost(source, target, cost):
     return float(result.fun), plan
 
 
+def _transport_dual_bound(source, target, cost):
+    """Solve the dual model, then explicitly validate every inequality."""
+    numpy, optimize = _need()
+    matrix = numpy.asarray(cost, dtype=float)
+    rows, cols = matrix.shape
+    constraints = numpy.zeros((rows * cols, rows + cols))
+    for i in range(rows):
+        constraints[i * cols:(i + 1) * cols, i] = 1.0
+    for j in range(cols):
+        constraints[j::cols, rows + j] = 1.0
+    weights = numpy.asarray([*source, *target], dtype=float)
+    result = optimize.linprog(-weights, A_ub=constraints, b_ub=matrix.ravel(),
+                              bounds=[(0, 0)] + [(None, None)] * (rows + cols - 1), method="highs")
+    if not result.success or not numpy.isfinite(result.x).all():
+        raise ValueError("transport dual solver failed")
+    potentials = result.x.copy()
+    # Roundoff must not turn a purported lower bound into an overestimate.
+    violation = max(0.0, float(numpy.max(potentials[:rows, None] + potentials[None, rows:] - matrix)))
+    potentials[:rows] -= violation
+    return float(weights @ potentials)
+
+
 class EarthMoversDistance:
     name = "earth_movers_distance"
-    task_version = "1.1.0"
+    task_version = "1.1.1"
+    display_name = TASK_CATALOG[name].display_name
     default_n = 48
     grading_cases = (48, 90)
 
@@ -152,8 +176,8 @@ class EarthMoversDistance:
         scale = max(1.0, sum(source))
         if not _marginals_ok(parsed, source, target, 1e-6 * scale):
             return False
-        optimal, _plan = _optimal_cost(source, target, cost)
-        return abs(_plan_cost(cost, parsed) - optimal) <= 1e-6 * max(1.0, abs(optimal))
+        lower_bound = _transport_dual_bound(source, target, cost)
+        return abs(_plan_cost(cost, parsed) - lower_bound) <= 1e-6 * max(1.0, abs(lower_bound))
 
 
 _need()

@@ -21,9 +21,9 @@ built from
 - `("topk", input, column, k)`
 - `("project", input, columns)`
 
-Filters are generated *above* the joins and joins in a fixed left-deep order, so
-pushing a predicate into a scan, choosing which side to hash, and reordering a
-three-way join are real decisions rather than decoration.
+The five workload families anchor selective filters, permissive filters, skew, top-k, and shared subplans. Each input varies join orientation, predicate nesting, aggregate functions and order, projection order, top-k limits, and two to four additional operator compositions per family. Table and source-column names are randomized. Shared subtrees remain shared after transformation. The grammar is bounded, with no SQL parsing or arbitrary SQL support.
+
+A column name resolves to its first occurrence in the input schema; equality joins preserve both copies of a duplicated join-key column.
 
 Implement `candidate.py::solve(problem, reference_solve)` and return, per family,
 a tuple of answers, one per query. An answer is a tuple of row tuples sorted
@@ -32,27 +32,20 @@ order (*column* descending, then the whole row tuple ascending) and returns the
 survivors ascending, so the boundary between rank `k` and rank `k+1` is decided
 exactly even when values tie.
 
-Submissions must be plain tuples or lists of exact integers (no container subclasses): a lazy sequence could otherwise do its work during untimed verification.
+Answers and rows must use built-in tuples or lists; row values must be exact Python `int` values.
 
 Library policy: this task is about building the engine. An embedded relational
 engine (`sqlite3`, `duckdb`, `polars`, `pandas`, `pandasql`, `sqlalchemy`, `apsw`,
-`datafusion`, `pyarrow`, `sqlglot`) is not an optimization here. `speedupmark.task
-.forbidden_imports` combines the candidate's module attributes, forbidden names
-inside its code objects, the roots `watch_imports` observes during the call, and
-the `sys.modules` delta — the last two matter because `from sqlite3 import
-connect` binds a function whose `__module__` is the C extension `_sqlite3`, and
-because a function-local import binds nothing at module level. A submission that
-trips the check fails verification. Dictionaries, heaps, sorting and `itertools`
-are primitives and are allowed. The check is good-faith, not a sandbox.
+`datafusion`, `pyarrow`, `sqlglot`) is forbidden. Dictionaries, heaps, sorting
+and `itertools` are allowed.
 
 ## Scoring and verification
 
 The harness times `solve` and `candidate_solve` in host milliseconds and verifies
-with a re-derived answer, so candidate-reported timing and correctness are never
-trusted. Every part of a candidate's work — planning, index construction,
+with a separate sort/merge relational interpreter. It uses merge joins and sorted group reduction rather than the reference hash joins and incremental accumulators. Every part of a candidate's work — planning, index construction,
 materializing intermediates — is inside the timed call.
 
-## Reference and families
+## Reference and verification
 
 `_evaluate_node` walks each tree exactly as written: it materializes every scan,
 hashes the *written* left input of every join and probes with the right, applies
@@ -66,19 +59,27 @@ Candidates can also choose join build sides, estimate intermediate sizes,
 reorder joins, or aggregate early where the join key permits it. The relative
 benefit depends on the generated workload and the machine running it.
 
-This is an independently authored SPEEDUP-MARK task, not an AlgoTune port.
-
-```console
-python3 -m speedupmark adaptive_query_engine
-```
-
-Inside a managed run, use `python3 grade.py`. Edit only `candidate.py`.
+The task implementation is original SPEEDUP-MARK code.
 
 ## Workload distribution
 
 - **Size:** n scales table cardinalities (minimum 32).
 - **Selection:** Every input contains selective_filter, permissive_filter, skew, topk, and shared_subplan.
-- **Randomized:** Customer, order, item, line-item, and event values and join keys; each family uses its own table-size ratios and value ranges in the generator helpers.
-- **Fixed structure:** The query trees, predicates, top-k limits, and family order are fixed; rows vary. This is a distribution over data for these query templates, not arbitrary query programs.
+- **Randomized:** Table values and keys, table/column names, join orientation, predicate thresholds and nesting, aggregate functions/order, projection order, top-k limits, query order, and additional filter/group/top-k compositions. Each family retains its table-size ratios and value ranges.
+- **Fixed structure:** Five family anchors and the six-operator grammar are fixed. `_vary_plans` transforms and extends the anchor trees; this is a bounded grammar distribution, not arbitrary SQL. Family order stays fixed.
 
 The executable definition is [`task_spec.py`](task_spec.py), `generate_problem` and its helpers. See [sampling and coverage](../../GUIDE.md#sampling) for how the grader chooses and records seeds.
+
+## Grading
+
+Edit only `candidate.py`, preserving `solve(problem, reference_solve)`.
+
+From the repository root:
+
+```console
+python3 -m speedupmark adaptive_query_engine
+```
+
+Inside a managed run, use `python3 grade.py` to record progress.
+See the [submission rules](../../GUIDE.md#submission-rules) and
+[scoring guide](../../GUIDE.md#scoring) for shared requirements.

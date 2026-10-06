@@ -15,19 +15,19 @@ SMOKE_TASKS = (
 
 EXTENDED_TASKS = SMOKE_TASKS + (
     "temporal_asof_join",
-    "streaming_literal_replacement",
-    "sqlite_analytics_reports",
+    "multi_literal_replacement",
+    "grouped_analytics_reports",
     "durable_log_recovery",
     "integer_factorization",
     "minimum_spanning_tree",
     "articulation_points",
     "min_weight_assignment",
-    "kd_tree",
-    "max_flow_min_cost",
+    "exact_k_nearest_neighbors",
+    "min_cost_max_flow",
     "gzip_compression",
     "matrix_multiplication",
     "queens_with_obstacles",
-    "compiled_streaming_pattern_matching",
+    "multi_pattern_matching",
     "near_duplicate_document_clustering",
 )
 

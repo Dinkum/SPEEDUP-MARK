@@ -28,12 +28,12 @@ class SuiteSelectionTests(unittest.TestCase):
         self.assertTrue(set(EXTENDED_TASKS) <= implemented)
         self.assertEqual(len(implemented), 50)
         self.assertTrue({
-            "job_shop_scheduling", "multi_dim_knapsack", "pagerank", "tsp", "affine_gap_sequence_alignment"
+            "job_shop_scheduling", "multi_dim_knapsack", "pagerank", "asymmetric_tsp", "affine_gap_sequence_alignment"
         } <= implemented)
         self.assertNotIn("example_gzip", implemented)
         self.assertIn("labeled_graph_isomorphism", implemented)
         self.assertNotIn("labeled_graph_isomorphism", EXTENDED_TASKS)
-        self.assertIn("compiled_streaming_pattern_matching", EXTENDED_TASKS)
+        self.assertIn("multi_pattern_matching", EXTENDED_TASKS)
         self.assertIn("temporal_asof_join", EXTENDED_TASKS)
         self.assertIn("live_fleet_dispatch", SMOKE_TASKS)
         self.assertNotIn("near_duplicate_document_clustering", SMOKE_TASKS)

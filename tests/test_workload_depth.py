@@ -61,7 +61,7 @@ class WorkloadDepthTests(unittest.TestCase):
                     self.assertEqual(exists, answer is not None)
 
     def test_symmetric_coloring_varies_graph_and_optimum(self):
-        benchmark = task('graph_coloring_assign')
+        benchmark = task('graph_coloring')
         graphs, optima = set(), set()
         for seed in range(2, 50, 4):
             matrix = benchmark.generate_problem(14, seed)

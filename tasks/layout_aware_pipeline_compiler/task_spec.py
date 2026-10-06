@@ -24,6 +24,7 @@ import random
 import secrets
 import struct
 
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import SolutionEvaluation, load_candidate
 
 
@@ -673,7 +674,7 @@ def _evaluate_submissions(problem, outputs, *, replay=None, record=None):
 class LayoutAwarePipelineCompilerTask:
     name = "layout_aware_pipeline_compiler"
     task_version = "2.0.2"
-    display_name = "Layout-Aware Pipeline Compiler"
+    display_name = TASK_CATALOG[name].display_name
     default_n = 32
     grading_cases = (32, 48)
     metric_unit = "cycles"

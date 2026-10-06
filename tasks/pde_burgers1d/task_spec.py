@@ -15,6 +15,7 @@ os.environ.setdefault("MKL_NUM_THREADS", "1")
 os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
 os.environ.setdefault("VECLIB_MAXIMUM_THREADS", "1")
 
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import load_candidate
 
 
@@ -33,7 +34,7 @@ def _need():
         raise ImportError(
             "pde_burgers1d requires optional dependencies: numpy, scipy. "
             "Install the pinned numerical extra in requirements-numerical.txt. "
-            "Smoke and lightweight do not include this task."
+            "The smoke and extended suites do not include this task."
         ) from exc
     return numpy, scipy.integrate
 
@@ -69,6 +70,7 @@ def _integrate(problem, method):
 class Burgers1D:
     name = "pde_burgers1d"
     task_version = "1.1.0"
+    display_name = TASK_CATALOG[name].display_name
     default_n = 120
     grading_cases = (120, 200)
 

@@ -9,6 +9,7 @@ intentional addition. See README.md.
 
 import random
 
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import load_candidate
 
 
@@ -78,9 +79,44 @@ def _solve_dp(fixed, capacities, demands, transport):
     return dp[full], status, assignment
 
 
+def _no_cheaper_assignment(problem, target):
+    """Independent customer-first branch search, rather than facility subsets."""
+    demands, fixed, capacity = problem["demands"], problem["fixed_costs"], problem["capacities"]
+    costs = problem["transportation_costs"]
+    facilities = len(fixed)
+    order = sorted(range(len(demands)), key=lambda j: (-demands[j], j))
+    minimum = [min(costs[i][j] for i in range(facilities)) for j in order]
+    suffix = [0] * (len(order) + 1)
+    for j in range(len(order) - 1, -1, -1):
+        suffix[j] = suffix[j + 1] + minimum[j]
+    seen = {}
+    def cheaper(position, loads, opened, cost):
+        if cost + suffix[position] >= target:
+            return False
+        if position == len(order):
+            return True
+        state = position, loads, opened
+        if seen.get(state, float("inf")) <= cost:
+            return False
+        seen[state] = cost
+        customer = order[position]
+        for facility in sorted(range(facilities), key=lambda i: costs[i][customer]):
+            if loads[facility] + demands[customer] > capacity[facility]:
+                continue
+            next_loads = list(loads)
+            next_loads[facility] += demands[customer]
+            opening = 0 if opened & (1 << facility) else fixed[facility]
+            if cheaper(position + 1, tuple(next_loads), opened | (1 << facility),
+                       cost + costs[facility][customer] + opening):
+                return True
+        return False
+    return not cheaper(0, (0,) * facilities, 0, 0)
+
+
 class CapacitatedFacilityLocation:
     name = "capacitated_facility_location"
-    task_version = "1.1.1"
+    task_version = "1.1.2"
+    display_name = TASK_CATALOG[name].display_name
     default_n = 8
     grading_cases = (8, 11)
 
@@ -185,8 +221,7 @@ class CapacitatedFacilityLocation:
             return False
         if cost != objective:
             return False
-        optimal, _, _ = _solve_dp(fixed, capacities, demands, transport)
-        return cost == optimal
+        return _no_cheaper_assignment(problem, cost)
 
 
 TASK = CapacitatedFacilityLocation()

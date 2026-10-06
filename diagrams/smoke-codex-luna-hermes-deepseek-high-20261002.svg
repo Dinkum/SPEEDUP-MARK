@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="642" viewBox="0 0 1180 642" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif">
+<rect x="0.5" y="0.5" width="1179" height="641" rx="14" fill="#ffffff" stroke="#e4e7eb"/>
+<text x="44" y="58" font-size="15"><tspan font-weight="700" letter-spacing="0.6" fill="#1b1f24">SPEEDUP-MARK</tspan><tspan fill="#6b7280" dx="8">0.0.2</tspan><tspan fill="#6b7280" dx="8">(Smoke)</tspan></text>
+<circle cx="50" cy="92" r="6" fill="#ea6a1f"/>
+<text x="64" y="98" font-size="19" font-weight="700" fill="#1b1f24">6 Luna High</text>
+<text x="64" y="120" font-size="12.5" font-family="Menlo, 'SF Mono', Consolas, monospace" fill="#6b7280">Codex CLI 0.159.0</text>
+<circle cx="438" cy="92" r="6" fill="#2563eb"/>
+<text x="452" y="98" font-size="19" font-weight="700" fill="#1b1f24">DeepSeek 4.1 Flash High</text>
+<text x="452" y="120" font-size="12.5" font-family="Menlo, 'SF Mono', Consolas, monospace" fill="#6b7280">Hermes 0.21.5</text>
+<text x="44" y="164" font-size="11" fill="#9aa1ab" letter-spacing="0.8" font-weight="600">TASK</text>
+<text x="392" y="164" font-size="11" fill="#9aa1ab" letter-spacing="0.8" font-weight="600" text-anchor="end">VERSION</text>
+<text x="432" y="164" font-size="11" fill="#9aa1ab" letter-spacing="0.8" font-weight="600">SPEEDUP VS REFERENCE  ·  LOG SCALE</text>
+<circle cx="1029" cy="160" r="5" fill="#ea6a1f"/>
+<circle cx="1131" cy="160" r="5" fill="#2563eb"/>
+<rect x="32" y="178" width="1116" height="36" rx="6" fill="#f7f8fa"/>
+<rect x="32" y="250" width="1116" height="36" rx="6" fill="#f7f8fa"/>
+<rect x="32" y="322" width="1116" height="36" rx="6" fill="#f7f8fa"/>
+<rect x="32" y="394" width="1116" height="36" rx="6" fill="#f7f8fa"/>
+<rect x="32" y="466" width="1116" height="36" rx="6" fill="#f7f8fa"/>
+<line x1="520.2375424275078" y1="174" x2="520.2375424275078" y2="588" stroke="#e9ecf0" stroke-width="1"/>
+<line x1="636.8812287862461" y1="174" x2="636.8812287862461" y2="588" stroke="#e9ecf0" stroke-width="1"/>
+<line x1="725.1187712137539" y1="174" x2="725.1187712137539" y2="588" stroke="#e9ecf0" stroke-width="1"/>
+<line x1="813.3563136412617" y1="174" x2="813.3563136412617" y2="588" stroke="#e9ecf0" stroke-width="1"/>
+<line x1="930" y1="174" x2="930" y2="588" stroke="#e9ecf0" stroke-width="1"/>
+<line x1="32" y1="548" x2="1148" y2="548" stroke="#e4e7eb" stroke-width="1.5"/>
+<text x="44" y="201" font-size="15" font-weight="500" fill="#1b1f24">Incremental spreadsheet recalculation</text>
+<text x="392" y="201" font-size="12.5" font-family="Menlo, 'SF Mono', Consolas, monospace" fill="#6b7280" text-anchor="end">1.1.0</text>
+<rect data-model="codex" data-score="26.649313078156627" x="432" y="186" width="417.89533402098255" height="8" rx="2" fill="#ea6a1f"/><rect data-model="hermes" data-score="46.53297087057257" x="432" y="198" width="488.85199071670854" height="8" rx="2" fill="#2563eb"/>
+<text x="1034" y="201" font-size="15" font-weight="600" fill="#ea6a1f" text-anchor="end">26.65×</text>
+<text x="1136" y="201" font-size="15" font-weight="600" fill="#2563eb" text-anchor="end">46.53×</text>
+<text x="44" y="237" font-size="15" font-weight="500" fill="#1b1f24">SIMD traversal kernel</text>
+<text x="392" y="237" font-size="12.5" font-family="Menlo, 'SF Mono', Consolas, monospace" fill="#6b7280" text-anchor="end">1.1.0</text>
+<rect data-model="codex" data-score="15.971145897772978" x="432" y="222" width="352.72039225233493" height="8" rx="2" fill="#ea6a1f"/><rect data-model="hermes" data-score="24.06227619086788" x="432" y="234" width="404.89571830315913" height="8" rx="2" fill="#2563eb"/>
+<text x="1034" y="237" font-size="15" font-weight="600" fill="#ea6a1f" text-anchor="end">15.97×</text>
+<text x="1136" y="237" font-size="15" font-weight="600" fill="#2563eb" text-anchor="end">24.06×</text>
+<text x="44" y="273" font-size="15" font-weight="500" fill="#1b1f24">Ranked BPE tokenization</text>
+<text x="392" y="273" font-size="12.5" font-family="Menlo, 'SF Mono', Consolas, monospace" fill="#6b7280" text-anchor="end">1.2.1</text>
+<rect data-model="codex" data-score="7.90166663367892" x="432" y="258" width="263.1382031547921" height="8" rx="2" fill="#ea6a1f"/><rect data-model="hermes" data-score="27.901139017583635" x="432" y="270" width="423.73892463627885" height="8" rx="2" fill="#2563eb"/>
+<text x="1034" y="273" font-size="15" font-weight="600" fill="#ea6a1f" text-anchor="end">7.90×</text>
+<text x="1136" y="273" font-size="15" font-weight="600" fill="#2563eb" text-anchor="end">27.90×</text>
+<text x="44" y="309" font-size="15" font-weight="500" fill="#1b1f24">Dynamic exact ray queries</text>
+<text x="392" y="309" font-size="12.5" font-family="Menlo, 'SF Mono', Consolas, monospace" fill="#6b7280" text-anchor="end">1.1.0</text>
+<rect data-model="codex" data-score="2.8872793740697187" x="432" y="294" width="134.977913671784" height="8" rx="2" fill="#ea6a1f"/><rect data-model="hermes" data-score="39.2255188529901" x="432" y="306" width="467.1048982797022" height="8" rx="2" fill="#2563eb"/>
+<text x="1034" y="309" font-size="15" font-weight="600" fill="#ea6a1f" text-anchor="end">2.89×</text>
+<text x="1136" y="309" font-size="15" font-weight="600" fill="#2563eb" text-anchor="end">39.23×</text>
+<text x="44" y="345" font-size="15" font-weight="500" fill="#1b1f24">Dynamic shortest paths</text>
+<text x="392" y="345" font-size="12.5" font-family="Menlo, 'SF Mono', Consolas, monospace" fill="#6b7280" text-anchor="end">1.1.0</text>
+<rect data-model="codex" data-score="1.5982058131786467" x="432" y="330" width="59.68856856147596" height="8" rx="2" fill="#ea6a1f"/><rect data-model="hermes" data-score="8.110431139626765" x="432" y="342" width="266.4578430637705" height="8" rx="2" fill="#2563eb"/>
+<text x="1034" y="345" font-size="15" font-weight="600" fill="#ea6a1f" text-anchor="end">1.60×</text>
+<text x="1136" y="345" font-size="15" font-weight="600" fill="#2563eb" text-anchor="end">8.11×</text>
+<text x="44" y="381" font-size="15" font-weight="500" fill="#1b1f24">Adaptive query engine</text>
+<text x="392" y="381" font-size="12.5" font-family="Menlo, 'SF Mono', Consolas, monospace" fill="#6b7280" text-anchor="end">1.1.0</text>
+<rect data-model="codex" data-score="1.7403600565436066" x="432" y="366" width="70.5358393877537" height="8" rx="2" fill="#ea6a1f"/><rect data-model="hermes" data-score="4.729686669140884" x="432" y="378" width="197.80603526917207" height="8" rx="2" fill="#2563eb"/>
+<text x="1034" y="381" font-size="15" font-weight="600" fill="#ea6a1f" text-anchor="end">1.74×</text>
+<text x="1136" y="381" font-size="15" font-weight="600" fill="#2563eb" text-anchor="end">4.73×</text>
+<text x="44" y="417" font-size="15" font-weight="500" fill="#1b1f24">Live fleet dispatch</text>
+<text x="392" y="417" font-size="12.5" font-family="Menlo, 'SF Mono', Consolas, monospace" fill="#6b7280" text-anchor="end">1.2.0</text>
+<rect data-model="codex" data-score="1.8424690674310948" x="432" y="402" width="77.79378207913385" height="8" rx="2" fill="#ea6a1f"/><rect data-model="hermes" data-score="3.7296316436675125" x="432" y="414" width="167.56601814663827" height="8" rx="2" fill="#2563eb"/>
+<text x="1034" y="417" font-size="15" font-weight="600" fill="#ea6a1f" text-anchor="end">1.84×</text>
+<text x="1136" y="417" font-size="15" font-weight="600" fill="#2563eb" text-anchor="end">3.73×</text>
+<text x="44" y="453" font-size="15" font-weight="500" fill="#1b1f24">Dynamic document search</text>
+<text x="392" y="453" font-size="12.5" font-family="Menlo, 'SF Mono', Consolas, monospace" fill="#6b7280" text-anchor="end">1.2.0</text>
+<rect data-model="codex" data-score="1.9709297294215977" x="432" y="438" width="86.37364259481558" height="8" rx="2" fill="#ea6a1f"/><rect data-model="hermes" data-score="2.7863757146013866" x="432" y="450" width="130.44948304599802" height="8" rx="2" fill="#2563eb"/>
+<text x="1034" y="453" font-size="15" font-weight="600" fill="#ea6a1f" text-anchor="end">1.97×</text>
+<text x="1136" y="453" font-size="15" font-weight="600" fill="#2563eb" text-anchor="end">2.79×</text>
+<text x="44" y="489" font-size="15" font-weight="500" fill="#1b1f24">Layout aware pipeline compiler</text>
+<text x="392" y="489" font-size="12.5" font-family="Menlo, 'SF Mono', Consolas, monospace" fill="#6b7280" text-anchor="end">2.0.2</text>
+<rect data-model="codex" data-score="1.0695763504261933" x="432" y="474" width="8.562524460303052" height="8" rx="2" fill="#ea6a1f"/><rect data-model="hermes" data-score="1.6199948587314754" x="432" y="486" width="61.41237961120538" height="8" rx="2" fill="#2563eb"/>
+<text x="1034" y="489" font-size="15" font-weight="600" fill="#ea6a1f" text-anchor="end">1.07×</text>
+<text x="1136" y="489" font-size="15" font-weight="600" fill="#2563eb" text-anchor="end">1.62×</text>
+<text x="44" y="525" font-size="15" font-weight="500" fill="#1b1f24">Incremental multiway join</text>
+<text x="392" y="525" font-size="12.5" font-family="Menlo, 'SF Mono', Consolas, monospace" fill="#6b7280" text-anchor="end">1.1.0</text>
+<rect data-model="codex" data-score="1.1818695460745507" x="432" y="510" width="21.271494999868708" height="8" rx="2" fill="#ea6a1f"/><rect data-model="hermes" data-score="1.2905372058415638" x="432" y="522" width="32.468921538825384" height="8" rx="2" fill="#2563eb"/>
+<text x="1034" y="525" font-size="15" font-weight="600" fill="#ea6a1f" text-anchor="end">1.18×</text>
+<text x="1136" y="525" font-size="15" font-weight="600" fill="#2563eb" text-anchor="end">1.29×</text>
+<text x="44" y="575" font-size="15" font-weight="700" fill="#1b1f24">Geometric mean</text>
+<rect data-model="codex" data-score="3.230988483395384" x="432" y="558" width="149.2957695183244" height="10" rx="2" fill="#ea6a1f"/><rect data-model="hermes" data-score="7.960043137701686" x="432" y="572" width="264.07522126114577" height="10" rx="2" fill="#2563eb"/>
+<text x="1034" y="576" font-size="18" font-weight="700" fill="#ea6a1f" text-anchor="end">3.23×</text>
+<text x="1136" y="576" font-size="18" font-weight="700" fill="#2563eb" text-anchor="end">7.96×</text>
+<text x="432" y="606" font-size="12" font-weight="700" fill="#1b1f24" text-anchor="start">1× reference</text>
+<text x="520.2375424275078" y="606" font-size="12" font-weight="400" fill="#6b7280" text-anchor="middle">2×</text>
+<text x="636.8812287862461" y="606" font-size="12" font-weight="400" fill="#6b7280" text-anchor="middle">5×</text>
+<text x="725.1187712137539" y="606" font-size="12" font-weight="400" fill="#6b7280" text-anchor="middle">10×</text>
+<text x="813.3563136412617" y="606" font-size="12" font-weight="400" fill="#6b7280" text-anchor="middle">20×</text>
+<text x="930" y="606" font-size="12" font-weight="400" fill="#6b7280" text-anchor="middle">50×</text>
+<line data-reference="1" x1="432" y1="174" x2="432" y2="588" stroke="#6b7280" stroke-width="2"/>
+</svg>

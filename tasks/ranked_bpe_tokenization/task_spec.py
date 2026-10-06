@@ -5,6 +5,7 @@ from __future__ import annotations
 import random
 import sys
 
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import forbidden_imports, load_candidate, plain_containers, watch_imports
 
 
@@ -42,10 +43,44 @@ def _encode(problem):
     return tuple(tokens)
 
 
+def _verify_encoding(problem):
+    """A linked-token priority queue, independent of whole-list merge passes."""
+    import heapq
+    tokens = list(problem["data"])
+    count = len(tokens)
+    previous, following = list(range(-1, count - 1)), list(range(1, count + 1))
+    alive = [True] * count
+    versions = [0] * count
+    ranks = {}
+    for rank, pair in enumerate(problem["merges"]):
+        ranks.setdefault(pair, rank)
+    pending = []
+    def enqueue(i):
+        if 0 <= i < count and alive[i] and following[i] < count:
+            j = following[i]
+            rank = ranks.get((tokens[i], tokens[j]))
+            if rank is not None:
+                heapq.heappush(pending, (rank, i, j, versions[i], versions[j]))
+    for i in range(count):
+        enqueue(i)
+    while pending:
+        rank, i, j, vi, vj = heapq.heappop(pending)
+        if not alive[i] or not alive[j] or following[i] != j or versions[i] != vi or versions[j] != vj:
+            continue
+        tokens[i] = 256 + rank
+        versions[i] += 1
+        alive[j] = False
+        following[i] = following[j]
+        if following[j] < count:
+            previous[following[j]] = i
+        enqueue(previous[i])
+        enqueue(i)
+    return tuple(token for token, live in zip(tokens, alive) if live)
+
 class RankedBPETokenizationTask:
     name = "ranked_bpe_tokenization"
-    task_version = "1.2.1"
-    display_name = "Ranked Byte-Pair Tokenization"
+    task_version = "1.2.2"
+    display_name = TASK_CATALOG[name].display_name
     default_n = 3000
     grading_cases = (3000, 6000)
 
@@ -118,7 +153,7 @@ class RankedBPETokenizationTask:
                 return False
             if any(type(token) is not int or token < 0 for token in proposed):
                 return False
-            return tuple(proposed) == _encode(problem)
+            return tuple(proposed) == _verify_encoding(problem)
         except (KeyError, TypeError, ValueError, IndexError):
             return False
 

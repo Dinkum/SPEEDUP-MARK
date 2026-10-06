@@ -37,7 +37,7 @@ class RecoveredTaskTests(unittest.TestCase):
             self.assertFalse(benchmark.is_solution(problem, {"profit": True}))
 
     def test_tsp_matches_permutation_oracle(self):
-        benchmark = task("tsp")
+        benchmark = task("asymmetric_tsp")
         for n in range(3, 8):
             for seed in range(2):
                 problem = benchmark.generate_problem(n, seed)
@@ -82,7 +82,7 @@ class RecoveredTaskTests(unittest.TestCase):
         self.assertFalse(benchmark.is_solution(problem, overlapping))
 
     def test_declared_grading_cases_pass_their_verifiers(self):
-        for slug in ("multi_dim_knapsack", "tsp", "pagerank", "job_shop_scheduling"):
+        for slug in ("multi_dim_knapsack", "asymmetric_tsp", "pagerank", "job_shop_scheduling"):
             benchmark = task(slug)
             for size in benchmark.grading_cases:
                 with self.subTest(task=slug, size=size):

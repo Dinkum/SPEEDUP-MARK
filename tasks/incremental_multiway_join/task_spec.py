@@ -6,6 +6,7 @@ import math
 import random
 import sys
 
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import forbidden_imports, load_candidate, plain_containers, watch_imports
 
 
@@ -98,7 +99,7 @@ def _recompute_join(problem):
 class IncrementalMultiwayJoinTask:
     name = "incremental_multiway_join"
     task_version = "1.1.0"
-    display_name = "Incremental Weighted Multiway Join"
+    display_name = TASK_CATALOG[name].display_name
     default_n = 1200
     grading_cases = (1200, 2400)
 

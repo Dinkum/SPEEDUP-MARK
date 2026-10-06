@@ -8,6 +8,7 @@ import heapq
 import math
 import random
 
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import load_candidate, plain_containers
 
 
@@ -285,7 +286,7 @@ def _process(problem, check=False):
 class LiveFleetDispatchTask:
     name = "live_fleet_dispatch"
     task_version = "1.2.0"
-    display_name = "Battery-Limited Fleet Tours"
+    display_name = TASK_CATALOG[name].display_name
     default_n = 60
     grading_cases = (60, 96)
 

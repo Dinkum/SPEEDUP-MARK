@@ -44,7 +44,7 @@ submission per workload: `{"program": schedule, "placements": {output:
 (base, row_stride, column_stride)}}`. Cell `(row, column)` of an output lives at
 `base + row * row_stride + column * column_stride`; output regions must be
 disjoint and inside memory. Submissions contain only exact built-in dictionaries,
-lists/tuples, strings, and integers; subclasses and executable objects are rejected.
+lists/tuples, strings, and exact Python integers.
 
 Placements are checked by their actual cell addresses, so column-major and
 reversed layouts are legal when every cell is in bounds and no cells overlap.
@@ -106,13 +106,13 @@ candidate code requires a fresh verification challenge. The task exposes this
 through `evaluate_pair(problem, outputs, replay=receipt, record=callback)`; the
 single-submission `evaluate_solution` uses the same verification logic.
 
-## Reference and improvements
+## Reference and verification
 
-`_compile` is deliberately unsophisticated but never absurd: it allocates a
+`_compile` allocates a
 padded row-major region per stage, materializes every intermediate, reloads a
 shifted window for each stencil tap, and moves single cells for a transpose.
-Its own schedule is issued through the same scoreboarding a candidate faces, so
-its cycle count is a real program, not a formula.
+The simulator executes its schedule with the same resource and dependency
+rules used for candidate programs.
 
 Each generated program presents one of four optimization regimes:
 
@@ -125,13 +125,7 @@ Each generated program presents one of four optimization regimes:
 
 `tests/test_layout_pipeline_compiler.py` includes an explicit canonical chain fixture where hand-written fusion uses less than half the reference cycles. That verifies an accessible optimization, not an aggregate speedup across the generated distribution. The broader program distribution requires choosing schedules from the actual pipeline.
 
-This is an independently authored SPEEDUP-MARK task, not an Anthropic port.
-
-```console
-python3 -m speedupmark layout_aware_pipeline_compiler
-```
-
-Inside a managed run, use `python3 grade.py`. Edit only `candidate.py`.
+The task implementation is original SPEEDUP-MARK code.
 
 ## Workload distribution
 
@@ -147,3 +141,17 @@ Inside a managed run, use `python3 grade.py`. Edit only `candidate.py`.
 - **Fixed structure:** The instruction set and four structural regimes are fixed. Scratch slots are 8/12 for chain, 8/16 for shared_layout, 4/6 for pressure, and 4 for bandwidth; pressure banks vary between 2/4, bandwidth has 2, others 4. All stages feed an output, directly or through later stages.
 
 The executable definition is [`task_spec.py`](task_spec.py), `generate_problem` and its helpers. See [sampling and coverage](../../GUIDE.md#sampling) for how the grader chooses and records seeds.
+
+## Grading
+
+Edit only `candidate.py`, preserving `solve(problem, reference_solve)`.
+
+From the repository root:
+
+```console
+python3 -m speedupmark layout_aware_pipeline_compiler
+```
+
+Inside a managed run, use `python3 grade.py` to record progress.
+See the [submission rules](../../GUIDE.md#submission-rules) and
+[scoring guide](../../GUIDE.md#scoring) for shared requirements.

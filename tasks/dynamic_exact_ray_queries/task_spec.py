@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import random
 
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import load_candidate
 
 
@@ -255,10 +256,70 @@ def _check_scenes(scenes):
                         raise ValueError("generated ray outside the coordinate bound")
 
 
+def _verify_rays(problem):
+    """Plane intersections plus oriented edge tests; no barycentric solver."""
+    def dot(a, b):
+        return sum(x * y for x, y in zip(a, b))
+    def cross(a, b):
+        return (a[1]*b[2] - a[2]*b[1], a[2]*b[0] - a[0]*b[2], a[0]*b[1] - a[1]*b[0])
+    def sub(a, b):
+        return tuple(x - y for x, y in zip(a, b))
+    def hit(ray, triangle):
+        origin, direction = ray
+        a, b, c = triangle
+        normal = cross(sub(b, a), sub(c, a))
+        denominator = dot(normal, direction)
+        if denominator == 0:
+            return None
+        numerator = dot(normal, sub(a, origin))
+        if denominator < 0:
+            numerator, denominator = -numerator, -denominator
+        if numerator <= 0:
+            return None
+        point = tuple(o * denominator + d * numerator for o, d in zip(origin, direction))
+        for start, end in ((a, b), (b, c), (c, a)):
+            offset = tuple(p - v * denominator for p, v in zip(point, start))
+            if dot(normal, cross(sub(end, start), offset)) < 0:
+                return None
+        return numerator, denominator
+    answers = []
+    for scene in problem["scenes"]:
+        triangles = dict(enumerate(scene["triangles"]))
+        next_id, phases = len(triangles), []
+        for phase in scene["phases"]:
+            if "updates" in phase:
+                for update in phase["updates"]:
+                    if update[0] == "remove":
+                        triangles.pop(update[1], None)
+                    elif update[0] == "move":
+                        triangles[update[1]] = update[2]
+                    elif update[0] == "add":
+                        triangles[next_id] = update[1]
+                        next_id += 1
+                    else:
+                        raise ValueError(update[0])
+                continue
+            results = []
+            for ray in phase["rays"]:
+                best, best_id = None, -1
+                for identifier, triangle in triangles.items():
+                    if triangle is None:
+                        continue
+                    distance = hit(ray, triangle)
+                    if distance is None:
+                        continue
+                    if (best is None or distance[0] * best[1] < best[0] * distance[1]
+                            or distance[0] * best[1] == best[0] * distance[1] and identifier < best_id):
+                        best, best_id = distance, identifier
+                results.append(best_id)
+            phases.append(tuple(results))
+        answers.append(tuple(phases))
+    return tuple(answers)
+
 class DynamicExactRayQueriesTask:
     name = "dynamic_exact_ray_queries"
-    task_version = "1.1.0"
-    display_name = "Dynamic Exact Ray Queries"
+    task_version = "1.1.1"
+    display_name = TASK_CATALOG[name].display_name
     default_n = 192
     grading_cases = (192, 288)
 
@@ -385,7 +446,7 @@ class DynamicExactRayQueriesTask:
         try:
             if not _materialized(proposed):
                 return False
-            return _same_materialized(proposed, _query(problem))
+            return _same_materialized(proposed, _verify_rays(problem))
         except (KeyError, TypeError, ValueError, IndexError):
             return False
 

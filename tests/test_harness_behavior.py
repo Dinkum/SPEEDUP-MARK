@@ -9,7 +9,7 @@ import textwrap
 import unittest
 from unittest.mock import patch
 
-from speedupmark.harness import _run_isolated, discover_tasks, resolve_seed, run_task
+from speedupmark.harness import _run_isolated, discover_tasks, load_task, resolve_seed, run_task
 from speedupmark.suites import SMOKE_TASKS
 from speedupmark.task import freeze_output, load_candidate
 
@@ -82,6 +82,57 @@ class MeasurementTests(unittest.TestCase):
         ''')
         self.assertTrue(run_task(path).correct)
 
+    def test_canonical_tasks_reuse_each_measured_reference_answer(self):
+        for name in ("articulation_points", "grouped_analytics_reports"):
+            with self.subTest(task=name):
+                path = ROOT / "tasks" / name
+                benchmark = load_task(path)
+                reference_solve = benchmark.solve
+                with patch.object(benchmark, "solve", wraps=reference_solve) as reference, \
+                        patch.object(benchmark, "candidate_solve", side_effect=reference_solve), \
+                        patch("speedupmark.harness.load_task", return_value=benchmark):
+                    result = run_task(path, n=12, seed=123, samples=3)
+                self.assertTrue(result.correct)
+                self.assertEqual(result.metric_unit, "ms")
+                self.assertEqual(reference.call_count, 3)
+                self.assertEqual([sample.seed for sample in result.samples], [123, 124, 125])
+
+    def test_runtime_grading_function_replacements_abort(self):
+        mutations = {
+            "solve": "type(self).solve = lambda self, problem: problem",
+            "is_solution": "self.is_solution = lambda problem, proposed: True",
+            "evaluate_solution": "self.evaluate_solution = lambda problem, proposed: None",
+            "evaluate_pair": "self.evaluate_pair = lambda *args, **kwargs: None",
+            "timer": "time.perf_counter_ns = lambda: 0",
+        }
+        for name, mutation in mutations.items():
+            # Seed 8 changes after reference-first; seed 9 changes before the
+            # reference could run. A worker contains the deliberately changed clock.
+            for change_seed in (8, 9):
+                with self.subTest(function=name, seed=change_seed):
+                    path = self.task(f'''
+                        import time
+                        from speedupmark.task import SolutionEvaluation
+                        class Task:
+                            name = "runtime_change"
+                            task_version = "1.0.0"
+                            def generate_problem(self, n, random_seed): return random_seed
+                            def solve(self, problem): return problem
+                            def candidate_solve(self, problem):
+                                if problem == {change_seed}:
+                                    {mutation}
+                                return problem
+                            def is_solution(self, problem, proposed): return proposed == problem
+                            def evaluate_solution(self, problem, proposed):
+                                return SolutionEvaluation(1, proposed == problem)
+                            def evaluate_pair(self, problem, outputs, **kwargs):
+                                return {{role: self.evaluate_solution(problem, value)
+                                        for role, value in outputs.items()}}
+                        TASK = Task()
+                    ''')
+                    with self.assertRaisesRegex(RuntimeError, f"grading function changed: {name}"):
+                        _run_isolated(path, 1, 8, 2, 5)
+
     def test_output_freezing_is_inside_both_timers(self):
         path = self.task('''
             class Task:
@@ -93,7 +144,13 @@ class MeasurementTests(unittest.TestCase):
                 def is_solution(self, problem, proposed): return proposed == [problem]
             TASK = Task()
         ''')
+        from speedupmark.harness import _check_grading_functions
+
         events = []
+
+        def check(task, expected):
+            events.append("guard")
+            _check_grading_functions(task, expected)
 
         def clock():
             events.append("clock")
@@ -104,9 +161,10 @@ class MeasurementTests(unittest.TestCase):
             return freeze_output(value)
 
         with patch("speedupmark.harness.time.perf_counter_ns", side_effect=clock), \
-                patch("speedupmark.harness.freeze_output", side_effect=freeze):
+                patch("speedupmark.harness.freeze_output", side_effect=freeze), \
+                patch("speedupmark.harness._check_grading_functions", side_effect=check):
             result = run_task(path, samples=1)
-        self.assertEqual(events, ["clock", "freeze", "clock"] * 2)
+        self.assertEqual(events, ["guard", "clock", "freeze", "clock", "guard"] * 2)
         self.assertEqual(result.reference_score, 2)
         self.assertEqual(result.candidate_score, 2)
         self.assertTrue(result.correct)

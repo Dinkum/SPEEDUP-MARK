@@ -15,6 +15,7 @@ os.environ.setdefault("MKL_NUM_THREADS", "1")
 os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
 os.environ.setdefault("VECLIB_MAXIMUM_THREADS", "1")
 
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import load_candidate
 
 
@@ -32,7 +33,7 @@ def _need():
         raise ImportError(
             "group_lasso requires optional dependency: numpy. "
             "Install the pinned numerical extra in requirements-numerical.txt. "
-            "Smoke and lightweight do not include this task."
+            "The smoke and extended suites do not include this task."
         ) from exc
     return numpy
 
@@ -114,6 +115,7 @@ def _stationary(features, labels, group_labels, penalty, beta):
 class GroupLasso:
     name = "group_lasso"
     task_version = "1.1.0"
+    display_name = TASK_CATALOG[name].display_name
     default_n = 24
     grading_cases = (24, 40)
 

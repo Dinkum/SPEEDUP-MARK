@@ -24,9 +24,9 @@ previous step. The table and initial states vary at runtime.
 
 Implement `candidate.py::solve(problem, reference_solve)`. `problem["workloads"]`
 contains four descriptor dictionaries. Return one instruction stream per workload,
-in that order: a list/tuple of lists/tuples of instruction lists/tuples. An
-instruction contains an opcode string followed by plain integers. Subclasses,
-booleans, generators, callbacks, and additional objects are rejected.
+in that order: a built-in list/tuple of built-in lists/tuples of instruction
+lists/tuples. Each instruction contains an opcode string followed by exact Python
+integers.
 
 Each descriptor gives `family`, `nodes`, `rounds`, `batch`, total `memory` cells,
 and base addresses for `payload`, `edges`, `positions`, `values`, `out_positions`,
@@ -87,6 +87,51 @@ The cost includes final completion of outstanding instructions, with a minimum
 of one cycle. This is an explicit synthetic machine, not a prediction of native
 CPU or GPU performance.
 
+## Scoring and replay
+
+The task's cost is the sum of workload cycle counts, averaged across the three
+runtime trials. Bank conflicts depend on runtime addresses, so all correctness
+trials contribute to the cost. SPEEDUP-MARK reports `reference_cost / candidate_cost`.
+Host compilation time is excluded from that ratio and bounded by the normal
+worker timeout. Each program is limited to `batch * (16 * rounds + 32) + 256`
+instructions. Any incorrect output, invalid instruction, or resource violation
+fails the task.
+
+Verification receipts record the private seed, generator version, descriptor
+hash, both frozen program hashes, and memory digest before execution, including
+failed evaluations. The shared harness binds the receipt to task revision and
+candidate bytes. `--seed` reproduces descriptors; the verification receipt is
+also required to reproduce runtime memories and exact cycle counts. Replay
+requires the same descriptors, programs, generator, and source identities.
+A changed candidate gets a fresh challenge. Same-process hostile tampering with
+the grader is outside this interface's protection.
+
+## Reference and verification
+
+`task_spec.py::_compile` is a scalar reference that retains each state's node and
+value in registers across rounds. It has no artificial sleeps or redundant
+round trips through memory. `task_spec.py::_oracle` computes the kernel directly,
+independently of the simulator's instruction decoding and scheduling.
+
+Vectorization reduces instruction overhead, while moving independent work ahead
+of consumers and interleaving streams hide dependencies. Twenty registers hold
+four straightforward five-register streams. Caching the shared table consumes
+three registers and reduces that straightforward implementation to three streams.
+More compact allocation, alternative instruction sequences, partial table
+caching, and schedules adapted to bank pressure remain possible.
+
+The calibration also reuses dead registers to fit five four-register streams,
+or four streams plus the cached table. Extra streams can improve crowded batches
+while losing on batches that leave the last tile partially filled. Register
+allocation and tile size therefore require choosing together.
+
+`tests/simd_traversal_kernel_schedules.py` contains hand-written calibration schedules.
+`python3 tests/calibrate_simd_traversal_kernel.py` checks them against the independent oracle
+and emits per-family cycles and diagnostics. These are engineering fixtures,
+not model benchmark results. `Machine.stats` exposes instructions, unique loaded
+and stored words, registers touched, and sequentially attributed dependency,
+bank, and issue stall cycles. Registers touched is not a liveness analysis.
+
 ## Workload distribution
 
 **Selection:** Every problem contains every family, even when grading uses one sample:
@@ -115,54 +160,16 @@ small working set; states are not forced to follow identical paths.
 rules, and three runtime trials are fixed. `task_spec.py::generate_problem` and
 `_runtime_memory` are the executable distribution definitions.
 
-## Scoring and replay
+## Grading
 
-The task's cost is the sum of workload cycle counts, averaged across the three
-runtime trials. Bank conflicts depend on runtime addresses, so all correctness
-trials contribute to the cost. SPEEDUP-MARK reports `reference_cost / candidate_cost`.
-Host compilation time is excluded from that ratio and bounded by the normal
-worker timeout. Each program is limited to `batch * (16 * rounds + 32) + 256`
-instructions. Any incorrect output, invalid instruction, or resource violation
-fails the task.
+Edit only `candidate.py`, preserving `solve(problem, reference_solve)`.
 
-Verification receipts record the private seed, generator version, descriptor
-hash, both frozen program hashes, and memory digest before execution, including
-failed evaluations. The shared harness binds the receipt to task revision and
-candidate bytes. `--seed` reproduces descriptors; the verification receipt is
-also required to reproduce runtime memories and exact cycle counts. Replay
-requires the same descriptors, programs, generator, and source identities.
-A changed candidate gets a fresh challenge. Same-process hostile tampering with
-the grader is outside this interface's protection.
-
-## Reference and optimization
-
-`task_spec.py::_compile` is a scalar reference that retains each state's node and
-value in registers across rounds. It has no artificial sleeps or redundant
-round trips through memory. `task_spec.py::_oracle` computes the kernel directly,
-independently of the simulator's instruction decoding and scheduling.
-
-Vectorization reduces instruction overhead, while moving independent work ahead
-of consumers and interleaving streams hide dependencies. Twenty registers hold
-four straightforward five-register streams. Caching the shared table consumes
-three registers and reduces that straightforward implementation to three streams.
-More compact allocation, alternative instruction sequences, partial table
-caching, and schedules adapted to bank pressure remain possible.
-
-The calibration also reuses dead registers to fit five four-register streams,
-or four streams plus the cached table. Extra streams can improve crowded batches
-while losing on batches that leave the last tile partially filled. Register
-allocation and tile size therefore require choosing together.
-
-`tests/simd_traversal_kernel_schedules.py` contains hand-written calibration schedules.
-`python3 tests/calibrate_simd_traversal_kernel.py` checks them against the independent oracle
-and emits per-family cycles and diagnostics. These are engineering fixtures,
-not model benchmark results. `Machine.stats` exposes instructions, unique loaded
-and stored words, registers touched, and sequentially attributed dependency,
-bank, and issue stall cycles. Registers touched is not a liveness analysis.
+From the repository root:
 
 ```console
 python3 -m speedupmark simd_traversal_kernel
-python3 -m speedupmark run create simd_traversal_kernel --harness my-agent --model exact-model-id --effort medium
 ```
 
-Inside a managed workspace, use `python3 grade.py` and edit only `candidate.py`.
+Inside a managed run, use `python3 grade.py` to record progress.
+See the [submission rules](../../GUIDE.md#submission-rules) and
+[scoring guide](../../GUIDE.md#scoring) for shared requirements.

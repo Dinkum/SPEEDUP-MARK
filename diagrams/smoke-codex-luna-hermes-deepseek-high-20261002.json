@@ -1,0 +1,2059 @@
+{
+  "benchmark": {
+    "version": "0.0.2",
+    "commit": "d97436d561c4befdee4bea3d06a68e673441b309",
+    "archive_sha256": "1d905fdd063b9eefbb2a8d0f343fadf098d638c591bc3ed38981aec96622bc38"
+  },
+  "started_utc": "2026-10-02T00:43:51.653259+00:00",
+  "finished_utc": "2026-10-04T08:24:02.299687+00:00",
+  "machine": {
+    "platform": "macOS-27.0-arm64-arm-64bit-Mach-O",
+    "cpu": "Apple M2 Pro",
+    "memory_bytes": 17179869184
+  },
+  "grader_python": "3.14.6",
+  "protocol": {
+    "suites_per_model": 1,
+    "task_order": [
+      "incremental_spreadsheet_recalculation",
+      "live_fleet_dispatch",
+      "incremental_multiway_join",
+      "ranked_bpe_tokenization",
+      "dynamic_exact_ray_queries",
+      "dynamic_document_search",
+      "dynamic_shortest_paths",
+      "adaptive_query_engine",
+      "layout_aware_pipeline_compiler",
+      "simd_traversal_kernel"
+    ],
+    "natural_completion": true,
+    "safety_timeout_seconds": 3600,
+    "samples_per_case": 3,
+    "grade_timeout_seconds": 60,
+    "seeds": "fresh development and final seeds",
+    "execution": "all tasks and suites sequential",
+    "seed_matching": "Independent random draws from the same declared task distributions"
+  },
+  "scoring": {
+    "percent_speed_increase": "(speedup - 1) * 100",
+    "suite_aggregate": "Geometric mean over all ten expected tasks; failed attempts receive 1.0x credit",
+    "chart_axis": "Logarithmic speed ratio axis; labels are speedup multipliers",
+    "timeout_bars": "Compact chart includes only suites with every task correct and naturally completed",
+    "comparison": "One run per model and harness configuration; different naturally completed durations; exploratory results"
+  },
+  "series": [
+    {
+      "key": "codex",
+      "label": "6 Luna High",
+      "color": "#ea6a1f",
+      "model": "gpt-6-luna",
+      "effort": "high",
+      "harness": "Codex CLI",
+      "harness_version": "codex-cli 0.159.0",
+      "passed": 10,
+      "geomean_speedup": 3.230988483395384,
+      "percent_speed_increase": 223.09884833953842,
+      "binary_sha256": "ccd1b9441d35ce30102059c78514a125d676e6765ea1d001033e8cbe88718314",
+      "configuration": {
+        "user_config": false,
+        "project_doc_max_bytes": 0,
+        "sandbox": "workspace-write"
+      },
+      "agent_elapsed_seconds_total": 2047.3271923065186,
+      "final_candidates_correct": 10,
+      "timed_out_attempts": 0
+    },
+    {
+      "key": "hermes",
+      "label": "DeepSeek 4.1 Flash High",
+      "color": "#2563eb",
+      "model": "deepseek-v4.1-flash",
+      "effort": "high",
+      "harness": "Hermes Agent",
+      "harness_version": "Hermes Agent v0.21.5+2037.g3d7fc8f (2026.9.24) \u00b7 upstream 2cf676b3",
+      "passed": 10,
+      "geomean_speedup": 7.960043137701686,
+      "percent_speed_increase": 696.0043137701687,
+      "commit": "3d7fc8fc03afcd7c47a1d62914fd56231c0ce46b",
+      "tree": "0bb96b2a97796169e870db8ea5d4c5df3be72a32",
+      "runtime_python": "Python 3.14.7",
+      "runtime_lock_sha256": "39e6daae6cfa93cb74629f7315517179272db96da512f713b55d45963fa82e66",
+      "provider": "opencode-go",
+      "configuration": {
+        "max_turns": 500,
+        "toolsets": [
+          "terminal",
+          "file"
+        ],
+        "isolated_home_per_task": true,
+        "user_config": false,
+        "rules_and_memories": false,
+        "wire_observer": "assert and record stock kwargs; no request changes",
+        "explicit_runtime_environment": true,
+        "run_budget_seconds": 3600,
+        "wrap_up_notice_fraction": 0.8,
+        "source_patch": false
+      },
+      "agent_elapsed_seconds_total": 20232.951937437057,
+      "final_candidates_correct": 10,
+      "timed_out_attempts": 0
+    }
+  ],
+  "tasks": [
+    {
+      "task": "incremental_spreadsheet_recalculation",
+      "label": "Incremental spreadsheet recalculation",
+      "task_version": "1.1.0",
+      "task_revision": "9a79d398efc94a23f93afe25d56d3179b2c9bfd70f3031c0d186c4dccb1b3ac6",
+      "results": {
+        "codex": {
+          "status": "completed",
+          "passed": true,
+          "speedup": 26.649313078156627,
+          "credited_speedup": 26.649313078156627,
+          "agent_elapsed_seconds": 86.6409981250763,
+          "final_measured_speedup": 26.649313078156627,
+          "run_id": "20261002T004352Z-incremental_spreadsheet_recalculation-8393e270",
+          "integrity": "passed",
+          "final_correct": true,
+          "candidate_sha256": "6d80211b2c0f405249bf80aca07ce98249f6f613c255db560db66e0bd5af716e",
+          "final_seed": 8611859935861961046,
+          "final_seed_source": "random",
+          "final_evaluation": 3,
+          "selected_development_evaluation": 2,
+          "percent_speed_increase": 2564.931307815663,
+          "evidence_sha256": {
+            "manifest.json": "5a2e0ba2616a02a84a5132397b9d82e91b5552fc5671d8f2a4518afbc2f820b3",
+            "evaluations.jsonl": "dfc9fbc1e4a781c96ec4c6e83b6581a5df665dfc3b7525993becef4da1d1b8bc",
+            "summary.json": "2658ffc617c6df4ef69284cc16b7144cd61a8adb2a82a5fdd54b064d415b2e3e"
+          },
+          "cases": [
+            {
+              "n": 650,
+              "metric_unit": "ms",
+              "speedup": 18.367637081982778,
+              "samples": [
+                {
+                  "seed": 8611859935861961046,
+                  "reference_score": 16.735042,
+                  "candidate_score": 1.085125,
+                  "speedup": 15.42222508927543,
+                  "correct": true
+                },
+                {
+                  "seed": 8611859935861961047,
+                  "reference_score": 16.650916,
+                  "candidate_score": 0.7605,
+                  "speedup": 21.894695595003288,
+                  "correct": true
+                },
+                {
+                  "seed": 8611859935861961048,
+                  "reference_score": 17.352208,
+                  "candidate_score": 0.945542,
+                  "speedup": 18.35159940013241,
+                  "correct": true
+                }
+              ]
+            },
+            {
+              "n": 1300,
+              "metric_unit": "ms",
+              "speedup": 38.665065319384325,
+              "samples": [
+                {
+                  "seed": 8611859935861961049,
+                  "reference_score": 71.218083,
+                  "candidate_score": 1.685833,
+                  "speedup": 42.24504028572225,
+                  "correct": true
+                },
+                {
+                  "seed": 8611859935861961050,
+                  "reference_score": 73.065917,
+                  "candidate_score": 1.786209,
+                  "speedup": 40.90558103782928,
+                  "correct": true
+                },
+                {
+                  "seed": 8611859935861961051,
+                  "reference_score": 72.344292,
+                  "candidate_score": 2.16275,
+                  "speedup": 33.45014079297191,
+                  "correct": true
+                }
+              ]
+            }
+          ],
+          "codex_contexts": [
+            {
+              "model": "gpt-6-luna",
+              "effort": "high",
+              "approval_policy": "never"
+            }
+          ],
+          "usage": [
+            {
+              "input_tokens": 147633,
+              "cached_input_tokens": 130304,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 4086,
+              "reasoning_output_tokens": 2684
+            }
+          ]
+        },
+        "hermes": {
+          "status": "completed",
+          "passed": true,
+          "speedup": 46.53297087057257,
+          "credited_speedup": 46.53297087057257,
+          "agent_elapsed_seconds": 1414.3832998275757,
+          "final_measured_speedup": 46.53297087057257,
+          "run_id": "20261002T163854Z-incremental_spreadsheet_recalculation-0173a0e9",
+          "integrity": "passed",
+          "final_correct": true,
+          "candidate_sha256": "ea76b067dba1c2eea0a75c20d456b8d542f1b6ef66b7dbfb629afb732ca7f975",
+          "final_seed": 1333670121764855881,
+          "final_seed_source": "random",
+          "final_evaluation": 7,
+          "selected_development_evaluation": 6,
+          "percent_speed_increase": 4553.297087057257,
+          "evidence_sha256": {
+            "manifest.json": "629bee11dc5bedfe285f777c3662a1ef005574d23fcc7eefa085b4b84f97eb0b",
+            "evaluations.jsonl": "0a20c04afbd997ca9dcc921e86f6e8df7cfa00d84887d7e7ba7e2d3f2d0ffa7f",
+            "summary.json": "1b4a644211ae8cc6134197f485abab519fde40afa57a1da4868b958899779031"
+          },
+          "cases": [
+            {
+              "n": 650,
+              "metric_unit": "ms",
+              "speedup": 34.14711181914419,
+              "samples": [
+                {
+                  "seed": 1333670121764855881,
+                  "reference_score": 16.119875,
+                  "candidate_score": 0.5085,
+                  "speedup": 31.70083579154376,
+                  "correct": true
+                },
+                {
+                  "seed": 1333670121764855882,
+                  "reference_score": 16.443041,
+                  "candidate_score": 0.417208,
+                  "speedup": 39.412094207205996,
+                  "correct": true
+                },
+                {
+                  "seed": 1333670121764855883,
+                  "reference_score": 16.025875,
+                  "candidate_score": 0.502875,
+                  "speedup": 31.868506089982603,
+                  "correct": true
+                }
+              ]
+            },
+            {
+              "n": 1300,
+              "metric_unit": "ms",
+              "speedup": 63.41143548273952,
+              "samples": [
+                {
+                  "seed": 1333670121764855884,
+                  "reference_score": 70.326584,
+                  "candidate_score": 0.917625,
+                  "speedup": 76.63978640512191,
+                  "correct": true
+                },
+                {
+                  "seed": 1333670121764855885,
+                  "reference_score": 70.73675,
+                  "candidate_score": 1.206917,
+                  "speedup": 58.60945698834303,
+                  "correct": true
+                },
+                {
+                  "seed": 1333670121764855886,
+                  "reference_score": 71.398584,
+                  "candidate_score": 1.257792,
+                  "speedup": 56.765016791329565,
+                  "correct": true
+                }
+              ]
+            }
+          ],
+          "runtime": {
+            "python": "3.14.7",
+            "openai_sdk": "2.24.0"
+          },
+          "wire_observations": 82,
+          "wire_sha256": "66ffcd173b622e2fc8f3bb4ca0d40a0c9e1a0319d152de9e8865280a996d75ec"
+        }
+      },
+      "metric_unit": "ms"
+    },
+    {
+      "task": "live_fleet_dispatch",
+      "label": "Live fleet dispatch",
+      "task_version": "1.2.0",
+      "task_revision": "875acae23cb440b7222447f9cda6f7846f404600c98d064c9c1706d581ea2c39",
+      "results": {
+        "codex": {
+          "status": "completed",
+          "passed": true,
+          "speedup": 1.8424690674310948,
+          "credited_speedup": 1.8424690674310948,
+          "agent_elapsed_seconds": 274.2828862667084,
+          "final_measured_speedup": 1.8424690674310948,
+          "run_id": "20261002T004519Z-live_fleet_dispatch-6c05c2f2",
+          "integrity": "passed",
+          "final_correct": true,
+          "candidate_sha256": "30280079f7137a28f30e3ecd87e7653b9bd0d2807750ee183e9f99a1c6c1771e",
+          "final_seed": 2428400470580017329,
+          "final_seed_source": "random",
+          "final_evaluation": 5,
+          "selected_development_evaluation": 4,
+          "percent_speed_increase": 84.24690674310949,
+          "evidence_sha256": {
+            "manifest.json": "e0446cbdf52efeab101a8031f6323e2e7bbfdd1ba24dbbcff79918122a34d3a7",
+            "evaluations.jsonl": "555b60d670b406be3e35821b52b003924aed1bda2d329604a04ac1029eb1ef3e",
+            "summary.json": "8cdb6f9ccdaadd473bacd6d9b21c8daf64a4dcfb94b20f343f1cab0384b237ce"
+          },
+          "cases": [
+            {
+              "n": 60,
+              "metric_unit": "ms",
+              "speedup": 2.2519101021053416,
+              "samples": [
+                {
+                  "seed": 2428400470580017329,
+                  "reference_score": 447.046709,
+                  "candidate_score": 188.830541,
+                  "speedup": 2.3674491776200544,
+                  "correct": true
+                },
+                {
+                  "seed": 2428400470580017330,
+                  "reference_score": 390.952125,
+                  "candidate_score": 182.522584,
+                  "speedup": 2.1419383641862098,
+                  "correct": true
+                },
+                {
+                  "seed": 2428400470580017331,
+                  "reference_score": 336.399375,
+                  "candidate_score": 149.379041,
+                  "speedup": 2.2519851027829265,
+                  "correct": true
+                }
+              ]
+            },
+            {
+              "n": 96,
+              "metric_unit": "ms",
+              "speedup": 1.5074723725723616,
+              "samples": [
+                {
+                  "seed": 2428400470580017332,
+                  "reference_score": 3032.635958,
+                  "candidate_score": 1918.541417,
+                  "speedup": 1.5806987178531158,
+                  "correct": true
+                },
+                {
+                  "seed": 2428400470580017333,
+                  "reference_score": 2261.210417,
+                  "candidate_score": 1552.321667,
+                  "speedup": 1.4566635672682393,
+                  "correct": true
+                },
+                {
+                  "seed": 2428400470580017334,
+                  "reference_score": 2567.698333,
+                  "candidate_score": 1725.854875,
+                  "speedup": 1.4877834574590172,
+                  "correct": true
+                }
+              ]
+            }
+          ],
+          "codex_contexts": [
+            {
+              "model": "gpt-6-luna",
+              "effort": "high",
+              "approval_policy": "never"
+            }
+          ],
+          "usage": [
+            {
+              "input_tokens": 419340,
+              "cached_input_tokens": 384256,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 6829,
+              "reasoning_output_tokens": 3019
+            }
+          ]
+        },
+        "hermes": {
+          "status": "completed",
+          "passed": true,
+          "speedup": 3.7296316436675125,
+          "credited_speedup": 3.7296316436675125,
+          "agent_elapsed_seconds": 2046.7691309452057,
+          "final_measured_speedup": 3.7296316436675125,
+          "run_id": "20261002T170230Z-live_fleet_dispatch-0c054413",
+          "integrity": "passed",
+          "final_correct": true,
+          "candidate_sha256": "096a01d7afb6f65d85e0c0bc0ecd27c459673891ff28b6e798f356d248401912",
+          "final_seed": 8189724556844525891,
+          "final_seed_source": "random",
+          "final_evaluation": 6,
+          "selected_development_evaluation": 3,
+          "percent_speed_increase": 272.96316436675124,
+          "evidence_sha256": {
+            "manifest.json": "d735483136217e7f6d304738a3bbcc64aa85322014a26f2ab3cb48826fdd59da",
+            "evaluations.jsonl": "547d430e978c36e2fc59827636152184852fbc35fe06b1c4a6c951ee2174328b",
+            "summary.json": "e4cb656a1965d2a4e13f8c46050d05c2c0cb74f5786023ecd87d6ea649c49426"
+          },
+          "cases": [
+            {
+              "n": 60,
+              "metric_unit": "ms",
+              "speedup": 3.2883181580530523,
+              "samples": [
+                {
+                  "seed": 8189724556844525891,
+                  "reference_score": 525.940459,
+                  "candidate_score": 161.222875,
+                  "speedup": 3.2621950142000635,
+                  "correct": true
+                },
+                {
+                  "seed": 8189724556844525892,
+                  "reference_score": 353.903334,
+                  "candidate_score": 109.697917,
+                  "speedup": 3.226162753847003,
+                  "correct": true
+                },
+                {
+                  "seed": 8189724556844525893,
+                  "reference_score": 379.572583,
+                  "candidate_score": 112.349084,
+                  "speedup": 3.378510705080604,
+                  "correct": true
+                }
+              ]
+            },
+            {
+              "n": 96,
+              "metric_unit": "ms",
+              "speedup": 4.230172242725428,
+              "samples": [
+                {
+                  "seed": 8189724556844525894,
+                  "reference_score": 2177.455834,
+                  "candidate_score": 548.015625,
+                  "speedup": 3.973346259972058,
+                  "correct": true
+                },
+                {
+                  "seed": 8189724556844525895,
+                  "reference_score": 2883.159125,
+                  "candidate_score": 584.51525,
+                  "speedup": 4.932564419833358,
+                  "correct": true
+                },
+                {
+                  "seed": 8189724556844525896,
+                  "reference_score": 2955.657333,
+                  "candidate_score": 765.260167,
+                  "speedup": 3.8622908397112483,
+                  "correct": true
+                }
+              ]
+            }
+          ],
+          "runtime": {
+            "python": "3.14.7",
+            "openai_sdk": "2.24.0"
+          },
+          "wire_observations": 127,
+          "wire_sha256": "14140260c265869954e4790a5fd082aba7ed29191ba25b112f5eb27c9653bd3d"
+        }
+      },
+      "metric_unit": "ms"
+    },
+    {
+      "task": "incremental_multiway_join",
+      "label": "Incremental multiway join",
+      "task_version": "1.1.0",
+      "task_revision": "ca64aa0efd1d9ba94ae9f5ebe7ae34b4e8f92c03ae8f506cf384cac3cc3d398d",
+      "results": {
+        "codex": {
+          "status": "completed",
+          "passed": true,
+          "speedup": 1.1818695460745507,
+          "credited_speedup": 1.1818695460745507,
+          "agent_elapsed_seconds": 195.62050580978394,
+          "final_measured_speedup": 1.1818695460745507,
+          "run_id": "20261002T005027Z-incremental_multiway_join-6ea22aae",
+          "integrity": "passed",
+          "final_correct": true,
+          "candidate_sha256": "ddfcbb498c943f2fa25bda74c5bbc62d4ad4e7594042711de2d227d14c61c095",
+          "final_seed": 524236803056313867,
+          "final_seed_source": "random",
+          "final_evaluation": 4,
+          "selected_development_evaluation": 3,
+          "percent_speed_increase": 18.186954607455075,
+          "evidence_sha256": {
+            "manifest.json": "d2a8f543b08fa68a5f0a2685c7034b8d4c25b4bfe631f965e970df69ea8feeee",
+            "evaluations.jsonl": "5c91cd364658e812457624d41d08448d09cd705e0284a2f60d0a55c1700ee2c1",
+            "summary.json": "657a93819d133f3f7d6881b8607f1b46a9e843bafc0101c1e25eab0161e0798c"
+          },
+          "cases": [
+            {
+              "n": 1200,
+              "metric_unit": "ms",
+              "speedup": 1.1615575893765424,
+              "samples": [
+                {
+                  "seed": 524236803056313867,
+                  "reference_score": 7.894042,
+                  "candidate_score": 6.27275,
+                  "speedup": 1.258465904109043,
+                  "correct": true
+                },
+                {
+                  "seed": 524236803056313868,
+                  "reference_score": 7.306333,
+                  "candidate_score": 7.14675,
+                  "speedup": 1.022329450449505,
+                  "correct": true
+                },
+                {
+                  "seed": 524236803056313869,
+                  "reference_score": 7.824083,
+                  "candidate_score": 6.423083,
+                  "speedup": 1.2181195541144338,
+                  "correct": true
+                }
+              ]
+            },
+            {
+              "n": 2400,
+              "metric_unit": "ms",
+              "speedup": 1.2025366944468032,
+              "samples": [
+                {
+                  "seed": 524236803056313870,
+                  "reference_score": 16.344166,
+                  "candidate_score": 12.775417,
+                  "speedup": 1.279345010812563,
+                  "correct": true
+                },
+                {
+                  "seed": 524236803056313871,
+                  "reference_score": 17.485541,
+                  "candidate_score": 14.49975,
+                  "speedup": 1.2059201710374317,
+                  "correct": true
+                },
+                {
+                  "seed": 524236803056313872,
+                  "reference_score": 16.288334,
+                  "candidate_score": 14.450667,
+                  "speedup": 1.1271683168673114,
+                  "correct": true
+                }
+              ]
+            }
+          ],
+          "codex_contexts": [
+            {
+              "model": "gpt-6-luna",
+              "effort": "high",
+              "approval_policy": "never"
+            }
+          ],
+          "usage": [
+            {
+              "input_tokens": 309761,
+              "cached_input_tokens": 285440,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 4860,
+              "reasoning_output_tokens": 2839
+            }
+          ]
+        },
+        "hermes": {
+          "status": "completed",
+          "passed": true,
+          "speedup": 1.2905372058415638,
+          "credited_speedup": 1.2905372058415638,
+          "agent_elapsed_seconds": 2923.5771918296814,
+          "final_measured_speedup": 1.2905372058415638,
+          "run_id": "20261004T034337Z-incremental_multiway_join-b02e230a",
+          "integrity": "passed",
+          "final_correct": true,
+          "candidate_sha256": "988cc976afc62bd66302f5ab3d295075543e2db8fc553d2c75516efff68bbe69",
+          "final_seed": 1713840904602482333,
+          "final_seed_source": "random",
+          "final_evaluation": 9,
+          "selected_development_evaluation": 2,
+          "percent_speed_increase": 29.053720584156384,
+          "evidence_sha256": {
+            "manifest.json": "730dd24164fdf507e916402f204760a7a1ce0da6ceb843cce1396369c5582d17",
+            "evaluations.jsonl": "0ac3347c24c75a80421192d7208174c97460ed1db8f15168e9c1297b511a04af",
+            "summary.json": "bbcbff9f9649e3b12410e2735f05603e50a6f4ea39d449a487b1f32b9b6c0087"
+          },
+          "cases": [
+            {
+              "n": 1200,
+              "metric_unit": "ms",
+              "speedup": 1.1319606446558423,
+              "samples": [
+                {
+                  "seed": 1713840904602482333,
+                  "reference_score": 8.124958,
+                  "candidate_score": 6.877792,
+                  "speedup": 1.1813323229315453,
+                  "correct": true
+                },
+                {
+                  "seed": 1713840904602482334,
+                  "reference_score": 7.39725,
+                  "candidate_score": 6.756334,
+                  "speedup": 1.0948615032945381,
+                  "correct": true
+                },
+                {
+                  "seed": 1713840904602482335,
+                  "reference_score": 8.056458,
+                  "candidate_score": 7.18425,
+                  "speedup": 1.1214055746946445,
+                  "correct": true
+                }
+              ]
+            },
+            {
+              "n": 2400,
+              "metric_unit": "ms",
+              "speedup": 1.471328784727953,
+              "samples": [
+                {
+                  "seed": 1713840904602482336,
+                  "reference_score": 17.493333,
+                  "candidate_score": 11.617708,
+                  "speedup": 1.5057473470670806,
+                  "correct": true
+                },
+                {
+                  "seed": 1713840904602482337,
+                  "reference_score": 17.648458,
+                  "candidate_score": 11.895417,
+                  "speedup": 1.483635083999157,
+                  "correct": true
+                },
+                {
+                  "seed": 1713840904602482338,
+                  "reference_score": 17.827791,
+                  "candidate_score": 12.503959,
+                  "speedup": 1.4257717095841407,
+                  "correct": true
+                }
+              ]
+            }
+          ],
+          "runtime": {
+            "python": "3.14.7",
+            "openai_sdk": "2.24.0"
+          },
+          "wire_observations": 148,
+          "wire_sha256": "e320a386e57c1c1b84d5b22996608b3330435d87f265ea2f2c270d89ffcbc0c1"
+        }
+      },
+      "metric_unit": "ms"
+    },
+    {
+      "task": "ranked_bpe_tokenization",
+      "label": "Ranked BPE tokenization",
+      "task_version": "1.2.1",
+      "task_revision": "a995b5744f2175b30478434bd8514ba455af16263ada9c644a50d56213d19c99",
+      "results": {
+        "codex": {
+          "status": "completed",
+          "passed": true,
+          "speedup": 7.90166663367892,
+          "credited_speedup": 7.90166663367892,
+          "agent_elapsed_seconds": 159.2587070465088,
+          "final_measured_speedup": 7.90166663367892,
+          "run_id": "20261002T005407Z-ranked_bpe_tokenization-cd78f113",
+          "integrity": "passed",
+          "final_correct": true,
+          "candidate_sha256": "d180839f237d38bfd8bd28a1002573a027dd5a7951ec897df223e79fbf453c56",
+          "final_seed": 1297646175398505898,
+          "final_seed_source": "random",
+          "final_evaluation": 5,
+          "selected_development_evaluation": 3,
+          "percent_speed_increase": 690.1666633678919,
+          "evidence_sha256": {
+            "manifest.json": "865652f889bc00128060461afceb2cea33f79590f97ba3ebc02ef82c9eb9557a",
+            "evaluations.jsonl": "a1e858748a05d8a2ba66910def5c5df15cd0fa9dd958cee60f8a9b3d6404f82a",
+            "summary.json": "65e8d0532d04be108aad0cff71152bac4391fb38512642cace77e780403bb923"
+          },
+          "cases": [
+            {
+              "n": 3000,
+              "metric_unit": "ms",
+              "speedup": 6.822748083714162,
+              "samples": [
+                {
+                  "seed": 1297646175398505898,
+                  "reference_score": 26.842125,
+                  "candidate_score": 3.096791,
+                  "speedup": 8.667722490797733,
+                  "correct": true
+                },
+                {
+                  "seed": 1297646175398505899,
+                  "reference_score": 21.439,
+                  "candidate_score": 2.890667,
+                  "speedup": 7.416627373543891,
+                  "correct": true
+                },
+                {
+                  "seed": 1297646175398505900,
+                  "reference_score": 11.784417,
+                  "candidate_score": 2.385292,
+                  "speedup": 4.940450477341977,
+                  "correct": true
+                }
+              ]
+            },
+            {
+              "n": 6000,
+              "metric_unit": "ms",
+              "speedup": 9.151200487502937,
+              "samples": [
+                {
+                  "seed": 1297646175398505901,
+                  "reference_score": 50.727375,
+                  "candidate_score": 4.880042,
+                  "speedup": 10.394864429445484,
+                  "correct": true
+                },
+                {
+                  "seed": 1297646175398505902,
+                  "reference_score": 43.290125,
+                  "candidate_score": 4.307333,
+                  "speedup": 10.050331608909737,
+                  "correct": true
+                },
+                {
+                  "seed": 1297646175398505903,
+                  "reference_score": 26.288917,
+                  "candidate_score": 3.58375,
+                  "speedup": 7.335588978025811,
+                  "correct": true
+                }
+              ]
+            }
+          ],
+          "codex_contexts": [
+            {
+              "model": "gpt-6-luna",
+              "effort": "high",
+              "approval_policy": "never"
+            }
+          ],
+          "usage": [
+            {
+              "input_tokens": 314771,
+              "cached_input_tokens": 284672,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 7761,
+              "reasoning_output_tokens": 4491
+            }
+          ]
+        },
+        "hermes": {
+          "status": "completed",
+          "passed": true,
+          "speedup": 27.901139017583635,
+          "credited_speedup": 27.901139017583635,
+          "agent_elapsed_seconds": 854.0711851119995,
+          "final_measured_speedup": 27.901139017583635,
+          "run_id": "20261004T043245Z-ranked_bpe_tokenization-d60be502",
+          "integrity": "passed",
+          "final_correct": true,
+          "candidate_sha256": "eaa1357e956db036a0d67ac616720ec604ae1a6e275b251817ae1749cc30db5e",
+          "final_seed": 4784449465500898888,
+          "final_seed_source": "random",
+          "final_evaluation": 5,
+          "selected_development_evaluation": 2,
+          "percent_speed_increase": 2690.1139017583637,
+          "evidence_sha256": {
+            "manifest.json": "81a6353d4c6859fef70d8ec75692716da1afeea48e7f852427286ff872dd73c5",
+            "evaluations.jsonl": "12ed766f763ca71e172095aaf8a301b01af6a51781d678690b97e5065e8c7512",
+            "summary.json": "b282d71407d1b7d1d8b1f10b8cbc8f7dcbae631e850302e5cb8a0bee7c63c7f1"
+          },
+          "cases": [
+            {
+              "n": 3000,
+              "metric_unit": "ms",
+              "speedup": 26.527386341318522,
+              "samples": [
+                {
+                  "seed": 4784449465500898888,
+                  "reference_score": 22.316416,
+                  "candidate_score": 0.757042,
+                  "speedup": 29.47843844859334,
+                  "correct": true
+                },
+                {
+                  "seed": 4784449465500898889,
+                  "reference_score": 23.433542,
+                  "candidate_score": 0.731167,
+                  "speedup": 32.04950715773551,
+                  "correct": true
+                },
+                {
+                  "seed": 4784449465500898890,
+                  "reference_score": 12.061834,
+                  "candidate_score": 0.610458,
+                  "speedup": 19.75866316765445,
+                  "correct": true
+                }
+              ]
+            },
+            {
+              "n": 6000,
+              "metric_unit": "ms",
+              "speedup": 29.346033132031298,
+              "samples": [
+                {
+                  "seed": 4784449465500898891,
+                  "reference_score": 44.12775,
+                  "candidate_score": 1.412542,
+                  "speedup": 31.23995605086433,
+                  "correct": true
+                },
+                {
+                  "seed": 4784449465500898892,
+                  "reference_score": 52.646625,
+                  "candidate_score": 1.434375,
+                  "speedup": 36.703529411764706,
+                  "correct": true
+                },
+                {
+                  "seed": 4784449465500898893,
+                  "reference_score": 27.507084,
+                  "candidate_score": 1.248,
+                  "speedup": 22.040932692307692,
+                  "correct": true
+                }
+              ]
+            }
+          ],
+          "runtime": {
+            "python": "3.14.7",
+            "openai_sdk": "2.24.0"
+          },
+          "wire_observations": 67,
+          "wire_sha256": "d2d954e5234dd7ab69c156dda1e75a0d486b9aaf6f846b205084af6e22363640"
+        }
+      },
+      "metric_unit": "ms"
+    },
+    {
+      "task": "dynamic_exact_ray_queries",
+      "label": "Dynamic exact ray queries",
+      "task_version": "1.1.0",
+      "task_revision": "a577014f68a2165c2f4071d7ef51cfe090d18fc46ea339aa0e3ce9dfe5f239f5",
+      "results": {
+        "codex": {
+          "status": "completed",
+          "passed": true,
+          "speedup": 2.8872793740697187,
+          "credited_speedup": 2.8872793740697187,
+          "agent_elapsed_seconds": 148.34013390541077,
+          "final_measured_speedup": 2.8872793740697187,
+          "run_id": "20261002T005647Z-dynamic_exact_ray_queries-76ebf85c",
+          "integrity": "passed",
+          "final_correct": true,
+          "candidate_sha256": "bbfd39f8a6fa36e34dd88f526ef6539f46fc6230d2d273b9109a63390fe0f320",
+          "final_seed": 1671029688428932991,
+          "final_seed_source": "random",
+          "final_evaluation": 5,
+          "selected_development_evaluation": 4,
+          "percent_speed_increase": 188.72793740697188,
+          "evidence_sha256": {
+            "manifest.json": "26feb37a5de4187490910718870066de18984ac20d0010a17ca9f385b5a8b2b5",
+            "evaluations.jsonl": "250d56ceef53fa62b359284e78bd8761ba2275f9b369be3e94733f4ec4559dfe",
+            "summary.json": "f976738abcaf81e8555d4898381dbac4f5133e9eeec302852206110ce8b67168"
+          },
+          "cases": [
+            {
+              "n": 192,
+              "metric_unit": "ms",
+              "speedup": 2.8713653959968273,
+              "samples": [
+                {
+                  "seed": 1671029688428932991,
+                  "reference_score": 71.80125,
+                  "candidate_score": 24.62125,
+                  "speedup": 2.9162308981063103,
+                  "correct": true
+                },
+                {
+                  "seed": 1671029688428932992,
+                  "reference_score": 69.602833,
+                  "candidate_score": 25.181542,
+                  "speedup": 2.7640417334252207,
+                  "correct": true
+                },
+                {
+                  "seed": 1671029688428932993,
+                  "reference_score": 68.84725,
+                  "candidate_score": 23.441625,
+                  "speedup": 2.936965760692785,
+                  "correct": true
+                }
+              ]
+            },
+            {
+              "n": 288,
+              "metric_unit": "ms",
+              "speedup": 2.903281552236704,
+              "samples": [
+                {
+                  "seed": 1671029688428932994,
+                  "reference_score": 165.508333,
+                  "candidate_score": 55.612042,
+                  "speedup": 2.976124002064157,
+                  "correct": true
+                },
+                {
+                  "seed": 1671029688428932995,
+                  "reference_score": 161.983042,
+                  "candidate_score": 56.58725,
+                  "speedup": 2.8625360306429455,
+                  "correct": true
+                },
+                {
+                  "seed": 1671029688428932996,
+                  "reference_score": 163.248375,
+                  "candidate_score": 56.83075,
+                  "speedup": 2.872535995037898,
+                  "correct": true
+                }
+              ]
+            }
+          ],
+          "codex_contexts": [
+            {
+              "model": "gpt-6-luna",
+              "effort": "high",
+              "approval_policy": "never"
+            }
+          ],
+          "usage": [
+            {
+              "input_tokens": 475789,
+              "cached_input_tokens": 432896,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 6787,
+              "reasoning_output_tokens": 3590
+            }
+          ]
+        },
+        "hermes": {
+          "status": "completed",
+          "passed": true,
+          "speedup": 39.2255188529901,
+          "credited_speedup": 39.2255188529901,
+          "agent_elapsed_seconds": 1618.9028940200806,
+          "final_measured_speedup": 39.2255188529901,
+          "run_id": "20261004T044700Z-dynamic_exact_ray_queries-b3771736",
+          "integrity": "passed",
+          "final_correct": true,
+          "candidate_sha256": "2580abbaadb94aa43a620f47bc1544bb0cd0262aa51cffea466773106d8ff4f4",
+          "final_seed": 3342560969160811225,
+          "final_seed_source": "random",
+          "final_evaluation": 10,
+          "selected_development_evaluation": 9,
+          "percent_speed_increase": 3822.55188529901,
+          "evidence_sha256": {
+            "manifest.json": "cada99b68e76c2fe74d916d8ec41d69315326758fe917fb6a92e17abb5c38865",
+            "evaluations.jsonl": "f26e6a916b9307a6f0adf9d249cd8d7b3f0aa0bb2f9f95f9b46486a905f616e9",
+            "summary.json": "79abb242e1b0005a0ee8b2696a2e81a71357f51bb7dafedfa6d47bbcb365a7b6"
+          },
+          "cases": [
+            {
+              "n": 192,
+              "metric_unit": "ms",
+              "speedup": 29.923958405529024,
+              "samples": [
+                {
+                  "seed": 3342560969160811225,
+                  "reference_score": 70.68475,
+                  "candidate_score": 2.383333,
+                  "speedup": 29.657941210900866,
+                  "correct": true
+                },
+                {
+                  "seed": 3342560969160811226,
+                  "reference_score": 67.784708,
+                  "candidate_score": 2.288,
+                  "speedup": 29.626183566433568,
+                  "correct": true
+                },
+                {
+                  "seed": 3342560969160811227,
+                  "reference_score": 69.201375,
+                  "candidate_score": 2.269208,
+                  "speedup": 30.495827178469316,
+                  "correct": true
+                }
+              ]
+            },
+            {
+              "n": 288,
+              "metric_unit": "ms",
+              "speedup": 51.418375484775055,
+              "samples": [
+                {
+                  "seed": 3342560969160811228,
+                  "reference_score": 160.570458,
+                  "candidate_score": 3.018792,
+                  "speedup": 53.19030194859401,
+                  "correct": true
+                },
+                {
+                  "seed": 3342560969160811229,
+                  "reference_score": 159.880125,
+                  "candidate_score": 2.973417,
+                  "speedup": 53.769829458834735,
+                  "correct": true
+                },
+                {
+                  "seed": 3342560969160811230,
+                  "reference_score": 159.815625,
+                  "candidate_score": 3.362291,
+                  "speedup": 47.53176479965595,
+                  "correct": true
+                }
+              ]
+            }
+          ],
+          "runtime": {
+            "python": "3.14.7",
+            "openai_sdk": "2.24.0"
+          },
+          "wire_observations": 115,
+          "wire_sha256": "85f05dd42d84e37352b3af1271ded7727ce97e7fcbd5ca6b2b4b74a72292b00d"
+        }
+      },
+      "metric_unit": "ms"
+    },
+    {
+      "task": "dynamic_document_search",
+      "label": "Dynamic document search",
+      "task_version": "1.2.0",
+      "task_revision": "cb53cf4fdc0b18f68749d84e5a3045878b0ad51b0111efb48523d0962bb25545",
+      "results": {
+        "codex": {
+          "status": "completed",
+          "passed": true,
+          "speedup": 1.9709297294215977,
+          "credited_speedup": 1.9709297294215977,
+          "agent_elapsed_seconds": 120.40992021560669,
+          "final_measured_speedup": 1.9709297294215977,
+          "run_id": "20261002T005919Z-dynamic_document_search-e0c8b466",
+          "integrity": "passed",
+          "final_correct": true,
+          "candidate_sha256": "a1b2e3fd4bf1da6bd3dd5ae203a75ce60b95f39adaf9577cbc041d8a4b7ab924",
+          "final_seed": 7444532026189857751,
+          "final_seed_source": "random",
+          "final_evaluation": 5,
+          "selected_development_evaluation": 2,
+          "percent_speed_increase": 97.09297294215978,
+          "evidence_sha256": {
+            "manifest.json": "a115d55f2bda178597325811ff27b7a27fc8569d49b823061fed6a87d28dbb21",
+            "evaluations.jsonl": "0482a7c355d8b3617d11db48d3226cce9b72383e5d678ce56d1de67197497dc2",
+            "summary.json": "c45b8750918712577bff6b2d627586df3763542b9607f1afd9bb72a4a6ad5d7d"
+          },
+          "cases": [
+            {
+              "n": 800,
+              "metric_unit": "ms",
+              "speedup": 1.666087701454727,
+              "samples": [
+                {
+                  "seed": 7444532026189857751,
+                  "reference_score": 37.814042,
+                  "candidate_score": 24.237167,
+                  "speedup": 1.560167572389958,
+                  "correct": true
+                },
+                {
+                  "seed": 7444532026189857752,
+                  "reference_score": 38.409792,
+                  "candidate_score": 22.252042,
+                  "speedup": 1.7261243709678422,
+                  "correct": true
+                },
+                {
+                  "seed": 7444532026189857753,
+                  "reference_score": 36.396583,
+                  "candidate_score": 21.193875,
+                  "speedup": 1.717316111376518,
+                  "correct": true
+                }
+              ]
+            },
+            {
+              "n": 1600,
+              "metric_unit": "ms",
+              "speedup": 2.331548330214626,
+              "samples": [
+                {
+                  "seed": 7444532026189857754,
+                  "reference_score": 143.596375,
+                  "candidate_score": 59.667792,
+                  "speedup": 2.406597767184011,
+                  "correct": true
+                },
+                {
+                  "seed": 7444532026189857755,
+                  "reference_score": 132.522708,
+                  "candidate_score": 58.940292,
+                  "speedup": 2.2484229972936,
+                  "correct": true
+                },
+                {
+                  "seed": 7444532026189857756,
+                  "reference_score": 133.660917,
+                  "candidate_score": 57.06275,
+                  "speedup": 2.342349729026379,
+                  "correct": true
+                }
+              ]
+            }
+          ],
+          "codex_contexts": [
+            {
+              "model": "gpt-6-luna",
+              "effort": "high",
+              "approval_policy": "never"
+            }
+          ],
+          "usage": [
+            {
+              "input_tokens": 463871,
+              "cached_input_tokens": 433408,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 5094,
+              "reasoning_output_tokens": 2339
+            }
+          ]
+        },
+        "hermes": {
+          "status": "completed",
+          "passed": true,
+          "speedup": 2.7863757146013866,
+          "credited_speedup": 2.7863757146013866,
+          "agent_elapsed_seconds": 1351.673593044281,
+          "final_measured_speedup": 2.7863757146013866,
+          "run_id": "20261004T051401Z-dynamic_document_search-6987f0ad",
+          "integrity": "passed",
+          "final_correct": true,
+          "candidate_sha256": "efb093f712ec9dd8dac69584f73c7887e667645d02083a3d6d5c794e92324fd4",
+          "final_seed": 1311427414893764263,
+          "final_seed_source": "random",
+          "final_evaluation": 5,
+          "selected_development_evaluation": 2,
+          "percent_speed_increase": 178.63757146013864,
+          "evidence_sha256": {
+            "manifest.json": "868cd7ebf34db7d71615724634e285e765b52c74b131d5933ca9b367cf086d7c",
+            "evaluations.jsonl": "00e02bc4a9a53262a964491f8e99bc83f44350de4cef2f9766664e16234023a7",
+            "summary.json": "c2e1339df04c86449d58817128c73014daef51a9a70feaf853610c931afee13d"
+          },
+          "cases": [
+            {
+              "n": 800,
+              "metric_unit": "ms",
+              "speedup": 2.3651618956970686,
+              "samples": [
+                {
+                  "seed": 1311427414893764263,
+                  "reference_score": 37.086333,
+                  "candidate_score": 17.1525,
+                  "speedup": 2.162153213817228,
+                  "correct": true
+                },
+                {
+                  "seed": 1311427414893764264,
+                  "reference_score": 38.651709,
+                  "candidate_score": 15.846041,
+                  "speedup": 2.439202889857473,
+                  "correct": true
+                },
+                {
+                  "seed": 1311427414893764265,
+                  "reference_score": 39.4155,
+                  "candidate_score": 15.711542,
+                  "speedup": 2.5086971094243964,
+                  "correct": true
+                }
+              ]
+            },
+            {
+              "n": 1600,
+              "metric_unit": "ms",
+              "speedup": 3.2826038830767597,
+              "samples": [
+                {
+                  "seed": 1311427414893764266,
+                  "reference_score": 132.042084,
+                  "candidate_score": 40.620042,
+                  "speedup": 3.250663404040793,
+                  "correct": true
+                },
+                {
+                  "seed": 1311427414893764267,
+                  "reference_score": 129.899916,
+                  "candidate_score": 39.253416,
+                  "speedup": 3.3092639886424147,
+                  "correct": true
+                },
+                {
+                  "seed": 1311427414893764268,
+                  "reference_score": 136.6355,
+                  "candidate_score": 41.553875,
+                  "speedup": 3.2881530302528947,
+                  "correct": true
+                }
+              ]
+            }
+          ],
+          "runtime": {
+            "python": "3.14.7",
+            "openai_sdk": "2.24.0"
+          },
+          "wire_observations": 106,
+          "wire_sha256": "a1a5e63c374f1bc60f1d2671308fa13d4b07aa58684792c789894e408a8c2208"
+        }
+      },
+      "metric_unit": "ms"
+    },
+    {
+      "task": "dynamic_shortest_paths",
+      "label": "Dynamic shortest paths",
+      "task_version": "1.1.0",
+      "task_revision": "1db9e7af9ff37bbc632f65fd1835a99f021ed26e6fdd1f1b5a22e854c0902a0e",
+      "results": {
+        "codex": {
+          "status": "completed",
+          "passed": true,
+          "speedup": 1.5982058131786467,
+          "credited_speedup": 1.5982058131786467,
+          "agent_elapsed_seconds": 181.36739206314087,
+          "final_measured_speedup": 1.5982058131786467,
+          "run_id": "20261002T010121Z-dynamic_shortest_paths-9a3c2c8b",
+          "integrity": "passed",
+          "final_correct": true,
+          "candidate_sha256": "5cf42c6f23fd70ca9d948dac127d0e4119a4b2e52481a5533eb145a4280192ce",
+          "final_seed": 2232795326984573889,
+          "final_seed_source": "random",
+          "final_evaluation": 4,
+          "selected_development_evaluation": 2,
+          "percent_speed_increase": 59.82058131786467,
+          "evidence_sha256": {
+            "manifest.json": "2708c1a3fad5e2af7301d183323d47c8f8d9f5ce4dfde0ae6ccab9ad24d67520",
+            "evaluations.jsonl": "5b4e11d607f25a89a1e7a2b9261b41e952c975ccddcc0c3b0541448510c694a6",
+            "summary.json": "c2b1a86465da29d25fb7ef54aedac608d268853f0af7e0d00310e1bc9fa96cf5"
+          },
+          "cases": [
+            {
+              "n": 400,
+              "metric_unit": "ms",
+              "speedup": 1.565732677967614,
+              "samples": [
+                {
+                  "seed": 2232795326984573889,
+                  "reference_score": 266.166916,
+                  "candidate_score": 169.835666,
+                  "speedup": 1.5672027099419743,
+                  "correct": true
+                },
+                {
+                  "seed": 2232795326984573890,
+                  "reference_score": 266.973625,
+                  "candidate_score": 170.8615,
+                  "speedup": 1.5625148146305634,
+                  "correct": true
+                },
+                {
+                  "seed": 2232795326984573891,
+                  "reference_score": 268.243792,
+                  "candidate_score": 171.13,
+                  "speedup": 1.56748549056273,
+                  "correct": true
+                }
+              ]
+            },
+            {
+              "n": 800,
+              "metric_unit": "ms",
+              "speedup": 1.6313524378845803,
+              "samples": [
+                {
+                  "seed": 2232795326984573892,
+                  "reference_score": 1148.277084,
+                  "candidate_score": 694.49775,
+                  "speedup": 1.653392086583434,
+                  "correct": true
+                },
+                {
+                  "seed": 2232795326984573893,
+                  "reference_score": 1086.356583,
+                  "candidate_score": 678.693959,
+                  "speedup": 1.6006575107883052,
+                  "correct": true
+                },
+                {
+                  "seed": 2232795326984573894,
+                  "reference_score": 1103.693292,
+                  "candidate_score": 672.789625,
+                  "speedup": 1.6404731152029877,
+                  "correct": true
+                }
+              ]
+            }
+          ],
+          "codex_contexts": [
+            {
+              "model": "gpt-6-luna",
+              "effort": "high",
+              "approval_policy": "never"
+            }
+          ],
+          "usage": [
+            {
+              "input_tokens": 374459,
+              "cached_input_tokens": 345344,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 7221,
+              "reasoning_output_tokens": 2852
+            }
+          ]
+        },
+        "hermes": {
+          "status": "completed",
+          "passed": true,
+          "speedup": 8.110431139626765,
+          "credited_speedup": 8.110431139626765,
+          "agent_elapsed_seconds": 2845.172649860382,
+          "final_measured_speedup": 8.110431139626765,
+          "run_id": "20261004T053635Z-dynamic_shortest_paths-5f2566ff",
+          "integrity": "passed",
+          "final_correct": true,
+          "candidate_sha256": "09d75c3663572b5b6ace4a683371e86f0a6ed50c455fb395d7f89ad59d7c1f91",
+          "final_seed": 6614871881956876693,
+          "final_seed_source": "random",
+          "final_evaluation": 6,
+          "selected_development_evaluation": 4,
+          "percent_speed_increase": 711.0431139626766,
+          "evidence_sha256": {
+            "manifest.json": "c70427c46d7f044d96a5c447ba634a3aaf2face88b8f9948bca6756a981b79cb",
+            "evaluations.jsonl": "4091a20e7b1574708c55eed395510bb25120eeed098ab6c50d659c57bbb0ebd5",
+            "summary.json": "bdf46bb9ffae3cb04defbdba89d9ab120fd46e5845a641232e282c167a81bf5a"
+          },
+          "cases": [
+            {
+              "n": 400,
+              "metric_unit": "ms",
+              "speedup": 6.945492492574423,
+              "samples": [
+                {
+                  "seed": 6614871881956876693,
+                  "reference_score": 274.157333,
+                  "candidate_score": 40.727708,
+                  "speedup": 6.7314697158995545,
+                  "correct": true
+                },
+                {
+                  "seed": 6614871881956876694,
+                  "reference_score": 288.173167,
+                  "candidate_score": 41.060875,
+                  "speedup": 7.018193523640204,
+                  "correct": true
+                },
+                {
+                  "seed": 6614871881956876695,
+                  "reference_score": 269.133083,
+                  "candidate_score": 37.948375,
+                  "speedup": 7.092084522723305,
+                  "correct": true
+                }
+              ]
+            },
+            {
+              "n": 800,
+              "metric_unit": "ms",
+              "speedup": 9.47076011398088,
+              "samples": [
+                {
+                  "seed": 6614871881956876696,
+                  "reference_score": 1193.747666,
+                  "candidate_score": 126.45725,
+                  "speedup": 9.439930616868546,
+                  "correct": true
+                },
+                {
+                  "seed": 6614871881956876697,
+                  "reference_score": 1129.882084,
+                  "candidate_score": 122.63125,
+                  "speedup": 9.213655442637991,
+                  "correct": true
+                },
+                {
+                  "seed": 6614871881956876698,
+                  "reference_score": 1152.570875,
+                  "candidate_score": 118.008666,
+                  "speedup": 9.766832505334818,
+                  "correct": true
+                }
+              ]
+            }
+          ],
+          "runtime": {
+            "python": "3.14.7",
+            "openai_sdk": "2.24.0"
+          },
+          "wire_observations": 197,
+          "wire_sha256": "6530043146c0c3301b73c78dc43c9d133887e54b8eac2c869c90ef31440f70c9"
+        }
+      },
+      "metric_unit": "ms"
+    },
+    {
+      "task": "adaptive_query_engine",
+      "label": "Adaptive query engine",
+      "task_version": "1.1.0",
+      "task_revision": "db4c0d2958a4f6d05dd4a68c1a2fc4e4e3bd6b807bf6072fa77b89cbc2c38552",
+      "results": {
+        "codex": {
+          "status": "completed",
+          "passed": true,
+          "speedup": 1.7403600565436066,
+          "credited_speedup": 1.7403600565436066,
+          "agent_elapsed_seconds": 148.63754391670227,
+          "final_measured_speedup": 1.7403600565436066,
+          "run_id": "20261002T010438Z-adaptive_query_engine-09e8d735",
+          "integrity": "passed",
+          "final_correct": true,
+          "candidate_sha256": "a65b9906325a4706dfeef1ea6d2a3377ed1b57cb1becc903cf8c52281f2a8b86",
+          "final_seed": 7139624446761523051,
+          "final_seed_source": "random",
+          "final_evaluation": 4,
+          "selected_development_evaluation": 2,
+          "percent_speed_increase": 74.03600565436066,
+          "evidence_sha256": {
+            "manifest.json": "53f421e6a5d4504f8460f93967419ac908c83f3be0090661574fc7d5d9666e84",
+            "evaluations.jsonl": "38fd37cf36f0edb19f22c3dff42b3928c94cd174140464532e22b8ddc8ece99a",
+            "summary.json": "58249244fb3d73f0d5bbe002d32885b4e867006377c295f78282b8648604bd4d"
+          },
+          "cases": [
+            {
+              "n": 2400,
+              "metric_unit": "ms",
+              "speedup": 1.8990855040438939,
+              "samples": [
+                {
+                  "seed": 7139624446761523051,
+                  "reference_score": 70.183583,
+                  "candidate_score": 46.119459,
+                  "speedup": 1.5217781067206362,
+                  "correct": true
+                },
+                {
+                  "seed": 7139624446761523052,
+                  "reference_score": 86.471541,
+                  "candidate_score": 52.2205,
+                  "speedup": 1.6558926283739144,
+                  "correct": true
+                },
+                {
+                  "seed": 7139624446761523053,
+                  "reference_score": 125.606542,
+                  "candidate_score": 46.212792,
+                  "speedup": 2.718003750996045,
+                  "correct": true
+                }
+              ]
+            },
+            {
+              "n": 3600,
+              "metric_unit": "ms",
+              "speedup": 1.5949008720054236,
+              "samples": [
+                {
+                  "seed": 7139624446761523054,
+                  "reference_score": 109.1975,
+                  "candidate_score": 68.975583,
+                  "speedup": 1.5831326862434785,
+                  "correct": true
+                },
+                {
+                  "seed": 7139624446761523055,
+                  "reference_score": 109.0015,
+                  "candidate_score": 71.568125,
+                  "speedup": 1.52304535014715,
+                  "correct": true
+                },
+                {
+                  "seed": 7139624446761523056,
+                  "reference_score": 113.267584,
+                  "candidate_score": 67.318542,
+                  "speedup": 1.6825614553565347,
+                  "correct": true
+                }
+              ]
+            }
+          ],
+          "codex_contexts": [
+            {
+              "model": "gpt-6-luna",
+              "effort": "high",
+              "approval_policy": "never"
+            }
+          ],
+          "usage": [
+            {
+              "input_tokens": 399181,
+              "cached_input_tokens": 368896,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 4752,
+              "reasoning_output_tokens": 1875
+            }
+          ]
+        },
+        "hermes": {
+          "status": "completed",
+          "passed": true,
+          "speedup": 4.729686669140884,
+          "credited_speedup": 4.729686669140884,
+          "agent_elapsed_seconds": 2994.3437938690186,
+          "final_measured_speedup": 4.729686669140884,
+          "run_id": "20261004T062413Z-adaptive_query_engine-66ad54c6",
+          "integrity": "passed",
+          "final_correct": true,
+          "candidate_sha256": "8c15855285527541003219472d5ca862a76355c2cc62e036ab35b680bb5d194c",
+          "final_seed": 6234606459987953463,
+          "final_seed_source": "random",
+          "final_evaluation": 13,
+          "selected_development_evaluation": 12,
+          "percent_speed_increase": 372.96866691408843,
+          "evidence_sha256": {
+            "manifest.json": "1e7ea1fd24af7abccb20e5be87ad753d1d8536eb5fd21c42c1890846a32bd705",
+            "evaluations.jsonl": "807f20411312400f6f7e9ad2e3e4b3d5904824b330ca63c9db8f4be53aa3563d",
+            "summary.json": "aee26a01eeacadbbc770d53d16d6abdfb75521e9756ab655ecb540e1d8c8caea"
+          },
+          "cases": [
+            {
+              "n": 2400,
+              "metric_unit": "ms",
+              "speedup": 4.570655118449832,
+              "samples": [
+                {
+                  "seed": 6234606459987953463,
+                  "reference_score": 70.194375,
+                  "candidate_score": 17.129458,
+                  "speedup": 4.097874842274636,
+                  "correct": true
+                },
+                {
+                  "seed": 6234606459987953464,
+                  "reference_score": 70.030083,
+                  "candidate_score": 14.627458,
+                  "speedup": 4.787577103280693,
+                  "correct": true
+                },
+                {
+                  "seed": 6234606459987953465,
+                  "reference_score": 71.546041,
+                  "candidate_score": 14.70025,
+                  "speedup": 4.866994847026411,
+                  "correct": true
+                }
+              ]
+            },
+            {
+              "n": 3600,
+              "metric_unit": "ms",
+              "speedup": 4.89425156974782,
+              "samples": [
+                {
+                  "seed": 6234606459987953466,
+                  "reference_score": 109.874958,
+                  "candidate_score": 24.249459,
+                  "speedup": 4.531027187039513,
+                  "correct": true
+                },
+                {
+                  "seed": 6234606459987953467,
+                  "reference_score": 109.499917,
+                  "candidate_score": 21.3005,
+                  "speedup": 5.140720499518791,
+                  "correct": true
+                },
+                {
+                  "seed": 6234606459987953468,
+                  "reference_score": 108.450125,
+                  "candidate_score": 21.54725,
+                  "speedup": 5.033130677928739,
+                  "correct": true
+                }
+              ]
+            }
+          ],
+          "runtime": {
+            "python": "3.14.7",
+            "openai_sdk": "2.24.0"
+          },
+          "wire_observations": 139,
+          "wire_sha256": "1196f4eff3e1a913301a53797672811a7f236fb3c034324d4a405996a69ff0d2"
+        }
+      },
+      "metric_unit": "ms"
+    },
+    {
+      "task": "layout_aware_pipeline_compiler",
+      "label": "Layout aware pipeline compiler",
+      "task_version": "2.0.2",
+      "task_revision": "266f7426b6ec414caf233faadda0c1b66dede6b9b42dfa883f2937b3a0eae826",
+      "results": {
+        "codex": {
+          "status": "completed",
+          "passed": true,
+          "speedup": 1.0695763504261933,
+          "credited_speedup": 1.0695763504261933,
+          "agent_elapsed_seconds": 571.9892439842224,
+          "final_measured_speedup": 1.0695763504261933,
+          "run_id": "20261002T010710Z-layout_aware_pipeline_compiler-e5bd0f9f",
+          "integrity": "passed",
+          "final_correct": true,
+          "candidate_sha256": "c111a328d3524c0c881d64fc30bcd348d78d193fd813c1a5a950fa5ae0fe63ff",
+          "final_seed": 6632750367555723943,
+          "final_seed_source": "random",
+          "final_evaluation": 12,
+          "selected_development_evaluation": 4,
+          "percent_speed_increase": 6.957635042619326,
+          "evidence_sha256": {
+            "manifest.json": "053e0c7757bbb8e8774be7504d6d6000303c4a274217ae82301592f774145319",
+            "evaluations.jsonl": "d3f3eb8f77ffceaf51e1fedc224a5ecb560f03d3384a986a2d738e6c89f88207",
+            "summary.json": "44ccff9de43e225ea837b5df5aba11aea054644cc2abf81a5a54d8439b10360b"
+          },
+          "cases": [
+            {
+              "n": 32,
+              "metric_unit": "cycles",
+              "speedup": 1.077581352023937,
+              "samples": [
+                {
+                  "seed": 6632750367555723943,
+                  "reference_score": 22302.0,
+                  "candidate_score": 20574.0,
+                  "speedup": 1.083989501312336,
+                  "correct": true
+                },
+                {
+                  "seed": 6632750367555723944,
+                  "reference_score": 13231.0,
+                  "candidate_score": 12303.0,
+                  "speedup": 1.0754287572136878,
+                  "correct": true
+                },
+                {
+                  "seed": 6632750367555723945,
+                  "reference_score": 28094.0,
+                  "candidate_score": 26174.0,
+                  "speedup": 1.0733552380224651,
+                  "correct": true
+                }
+              ]
+            },
+            {
+              "n": 48,
+              "metric_unit": "cycles",
+              "speedup": 1.0616308153833036,
+              "samples": [
+                {
+                  "seed": 6632750367555723946,
+                  "reference_score": 18708.0,
+                  "candidate_score": 17892.0,
+                  "speedup": 1.04560697518444,
+                  "correct": true
+                },
+                {
+                  "seed": 6632750367555723947,
+                  "reference_score": 27714.0,
+                  "candidate_score": 26466.0,
+                  "speedup": 1.0471548401722965,
+                  "correct": true
+                },
+                {
+                  "seed": 6632750367555723948,
+                  "reference_score": 45784.0,
+                  "candidate_score": 41896.0,
+                  "speedup": 1.0928012220737062,
+                  "correct": true
+                }
+              ]
+            }
+          ],
+          "codex_contexts": [
+            {
+              "model": "gpt-6-luna",
+              "effort": "high",
+              "approval_policy": "never"
+            }
+          ],
+          "usage": [
+            {
+              "input_tokens": 2541615,
+              "cached_input_tokens": 2446848,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 23675,
+              "reasoning_output_tokens": 11896
+            }
+          ]
+        },
+        "hermes": {
+          "status": "completed",
+          "passed": true,
+          "speedup": 1.6199948587314754,
+          "credited_speedup": 1.6199948587314754,
+          "agent_elapsed_seconds": 2770.124521970749,
+          "final_measured_speedup": 1.6199948587314754,
+          "run_id": "20261004T071411Z-layout_aware_pipeline_compiler-ea105134",
+          "integrity": "passed",
+          "final_correct": true,
+          "candidate_sha256": "99a95221435416e8b582814efc20d929cb81a4e8b4f8aebc89f2685dfcb13c80",
+          "final_seed": 1297752149094952217,
+          "final_seed_source": "random",
+          "final_evaluation": 8,
+          "selected_development_evaluation": 3,
+          "percent_speed_increase": 61.99948587314754,
+          "evidence_sha256": {
+            "manifest.json": "a8b9a7747431c03afc41191e8eef4a4869d7dd9b000ed5038ad5728ee2dd1705",
+            "evaluations.jsonl": "2b98df0ea85d981d928882210da32fc7c67f3f61c4dbcf9226eca22d87360e35",
+            "summary.json": "f53b4f8b8643a6d1b7f27cd6d02c4149deccb82f5dd9c16002c310d1d7ebbe09"
+          },
+          "cases": [
+            {
+              "n": 32,
+              "metric_unit": "cycles",
+              "speedup": 1.6213407776256916,
+              "samples": [
+                {
+                  "seed": 1297752149094952217,
+                  "reference_score": 9967.0,
+                  "candidate_score": 5574.0,
+                  "speedup": 1.788123430211697,
+                  "correct": true
+                },
+                {
+                  "seed": 1297752149094952218,
+                  "reference_score": 36078.0,
+                  "candidate_score": 20117.0,
+                  "speedup": 1.793408559924442,
+                  "correct": true
+                },
+                {
+                  "seed": 1297752149094952219,
+                  "reference_score": 12351.0,
+                  "candidate_score": 9293.0,
+                  "speedup": 1.3290648875497686,
+                  "correct": true
+                }
+              ]
+            },
+            {
+              "n": 48,
+              "metric_unit": "cycles",
+              "speedup": 1.618650057120988,
+              "samples": [
+                {
+                  "seed": 1297752149094952220,
+                  "reference_score": 54903.0,
+                  "candidate_score": 41024.0,
+                  "speedup": 1.3383141575663027,
+                  "correct": true
+                },
+                {
+                  "seed": 1297752149094952221,
+                  "reference_score": 43479.0,
+                  "candidate_score": 26553.0,
+                  "speedup": 1.637442096938199,
+                  "correct": true
+                },
+                {
+                  "seed": 1297752149094952222,
+                  "reference_score": 42016.0,
+                  "candidate_score": 21711.0,
+                  "speedup": 1.9352402008198608,
+                  "correct": true
+                }
+              ]
+            }
+          ],
+          "runtime": {
+            "python": "3.14.7",
+            "openai_sdk": "2.24.0"
+          },
+          "wire_observations": 194,
+          "wire_sha256": "73d1f9e4dee4173ad3e2cfe44e0acfd09a9cc8ff66b64b5b3e288cd451314e7d"
+        }
+      },
+      "metric_unit": "cycles"
+    },
+    {
+      "task": "simd_traversal_kernel",
+      "label": "SIMD traversal kernel",
+      "task_version": "1.1.0",
+      "task_revision": "f15bb246fc6ae7ccaef151dd6fbd5d9bf7b6cc7683e41f800c9bd3d3a74c7d65",
+      "results": {
+        "codex": {
+          "status": "completed",
+          "passed": true,
+          "speedup": 15.971145897772978,
+          "credited_speedup": 15.971145897772978,
+          "agent_elapsed_seconds": 160.77986097335815,
+          "final_measured_speedup": 15.971145897772978,
+          "run_id": "20261002T011645Z-simd_traversal_kernel-3f6d08be",
+          "integrity": "passed",
+          "final_correct": true,
+          "candidate_sha256": "18d703696268e9db5d73aff9ffed54b2db97306fcafd166fc75014e790092f60",
+          "final_seed": 5027139710664228844,
+          "final_seed_source": "random",
+          "final_evaluation": 5,
+          "selected_development_evaluation": 4,
+          "percent_speed_increase": 1497.1145897772979,
+          "evidence_sha256": {
+            "manifest.json": "f62431a6b2bc1de562feb4da53082070e99123b415235382253ae22fa7723471",
+            "evaluations.jsonl": "87e31c17b07e8c2472c753d9583ef674881f9a615f3a7209c86650b56b42732b",
+            "summary.json": "8a9ca86a60df2c4d56258884412af57720cc68d08eab034ab3da5f02f7d11430"
+          },
+          "cases": [
+            {
+              "n": 32,
+              "metric_unit": "cycles",
+              "speedup": 15.949021141189501,
+              "samples": [
+                {
+                  "seed": 5027139710664228844,
+                  "reference_score": 39332.0,
+                  "candidate_score": 2505.3333333333335,
+                  "speedup": 15.699308142629057,
+                  "correct": true
+                },
+                {
+                  "seed": 5027139710664228845,
+                  "reference_score": 42212.0,
+                  "candidate_score": 2630.0,
+                  "speedup": 16.050190114068442,
+                  "correct": true
+                },
+                {
+                  "seed": 5027139710664228846,
+                  "reference_score": 29829.0,
+                  "candidate_score": 1852.6666666666667,
+                  "speedup": 16.100575746671463,
+                  "correct": true
+                }
+              ]
+            },
+            {
+              "n": 128,
+              "metric_unit": "cycles",
+              "speedup": 15.99330134619952,
+              "samples": [
+                {
+                  "seed": 5027139710664228847,
+                  "reference_score": 144931.0,
+                  "candidate_score": 9071.333333333334,
+                  "speedup": 15.976813404865142,
+                  "correct": true
+                },
+                {
+                  "seed": 5027139710664228848,
+                  "reference_score": 150439.0,
+                  "candidate_score": 9555.0,
+                  "speedup": 15.744531658817372,
+                  "correct": true
+                },
+                {
+                  "seed": 5027139710664228849,
+                  "reference_score": 144679.0,
+                  "candidate_score": 8896.333333333334,
+                  "speedup": 16.262767432275467,
+                  "correct": true
+                }
+              ]
+            }
+          ],
+          "codex_contexts": [
+            {
+              "model": "gpt-6-luna",
+              "effort": "high",
+              "approval_policy": "never"
+            }
+          ],
+          "usage": [
+            {
+              "input_tokens": 537395,
+              "cached_input_tokens": 492288,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 7477,
+              "reasoning_output_tokens": 5085
+            }
+          ]
+        },
+        "hermes": {
+          "status": "completed",
+          "passed": true,
+          "speedup": 24.06227619086788,
+          "credited_speedup": 24.06227619086788,
+          "agent_elapsed_seconds": 1413.933676958084,
+          "final_measured_speedup": 24.06227619086788,
+          "run_id": "20261004T080025Z-simd_traversal_kernel-a182f028",
+          "integrity": "passed",
+          "final_correct": true,
+          "candidate_sha256": "8ebd67c87bed15f3fd5b1e6ebd8ac71e492100156a709d3b191d68363bf8193e",
+          "final_seed": 7931384273190711205,
+          "final_seed_source": "random",
+          "final_evaluation": 5,
+          "selected_development_evaluation": 4,
+          "percent_speed_increase": 2306.227619086788,
+          "evidence_sha256": {
+            "manifest.json": "76be76f8f2b5fc4382910bfbdb2cf43f413f91ca40ea3c2f8e8bc69b2d2d9f73",
+            "evaluations.jsonl": "339f3d125149c75971e6d9a42f0ca68dd3a241601254746f8ecc0859154d6271",
+            "summary.json": "5a20ed687201cc7869e59d32444b8c98486fafc61cbb90c07dc1253d2d2a1fec"
+          },
+          "cases": [
+            {
+              "n": 32,
+              "metric_unit": "cycles",
+              "speedup": 23.517481357242296,
+              "samples": [
+                {
+                  "seed": 7931384273190711205,
+                  "reference_score": 36487.0,
+                  "candidate_score": 1540.0,
+                  "speedup": 23.692857142857143,
+                  "correct": true
+                },
+                {
+                  "seed": 7931384273190711206,
+                  "reference_score": 40711.0,
+                  "candidate_score": 1718.0,
+                  "speedup": 23.69674039580908,
+                  "correct": true
+                },
+                {
+                  "seed": 7931384273190711207,
+                  "reference_score": 34117.0,
+                  "candidate_score": 1472.6666666666667,
+                  "speedup": 23.166817564508825,
+                  "correct": true
+                }
+              ]
+            },
+            {
+              "n": 128,
+              "metric_unit": "cycles",
+              "speedup": 24.61969148355694,
+              "samples": [
+                {
+                  "seed": 7931384273190711208,
+                  "reference_score": 161571.0,
+                  "candidate_score": 6517.666666666667,
+                  "speedup": 24.789699790313506,
+                  "correct": true
+                },
+                {
+                  "seed": 7931384273190711209,
+                  "reference_score": 166820.0,
+                  "candidate_score": 6611.0,
+                  "speedup": 25.23370140674633,
+                  "correct": true
+                },
+                {
+                  "seed": 7931384273190711210,
+                  "reference_score": 150308.0,
+                  "candidate_score": 6300.666666666667,
+                  "speedup": 23.85588826579198,
+                  "correct": true
+                }
+              ]
+            }
+          ],
+          "runtime": {
+            "python": "3.14.7",
+            "openai_sdk": "2.24.0"
+          },
+          "wire_observations": 124,
+          "wire_sha256": "2eac552576e35f0fb8e242696ebce279566c25069d9a67567444c71737ba46ea"
+        }
+      },
+      "metric_unit": "cycles"
+    }
+  ],
+  "hermes_configuration": {
+    "source_patch": false,
+    "explicit_runtime_python": "3.14.7",
+    "diagnostics": "Python environment supplies initialization settings; offline actual entrypoint check returns diagnostics without a timeout",
+    "run_budget_seconds": 3600,
+    "wrap_up_notice_seconds": 2880,
+    "comparison_selection": "One complete new Hermes suite; existing Codex suite reused; prior Hermes measurements not selected per task"
+  },
+  "hermes_diagnostics_audit": {
+    "diagnostic_timeout_warnings": 0,
+    "file_tool_calls": 513,
+    "file_tool_seconds": 255.37299999999996,
+    "correct_final_candidates": 10,
+    "naturally_completed_attempts": 10,
+    "timed_out_attempts": 0,
+    "agent_result_errors": 0,
+    "interruption_events": 1
+  },
+  "resumed_attempt": {
+    "prior_active_seconds": 78.93000197410583,
+    "remaining_safety_seconds": 3521.069998025894,
+    "remaining_run_budget_seconds": 3521.069998025894,
+    "conversation_messages": 33,
+    "downtime_excluded": true,
+    "completed_task_reused": "incremental_spreadsheet_recalculation",
+    "task": "live_fleet_dispatch",
+    "method": "Native Hermes saved conversation resumed; completed task retained; remaining eight tasks fresh; wrap up notice is 80 percent of remaining run budget"
+  },
+  "chart_design": {
+    "model": "claude-opus-5-5",
+    "harness": "Claude Code",
+    "harness_version": "2.1.284",
+    "effort": "high",
+    "renderer_sha256": "8b26cf618e3706c88a7f1af25a8d6b4720b826f2dbc91fd08b035d7c66809d3c",
+    "task_order": "Descending paired geometric mean speedup",
+    "plot": "Separate model bars from the 1x reference baseline on a logarithmic axis",
+    "presentation_adjustments": [
+      "Hide agent time row",
+      "Display Hermes semantic version only",
+      "Parenthesize suite name",
+      "Separate model bars anchored at the prominent 1x reference baseline",
+      "Hide provider name in the chart header"
+    ]
+  },
+  "renderer_sha256": "f14091096ef441e9e408f1e61d42a0452efec47780c01b201b73783004b08468"
+}

@@ -4,6 +4,7 @@ import heapq
 import random
 import sys
 
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import forbidden_imports, load_candidate, watch_imports
 
 
@@ -85,7 +86,7 @@ def _mutate(rng, data, count):
 
 class AffineGapSequenceAlignment:
     name = "affine_gap_sequence_alignment"
-    display_name = "Exact Affine Gap Sequence Alignment"
+    display_name = TASK_CATALOG[name].display_name
     task_version = "1.0.0"
     default_n = 256
     grading_cases = (256, 384)

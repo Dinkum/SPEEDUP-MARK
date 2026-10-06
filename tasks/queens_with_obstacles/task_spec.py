@@ -2,6 +2,7 @@
 
 import random
 
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import load_candidate
 
 _candidate = load_candidate(__file__)
@@ -111,7 +112,7 @@ def has_larger_placement(board, count):
 class Task:
     name = "queens_with_obstacles"
     task_version = "1.1.0"
-    display_name = "Maximum Queens With Blocking Obstacles"
+    display_name = TASK_CATALOG[name].display_name
     default_n = 10
     grading_cases = (10, 12)
 

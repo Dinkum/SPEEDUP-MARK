@@ -1,4 +1,6 @@
-# Sinkhorn
+# Entropy-Regularized Transport
+
+## Input and submission
 
 Compute an entropy-regularized transport plan at the accuracy stored in the problem.
 
@@ -6,17 +8,35 @@ The objective is `<M, P> - reg * H(P)` with `H(P) = -sum P (log P - 1)` and posi
 
 Seeds rotate through `weak_reg`, `strong_reg`, and `uneven` masses and shapes.
 
+NumPy is the optional numerical extra. One BLAS thread is set before it loads.
+
+## Reference and verification
+
 The reference is stabilized log-domain Sinkhorn. Upstream calls `ot.sinkhorn` and requires one numerical matrix. The fixed accuracy test is intentional.
-
-Optimize `candidate.py:solve(problem, reference_solve)`. NumPy is the optional numerical extra. One BLAS thread is set before it loads.
-
-Provenance: AlgoTune `AlgoTuneTasks/sinkhorn` at `dff9914c10800c7a031c9e8c3d4d1c8cd1b38906`. No upstream source was copied.
 
 ## Workload distribution
 
-- **Size:** n is source-support size; destinations number n or max(2,n//2).
+- **Size:** n is source-support size; destinations number n or max(2,n//2). Managed cases use 128 and 384.
 - **Selection:** seed % 3 selects weak_reg, strong_reg, or uneven.
 - **Randomized:** Random 2D support coordinates and normalized masses (uniform in weak_reg, random in strong_reg, fourth powers of random draws in uneven).
 - **Fixed structure:** Regularization is 0.02/1/0.05; cost scales 1/8/3; target accuracy is 1e-5.
 
 The executable definition is [`task_spec.py`](task_spec.py), `generate_problem` and its helpers. See [sampling and coverage](../../GUIDE.md#sampling) for how the grader chooses and records seeds.
+
+## Grading
+
+Edit only `candidate.py`, preserving `solve(problem, reference_solve)`.
+
+From the repository root:
+
+```console
+python3 -m speedupmark sinkhorn
+```
+
+Inside a managed run, use `python3 grade.py` to record progress.
+See the [submission rules](../../GUIDE.md#submission-rules) and
+[scoring guide](../../GUIDE.md#scoring) for shared requirements.
+
+## Provenance
+
+AlgoTune `AlgoTuneTasks/sinkhorn` at `dff9914c10800c7a031c9e8c3d4d1c8cd1b38906`. No upstream source was copied.

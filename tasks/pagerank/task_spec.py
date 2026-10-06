@@ -3,6 +3,7 @@
 import math
 import random
 
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import load_candidate
 
 
@@ -56,7 +57,7 @@ def _dense_reference(problem):
 class Task:
     name = "pagerank"
     task_version = "1.1.0"
-    display_name = "Sparse Weighted PageRank"
+    display_name = TASK_CATALOG[name].display_name
     default_n = 256
     grading_cases = (256, 384)
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import random
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import load_candidate
 
 
@@ -90,7 +91,7 @@ def _valid_mapping(problem, mapping):
 class LabeledGraphIsomorphismTask:
     name = "labeled_graph_isomorphism"
     task_version = "1.2.1"
-    display_name = "Vertex-Labeled Graph Isomorphism"
+    display_name = TASK_CATALOG[name].display_name
     default_n = 10
     grading_cases = (10, 20)
 

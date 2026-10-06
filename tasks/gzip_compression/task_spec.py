@@ -2,6 +2,7 @@
 
 import random
 
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import load_candidate
 
 _candidate = load_candidate(__file__)
@@ -17,7 +18,7 @@ def compress(data):
 class Task:
     name = "gzip_compression"
     task_version = "1.1.0"
-    display_name = "Gzip Compression With Size Constraint"
+    display_name = TASK_CATALOG[name].display_name
     default_n = 100000
     grading_cases = (100000, 250000)
 

@@ -14,9 +14,9 @@ SLUGS = (
     "durable_log_recovery",
     "incremental_spreadsheet_recalculation",
     "ranked_bpe_tokenization",
-    "sqlite_analytics_reports",
+    "grouped_analytics_reports",
     "dynamic_document_search",
-    "streaming_literal_replacement",
+    "multi_literal_replacement",
     "temporal_asof_join",
 )
 
@@ -142,7 +142,7 @@ class NewTaskSemanticsTests(unittest.TestCase):
         self.assertFalse(benchmark.is_solution(problem, (True, True)))
 
     def test_sqlite_null_duplicate_and_order_semantics(self):
-        benchmark = task("sqlite_analytics_reports")
+        benchmark = task("grouped_analytics_reports")
         problem = {
             "rows": (
                 (1, None, None, None),
@@ -181,7 +181,7 @@ class NewTaskSemanticsTests(unittest.TestCase):
         self.assertFalse(benchmark.is_solution(problem, (iter(expected[0]), expected[1], expected[2])))
 
     def test_streaming_replacement_crosses_chunks_and_is_nonrecursive(self):
-        benchmark = task("streaming_literal_replacement")
+        benchmark = task("multi_literal_replacement")
         problem = {
             "chunks": (b"a", b"ba", b"b", b"a"),
             "replacements": ((b"aba", b"ab"), (b"ab", b"Y"), (b"ba", b"Z")),

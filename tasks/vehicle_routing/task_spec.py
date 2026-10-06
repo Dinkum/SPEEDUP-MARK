@@ -10,6 +10,7 @@ Held-Karp subset routing plus an exact K-partition. See README.md.
 import math
 import random
 
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import load_candidate
 
 
@@ -114,9 +115,33 @@ def _solve_vrp(distance, vehicles, depot):
     return split[vehicles][full], routes
 
 
+def _route_trace_cost(distance, vehicles, depot):
+    """Independent customer/route-boundary DP, with no subset-tour tables."""
+    from functools import lru_cache
+    nodes = [i for i in range(len(distance)) if i != depot]
+    full = (1 << len(nodes)) - 1
+    @lru_cache(None)
+    def finish(mask, last, routes):
+        if mask == full:
+            return distance[last][depot] if routes == 1 and last != depot else float("inf")
+        remaining = len(nodes) - mask.bit_count()
+        if last == depot and remaining < routes:
+            return float("inf")
+        best = float("inf")
+        for index, node in enumerate(nodes):
+            bit = 1 << index
+            if not mask & bit:
+                best = min(best, distance[last][node] + finish(mask | bit, node, routes))
+        if last != depot and routes > 1 and remaining >= routes - 1:
+            best = min(best, distance[last][depot] + finish(mask, depot, routes - 1))
+        return best
+    return finish(0, depot, vehicles)
+
+
 class VehicleRouting:
     name = "vehicle_routing"
-    task_version = "1.2.0"
+    task_version = "1.2.1"
+    display_name = TASK_CATALOG[name].display_name
     default_n = 8
     grading_cases = (8, 11)
 
@@ -190,8 +215,7 @@ class VehicleRouting:
             seen.extend(route[1:-1])
         if sorted(seen) != [node for node in range(size) if node != depot]:
             return False
-        optimal, _routes = _solve_vrp(distance, vehicles, depot)
-        return total == optimal
+        return total == _route_trace_cost(distance, vehicles, depot)
 
 
 TASK = VehicleRouting()

@@ -21,9 +21,9 @@ and execution-unit selection interact; no external compiler or GPU is required.
 - `family`: descriptive workload label; correctness is defined by the graph.
 
 Implement `candidate.py::solve(problem, reference_solve)`. Return one schedule per
-workload, in order. A schedule is a list or tuple of cycle packets, each a list or
+workload, in order. A schedule is a built-in list or tuple of cycle packets, each a built-in list or
 tuple of instructions. Empty packets are idle cycles. All instruction indexes
-must be exact Python integers; booleans and lazy iterators are invalid.
+must be exact Python integers.
 
 ## Instructions
 
@@ -71,19 +71,15 @@ host compiler memory is not separately limited. Compilation host time is not
 part of the cycle score, but the harness's 60-second default worker timeout
 bounds the entire evaluation, including compilation and simulation.
 
+## Reference and verification
+
 The reference uses topological scheduling, register caching, farthest-next-use
 spills, dead-subgraph elimination, and a resource scoreboard. It does not fuse
 multiply-adds, select alternate execution units, or reorder ready graph nodes.
 `n` is the number of computation nodes per workload; declared managed grading
 sizes are 240 and 480, with all four families at both sizes.
 
-This is an independently authored SPEEDUP-MARK task, not an Anthropic port.
-
-```console
-python3 -m speedupmark scratchpad_dataflow_compiler
-```
-
-Inside a managed run, use `python3 grade.py`. Edit only `candidate.py`.
+The task implementation is original SPEEDUP-MARK code.
 
 ## Workload distribution
 
@@ -93,3 +89,17 @@ Inside a managed run, use `python3 grade.py`. Edit only `candidate.py`.
 - **Fixed structure:** Operation mix and machine resources depend on family; pressure has 8 slots versus 16 otherwise, shared has 2 banks versus 4. Outputs are the last max(4,n//6) nodes.
 
 The executable definition is [`task_spec.py`](task_spec.py), `generate_problem` and its helpers. See [sampling and coverage](../../GUIDE.md#sampling) for how the grader chooses and records seeds.
+
+## Grading
+
+Edit only `candidate.py`, preserving `solve(problem, reference_solve)`.
+
+From the repository root:
+
+```console
+python3 -m speedupmark scratchpad_dataflow_compiler
+```
+
+Inside a managed run, use `python3 grade.py` to record progress.
+See the [submission rules](../../GUIDE.md#submission-rules) and
+[scoring guide](../../GUIDE.md#scoring) for shared requirements.

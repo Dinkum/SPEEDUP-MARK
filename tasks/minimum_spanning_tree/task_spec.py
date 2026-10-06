@@ -2,6 +2,7 @@
 
 import random
 
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import load_candidate
 
 _candidate = load_candidate(__file__)
@@ -12,7 +13,7 @@ import heapq
 class Task:
     name = "minimum_spanning_tree"
     task_version = "1.1.0"
-    display_name = "Weighted Minimum Spanning Tree"
+    display_name = TASK_CATALOG[name].display_name
     default_n = 500
     grading_cases = (500, 1000)
 

@@ -2,6 +2,7 @@
 
 import random
 
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import SolutionEvaluation, load_candidate
 
 
@@ -235,7 +236,7 @@ def _schedule(workload):
 class ScratchpadDataflowCompilerTask:
     name = "scratchpad_dataflow_compiler"
     task_version = "1.1.0"
-    display_name = "Scratchpad Dataflow Compiler"
+    display_name = TASK_CATALOG[name].display_name
     default_n = 240
     grading_cases = (240, 480)
     metric_unit = "cycles"

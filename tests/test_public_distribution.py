@@ -5,6 +5,8 @@ import importlib.util
 import json
 import pathlib
 import re
+import shutil
+import subprocess
 import tempfile
 import unittest
 import zipfile
@@ -58,6 +60,62 @@ class PublicDistributionTests(unittest.TestCase):
             with self.assertRaises(FileExistsError):
                 publication.build_archive(path)
             self.assertEqual(path.read_bytes(), before)
+
+
+@unittest.skipUnless(shutil.which("git"), "staged publication checks require Git")
+class StagedCandidateTests(unittest.TestCase):
+    def repository(self, candidates):
+        # Isolated, persistent scratch repos keep tests out of the real index.
+        root = pathlib.Path(tempfile.mkdtemp(prefix="speedupmark-public-index-test-"))
+        subprocess.run(["git", "init", "--quiet"], cwd=root, check=True, capture_output=True)
+        for name, data in candidates.items():
+            path = root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(data)
+        if candidates:
+            subprocess.run(["git", "add", "--", *candidates], cwd=root,
+                           check=True, capture_output=True)
+        return root
+
+    def test_staged_starters_pass_without_touching_local_solutions(self):
+        starter = DEFAULT_CANDIDATE.encode()
+        root = self.repository({"tasks/example/candidate.py": starter,
+                                "examples/example_gzip/candidate.py": starter})
+        candidate = root / "tasks/example/candidate.py"
+        solution = b"def solve(problem, reference_solve):\n    return 42\n"
+        candidate.write_bytes(solution)
+        index_before = (root / ".git/index").read_bytes()
+        self.assertEqual(publication.check_staged_candidates(root), 2)
+        self.assertEqual(candidate.read_bytes(), solution)
+        self.assertEqual((root / ".git/index").read_bytes(), index_before)
+
+    def test_staged_solution_fails_even_when_working_copy_is_a_starter(self):
+        name = "tasks/example/candidate.py"
+        solution = b"def solve(problem, reference_solve):\n    return 42\n"
+        root = self.repository({name: solution})
+        candidate = root / name
+        candidate.write_bytes(DEFAULT_CANDIDATE.encode())
+        index_before = (root / ".git/index").read_bytes()
+        with self.assertRaisesRegex(ValueError, name):
+            publication.check_staged_candidates(root)
+        self.assertEqual(candidate.read_bytes(), DEFAULT_CANDIDATE.encode())
+        self.assertEqual((root / ".git/index").read_bytes(), index_before)
+
+    def test_new_staged_candidates_and_examples_are_checked(self):
+        for name in ("tasks/new_task/candidate.py", "examples/new_example/candidate.py"):
+            with self.subTest(path=name):
+                root = self.repository({"tasks/existing/candidate.py": DEFAULT_CANDIDATE.encode(),
+                                        name: b"optimized local solution\n"})
+                with self.assertRaisesRegex(ValueError, name):
+                    publication.check_staged_candidates(root)
+
+    def test_missing_git_or_candidate_entries_fail_clearly(self):
+        root = pathlib.Path(tempfile.mkdtemp(prefix="speedupmark-public-no-git-test-"))
+        with self.assertRaisesRegex(ValueError, "could not inspect the Git index"):
+            publication.check_staged_candidates(root)
+        root = self.repository({})
+        with self.assertRaisesRegex(ValueError, "no staged candidate files"):
+            publication.check_staged_candidates(root)
 
 
 if __name__ == '__main__':

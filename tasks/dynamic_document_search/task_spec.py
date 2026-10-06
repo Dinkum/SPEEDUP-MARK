@@ -5,6 +5,7 @@ from __future__ import annotations
 import random
 import sys
 
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import forbidden_imports, load_candidate, plain_containers, watch_imports
 
 
@@ -53,10 +54,25 @@ def _search(problem):
     return tuple(answers)
 
 
+def _verify_search(problem):
+    """Raw token counts, without the reference's frequency maps."""
+    documents, answers = {}, []
+    for op in problem["operations"]:
+        if op[0] == "add":
+            documents[op[1]] = op[2].split()
+        elif op[0] == "delete":
+            documents.pop(op[1], None)
+        else:
+            hits = [(identifier, sum(words.count(term) for term in op[1]))
+                    for identifier, words in documents.items()]
+            answers.append(tuple(sorted((hit for hit in hits if hit[1]),
+                                        key=lambda hit: (-hit[1], hit[0]))[:op[2]]))
+    return tuple(answers)
+
 class DynamicDocumentSearchTask:
     name = "dynamic_document_search"
-    task_version = "1.2.0"
-    display_name = "Dynamic Ranked Document Search"
+    task_version = "1.2.1"
+    display_name = TASK_CATALOG[name].display_name
     default_n = 800
     grading_cases = (800, 1600)
 
@@ -117,7 +133,7 @@ class DynamicDocumentSearchTask:
 
     def is_solution(self, problem, proposed):
         try:
-            return plain_containers(proposed) and _same_materialized(proposed, _search(problem))
+            return plain_containers(proposed) and _same_materialized(proposed, _verify_search(problem))
         except (KeyError, TypeError, ValueError, IndexError):
             return False
 

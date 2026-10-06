@@ -1,16 +1,20 @@
 # Dynamic Ranked Document Search
 
+## Input and submission
+
 Apply a stream of `add`, `delete`, and `query` operations to an initially empty corpus. Adding an existing integer document ID replaces its previous text; deleting a missing ID is a no-op. Text is split on whitespace with no case folding. A query term may repeat. Its exact integer score is the sum, over distinct query terms, of `document_term_frequency * query_term_frequency`. Return only positive-score documents, ordered by descending score and then ascending document ID, truncated to the requested limit.
 
 Operations are `("add", document_id, text)`, `("delete", document_id)`, and `("query", term_sequence, limit)`. Query terms are already split. Return one list or tuple of hits per query, in operation order; additions and deletions append nothing, while a query with no hits appends an empty sequence. Each hit is `(document_id, score)`, with both fields exact Python `int` values. The outer result, per-query results, and hit rows may be lists or tuples.
 
+All answer containers must be built-in lists or tuples. Direct grading uses 800 operations; managed grading uses both 800 and 1600. Scores are reference time divided by candidate time in host milliseconds; candidate index construction is timed.
+
+Building the search index is the task. Delegating to an existing SQL or search engine is forbidden: `sqlite3`, `_sqlite3`, `duckdb`, `_duckdb`, `sqlalchemy`, `apsw`, `polars`, `pandas`, `datafusion`, `pyarrow`, `whoosh`, and `tantivy` imports fail verification. Dictionaries, heaps, and sorting remain available.
+
+## Reference and verification
+
+The verifier counts query terms in raw document token lists, independently of the reference frequency-map implementation. The executable checker is `_verify_search` in `task_spec.py`.
+
 The reference stores per-document term counts and scans every live document for every query. Candidates can maintain an inverted index, update postings incrementally, accumulate sparse scores, and select the top results without a full sort. All updates and searches are timed.
-
-All answer containers must be plain lists or tuples, not subclasses that could do work during untimed verification. Direct grading uses 800 operations; managed grading uses both 800 and 1600. Scores are reference time divided by candidate time in host milliseconds; candidate index construction is timed.
-
-Building the search index is the task. Delegating to an existing SQL or search engine is forbidden: `sqlite3`, `_sqlite3`, `duckdb`, `_duckdb`, `sqlalchemy`, `apsw`, `polars`, `pandas`, `datafusion`, `pyarrow`, `whoosh`, and `tantivy` imports fail verification. Dictionaries, heaps, and sorting remain available. The import check is a good-faith policy, not a sandbox.
-
-Edit `candidate.py` and run `python3 -m speedupmark dynamic_document_search`.
 
 ## Workload distribution
 
@@ -20,3 +24,17 @@ Edit `candidate.py` and run `python3 -m speedupmark dynamic_document_search`.
 - **Fixed structure:** Every normal-size stream spans different update/query pressures. Phase probabilities and monotonic IDs are prescribed; exact operation schedules, contents, and term frequencies vary. Tiny inputs have at least one warmup addition when nonempty.
 
 The executable definition is [`task_spec.py`](task_spec.py), `generate_problem` and its helpers. See [sampling and coverage](../../GUIDE.md#sampling) for how the grader chooses and records seeds.
+
+## Grading
+
+Edit only `candidate.py`, preserving `solve(problem, reference_solve)`.
+
+From the repository root:
+
+```console
+python3 -m speedupmark dynamic_document_search
+```
+
+Inside a managed run, use `python3 grade.py` to record progress.
+See the [submission rules](../../GUIDE.md#submission-rules) and
+[scoring guide](../../GUIDE.md#scoring) for shared requirements.

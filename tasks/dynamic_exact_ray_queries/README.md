@@ -17,7 +17,7 @@ updates.
 Implement `candidate.py::solve(problem, reference_solve)` and return, per scene,
 one tuple of hit ids per ray phase, in ray order.
 
-Submissions must be plain tuples or lists of exact integers (no container subclasses): a lazy sequence could otherwise do its work during untimed verification.
+The scene, phase, and hit sequences must be built-in tuples or lists; hit ids must be exact Python `int` values.
 
 ## Semantics
 
@@ -31,14 +31,12 @@ inclusive, so a ray aimed exactly at a shared vertex or edge is at exactly equal
 distance from every triangle that touches it; the answer is then the smallest
 triangle id. No hit is `-1`.
 
-## Why exactness is load-bearing
+## Exact arithmetic
 
-Vertex coordinates reach `~2**32` and ray components `~2**39`, so a single
-cross-product term exceeds `2**60` — well past the 53-bit mantissa of float64.
-Measured on the default problem (321 rays, seed 0): 50 rays have exact ties
-between two to six triangles, and the test's float64 implementation ranks 19 rays
-differently — including three rays where it reports a miss on a real hit. Any
-submission that converts coordinates to floating point loses those rays.
+The coordinate and direction ranges produce integer products beyond the
+53-bit precision of float64. Rounding can change boundary hits and the
+ordering of nearly equal distances. Preserve the exact predicate and
+smallest-id tie-break when optimizing intersection tests.
 
 ## Scoring and verification
 
@@ -47,12 +45,14 @@ construction, refits and updates are all inside the measurement. The verifier
 re-derives every answer with the exact predicate and requires the returned
 structure to match exactly, including types.
 
-## Reference and families
+## Reference and verification
 
-`solve` is brute force: every live triangle is tested for every ray with the
-exact predicate. That is an honest baseline, not a straw man — the accessor
-patterns a candidate wants (precomputed edge data, bounding boxes, a spatial
-hierarchy) all remain available, and each is a different amount of work.
+The verifier independently intersects rays with triangle planes and uses oriented-edge inclusion tests in exact integer arithmetic. It does not reuse the reference barycentric intersection routine. The executable checker is `_verify_rays` in `task_spec.py`.
+
+`solve` tests every live triangle against every ray with the exact
+predicate. Candidates can precompute triangle data, reject triangles with
+bounding boxes, or build a spatial hierarchy. Preprocessing and update
+costs count toward runtime.
 
 Four families are generated into every problem, and they differ in which
 lifecycle wins:
@@ -68,12 +68,6 @@ A spatial hierarchy is the opening, not the whole task: the benchmark then asks
 for a better build/refit/traverse strategy, and `moving_bursts` versus
 `static_coherent` makes refit-versus-rebuild a genuine choice.
 
-```console
-python3 -m speedupmark dynamic_exact_ray_queries
-```
-
-Inside a managed run, use `python3 grade.py`. Edit only `candidate.py`.
-
 ## Workload distribution
 
 - **Size:** n scales scene triangle and ray counts (minimum 8).
@@ -82,3 +76,17 @@ Inside a managed run, use `python3 grade.py`. Edit only `candidate.py`.
 - **Fixed structure:** Family-specific geometry scales, phase counts, shared-edge probes, and add/remove schedules are fixed. The four scene builders define exact counts and coordinate bounds.
 
 The executable definition is [`task_spec.py`](task_spec.py), `generate_problem` and its helpers. See [sampling and coverage](../../GUIDE.md#sampling) for how the grader chooses and records seeds.
+
+## Grading
+
+Edit only `candidate.py`, preserving `solve(problem, reference_solve)`.
+
+From the repository root:
+
+```console
+python3 -m speedupmark dynamic_exact_ray_queries
+```
+
+Inside a managed run, use `python3 grade.py` to record progress.
+See the [submission rules](../../GUIDE.md#submission-rules) and
+[scoring guide](../../GUIDE.md#scoring) for shared requirements.

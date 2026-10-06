@@ -11,6 +11,7 @@ intentional. See README.md.
 import math
 import random
 
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import load_candidate
 
 
@@ -29,7 +30,7 @@ def _need():
         raise ImportError(
             "delaunay requires optional dependencies: numpy, scipy. "
             "Install the pinned numerical extra in requirements-numerical.txt. "
-            "Smoke and lightweight do not include this task."
+            "The smoke and extended suites do not include this task."
         ) from exc
     return numpy, scipy.spatial
 
@@ -99,6 +100,7 @@ def _crosses(points, first, second):
 class DelaunayTask:
     name = "delaunay"
     task_version = "1.2.2"
+    display_name = TASK_CATALOG[name].display_name
     default_n = 128
     grading_cases = (128, 256)
 

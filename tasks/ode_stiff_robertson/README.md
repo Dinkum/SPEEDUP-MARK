@@ -1,4 +1,6 @@
-# Robertson Kinetics
+# Robertson Chemical Kinetics
+
+## Input and submission
 
 Integrate the Robertson chemical system and return the three concentrations at `t1`.
 
@@ -6,11 +8,13 @@ The vector field is `y' = (-k1 y1 + k3 y2 y3, k1 y1 - k2 y2Â² - k3 y2 y3, k2 y2Â
 
 Seeds rotate through `transient`, `equilibrium`, and `rescaled` rate constants, with horizons varied around `n`, `40 n`, and `5 n`. Every family varies reaction-rate ratios and initial mixtures while preserving stiffness and total mass.
 
+NumPy and SciPy are the optional numerical extra. One BLAS thread is set before they load.
+
+## Reference and verification
+
+The output accuracy budget is the task objective. Candidates may choose solver tolerances, reduced states, or methods that meet it; they need not reproduce the reference integration tolerances. The tighter Radau/BDF tolerances reduce oracle error below the public acceptance budget. Speed gained by reducing unnecessary accuracy is valid; returning values outside the stated budget fails.
+
 The reference is SciPy Radau at relative `1e-8` and absolute `1e-10`. The grader's BDF solve is a different method with the same tolerances. Upstream already used that pair; the workload families are the intentional addition.
-
-Optimize `candidate.py:solve(problem, reference_solve)`. NumPy and SciPy are the optional numerical extra. One BLAS thread is set before they load.
-
-Provenance: AlgoTune `AlgoTuneTasks/ode_stiff_robertson` at `dff9914c10800c7a031c9e8c3d4d1c8cd1b38906`. No upstream source was copied.
 
 ## Workload distribution
 
@@ -20,3 +24,21 @@ Provenance: AlgoTune `AlgoTuneTasks/ode_stiff_robertson` at `dff9914c10800c7a031
 - **Fixed structure:** Family base reaction-rate ratios retain stiffness. Initial species-two concentration is zero except 1e-5 for equilibrium. Rates, horizons, and initial mixtures vary in every family.
 
 The executable definition is [`task_spec.py`](task_spec.py), `generate_problem` and its helpers. See [sampling and coverage](../../GUIDE.md#sampling) for how the grader chooses and records seeds.
+
+## Grading
+
+Edit only `candidate.py`, preserving `solve(problem, reference_solve)`.
+
+From the repository root:
+
+```console
+python3 -m speedupmark ode_stiff_robertson
+```
+
+Inside a managed run, use `python3 grade.py` to record progress.
+See the [submission rules](../../GUIDE.md#submission-rules) and
+[scoring guide](../../GUIDE.md#scoring) for shared requirements.
+
+## Provenance
+
+AlgoTune `AlgoTuneTasks/ode_stiff_robertson` at `dff9914c10800c7a031c9e8c3d4d1c8cd1b38906`. No upstream source was copied.

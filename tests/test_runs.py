@@ -105,7 +105,7 @@ class RunFlowTests(unittest.TestCase):
     def test_revision_links_task_grader_and_prompt_bytes(self):
         package = self.root / 'speedupmark'
         package.mkdir()
-        for name in ('__init__.py', '__main__.py', 'harness.py', 'revision.py',
+        for name in ('__init__.py', '__main__.py', 'catalog.py', 'harness.py', 'revision.py',
                      'run_manager.py',
                      'run_prompt.txt', 'suites.py', 'task.py'):
             (package / name).write_bytes((run_manager.ROOT / 'speedupmark' / name).read_bytes())
@@ -231,7 +231,7 @@ class RunFlowTests(unittest.TestCase):
     def test_workspace_receives_the_protocol_and_not_the_grader(self):
         run = self.create()
         visible = sorted(path.name for path in (run / 'workspace/speedupmark').iterdir())
-        self.assertEqual(visible, ['__init__.py', 'task.py'])
+        self.assertEqual(visible, ['__init__.py', 'catalog.py', 'task.py'])
         self.assertTrue((run / 'baseline/speedupmark/harness.py').is_file())
         self.assertTrue((run / 'baseline/speedupmark/run_manager.py').is_file())
         self.assertFalse((run / 'workspace/speedupmark/harness.py').exists())

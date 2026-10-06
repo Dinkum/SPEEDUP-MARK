@@ -2,6 +2,7 @@
 
 import random
 
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import load_candidate
 
 
@@ -117,7 +118,7 @@ def _dynamic_programming_optimum(problem):
 class Task:
     name = "multi_dim_knapsack"
     task_version = "1.1.0"
-    display_name = "Three-Resource 0/1 Knapsack"
+    display_name = TASK_CATALOG[name].display_name
     default_n = 24
     grading_cases = (24, 30)
 

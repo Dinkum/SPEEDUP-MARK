@@ -44,7 +44,7 @@ def to_regex(pattern):
 
 class PatternMatchingTests(unittest.TestCase):
     def setUp(self):
-        self.task = load_task(ROOT / "tasks/compiled_streaming_pattern_matching")
+        self.task = load_task(ROOT / "tasks/multi_pattern_matching")
 
     def test_oracle_agrees_with_python_regex_engine(self):
         """The strongest available check on the task's own matcher."""
@@ -88,7 +88,7 @@ class PatternMatchingTests(unittest.TestCase):
         name = "speedupmark_pattern_helpers"
         if name not in sys.modules:
             spec = importlib.util.spec_from_file_location(
-                name, ROOT / "tasks/compiled_streaming_pattern_matching/task_spec.py")
+                name, ROOT / "tasks/multi_pattern_matching/task_spec.py")
             module = importlib.util.module_from_spec(spec)
             sys.modules[name] = module
             spec.loader.exec_module(module)
@@ -200,7 +200,7 @@ def solve(problem, reference_solve):
     def grade(self, source):
         directory = pathlib.Path(tempfile.mkdtemp()) / "hostile_pattern_policy"
         directory.mkdir()
-        shutil.copy(ROOT / "tasks/compiled_streaming_pattern_matching/task_spec.py",
+        shutil.copy(ROOT / "tasks/multi_pattern_matching/task_spec.py",
                     directory / "task_spec.py")
         (directory / "candidate.py").write_text(source)
         task = load_task(directory)
@@ -217,7 +217,7 @@ def solve(problem, reference_solve):
     def test_preloaded_roots_are_still_detected_by_name(self):
         """A snapshot that already contains the root must not hide the import."""
         spec = importlib.util.spec_from_file_location(
-            "policy_scan_probe", ROOT / "tasks/compiled_streaming_pattern_matching/task_spec.py")
+            "policy_scan_probe", ROOT / "tasks/multi_pattern_matching/task_spec.py")
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         hostile = types.ModuleType("hostile")

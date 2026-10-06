@@ -12,7 +12,7 @@ from pathlib import Path
 
 NAMES = (
     "integer_factorization", "minimum_spanning_tree", "articulation_points",
-    "min_weight_assignment", "kd_tree", "max_flow_min_cost", "gzip_compression",
+    "min_weight_assignment", "exact_k_nearest_neighbors", "min_cost_max_flow", "gzip_compression",
     "matrix_multiplication", "queens_with_obstacles",
 )
 
@@ -29,7 +29,7 @@ class LightweightPortsTests(unittest.TestCase):
     def test_seeded_baselines_and_strict_outputs(self):
         for name in NAMES:
             task = load(name)
-            size = {"integer_factorization": 1000, "gzip_compression": 2000,
+            size = {"integer_factorization": 24, "gzip_compression": 2000,
                     "queens_with_obstacles": 4}.get(name, 8)
             for seed in range(6):
                 with self.subTest(name=name, seed=seed):
@@ -78,12 +78,40 @@ class LightweightPortsTests(unittest.TestCase):
         edges = list(itertools.combinations(range(4), 2))
         for mask in range(1 << len(edges)):
             problem = {"num_nodes": 4, "edges": [list(e) for i, e in enumerate(edges) if mask >> i & 1]}
+            def component_count(removed=-1):
+                # Exhaustive transitive closure is independent of the reference's
+                # stack traversal and is only used on these four-vertex graphs.
+                reach = {v: {v} for v in range(4) if v != removed}
+                for u, v in problem["edges"]:
+                    if removed not in (u, v):
+                        reach[u].add(v)
+                        reach[v].add(u)
+                for pivot in reach:
+                    for vertex in reach:
+                        if pivot in reach[vertex]:
+                            reach[vertex].update(reach[pivot])
+                return len({frozenset(vertices) for vertices in reach.values()})
+
+            base = component_count()
+            expected = {"articulation_points": [v for v in range(4) if component_count(v) > base]}
             answer = task.solve(problem)
-            self.assertTrue(task.is_solution(problem, answer))
+            self.assertEqual(answer, expected)
+            self.assertTrue(task.is_solution(problem, answer, reference_output=answer))
             wrong = {"articulation_points": sorted(set(answer["articulation_points"]) ^ {0})}
             self.assertFalse(task.is_solution(problem, wrong))
         self.assertFalse(task.is_solution({"num_nodes": 3, "edges": [[0, 1], [1, 2]]},
                                           {"articulation_points": [True]}))
+
+    def test_articulation_comparison_rejects_invalid_witnesses(self):
+        task = load("articulation_points")
+        problem = {"num_nodes": 4, "edges": [[0, 1], [1, 2], [2, 3]]}
+        expected = {"articulation_points": [1, 2]}
+        self.assertEqual(task.solve(problem), expected)
+        for bad in ([], {"articulation_points": ()}, {"articulation_points": [True, 2]},
+                    {"articulation_points": [1]}, {"articulation_points": [1, 1, 2]},
+                    {"articulation_points": [2, 1]}, {"articulation_points": [1, 2, 4]}):
+            with self.subTest(output=bad):
+                self.assertFalse(task.is_solution(problem, bad, reference_output=expected))
 
     def test_assignment_all_permutations(self):
         task = load("min_weight_assignment")
@@ -99,14 +127,14 @@ class LightweightPortsTests(unittest.TestCase):
         self.assertFalse(task.is_solution({"costs": [[0, 0], [0, 0]]}, {"assignment": [False, True]}))
 
     def test_knn_duplicates_and_ties(self):
-        task = load("kd_tree")
+        task = load("exact_k_nearest_neighbors")
         problem = {"points": [[1, 0], [-1, 0], [1, 0], [10, 0]], "queries": [[0, 0]], "k": 2}
         self.assertEqual(task.solve(problem), {"indices": [[0, 1]]})
         for bad in [[[1, 0]], [[0, 2]], [[0, 3]], [[0, True]], [[0, 0]]]:
             self.assertFalse(task.is_solution(problem, {"indices": bad}))
 
     def test_flow_exhaustive_capacities(self):
-        task = load("max_flow_min_cost")
+        task = load("min_cost_max_flow")
         rng = random.Random(42)
         for _ in range(12):
             edges = [[u, v, rng.randrange(1, 3), rng.randrange(4)]

@@ -10,7 +10,7 @@ import pathlib
 
 # These files affect direct grading, managed grading, or the agent handoff.
 SHARED_FILES = (
-    "__init__.py", "__main__.py", "harness.py", "revision.py",
+    "__init__.py", "__main__.py", "catalog.py", "harness.py", "revision.py",
     "run_manager.py", "run_prompt.txt", "suites.py", "task.py",
 )
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import random
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import load_candidate
 
 
@@ -63,10 +64,48 @@ def _sessionize(problem):
     return tuple(trace)
 
 
+def _verify_sessions(problem):
+    """Recluster retained timestamps, independently of interval mutation."""
+    retained, trace, maximum = {}, [], None
+    gap, lateness = problem["gap"], problem["allowed_lateness"]
+    def clusters(timestamps):
+        groups = []
+        for timestamp in sorted(timestamps):
+            if groups and timestamp <= groups[-1][-1] + gap:
+                groups[-1].append(timestamp)
+            else:
+                groups.append([timestamp])
+        return groups
+    for identifier, key, timestamp in problem["events"]:
+        maximum = timestamp if maximum is None else max(maximum, timestamp)
+        watermark = maximum - lateness
+        if timestamp < watermark:
+            trace.append(("drop", identifier, key, timestamp, watermark))
+        else:
+            current = retained.setdefault(key, [])
+            touched = sum(group[0] - gap <= timestamp <= group[-1] + gap
+                          for group in clusters(current))
+            current.append(timestamp)
+            merged = next(group for group in clusters(current) if timestamp in group)
+            trace.append(("upsert", identifier, key, merged[0], merged[-1], len(merged), touched, watermark))
+        for entity in sorted(retained):
+            live = []
+            for group in clusters(retained[entity]):
+                if group[-1] + gap < watermark:
+                    trace.append(("emit", entity, group[0], group[-1], len(group), watermark))
+                else:
+                    live.extend(group)
+            retained[entity] = live
+    for entity in sorted(retained):
+        for group in clusters(retained[entity]):
+            trace.append(("emit", entity, group[0], group[-1], len(group), None))
+    return tuple(trace)
+
+
 class OutOfOrderSessionWindowsTask:
     name = "out_of_order_session_windows"
-    task_version = "1.1.1"
-    display_name = "Out-of-Order Session Window Trace"
+    task_version = "1.1.2"
+    display_name = TASK_CATALOG[name].display_name
     default_n = 2400
     grading_cases = (2400, 4800)
 
@@ -96,7 +135,7 @@ class OutOfOrderSessionWindowsTask:
 
     def is_solution(self, problem, proposed):
         try:
-            return _same_materialized(proposed, _sessionize(problem))
+            return _same_materialized(proposed, _verify_sessions(problem))
         except (KeyError, TypeError, ValueError, IndexError):
             return False
 

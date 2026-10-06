@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import random
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import load_candidate
 
 
@@ -37,10 +38,27 @@ def _join(problem):
     return tuple(output)
 
 
+def _verify_join(problem):
+    """Sorted per-entity histories and binary search instead of full scans."""
+    from bisect import bisect_right
+    histories = {}
+    for position, (entity, timestamp, sequence, value) in enumerate(problem["dimensions"]):
+        histories.setdefault(entity, []).append((timestamp, sequence, position, value))
+    for history in histories.values():
+        history.sort()
+    result = []
+    for identifier, entity, timestamp in problem["events"]:
+        history = histories.get(entity, ())
+        # Timestamp-only insertion locates the final version at that time,
+        # including the greatest sequence and physical input position.
+        position = bisect_right(history, timestamp, key=lambda row: row[0])
+        result.append((identifier, history[position - 1][3] if position else None))
+    return tuple(result)
+
 class TemporalAsOfJoinTask:
     name = "temporal_asof_join"
-    task_version = "1.1.1"
-    display_name = "Temporal Per-Entity As-Of Join"
+    task_version = "1.1.2"
+    display_name = TASK_CATALOG[name].display_name
     default_n = 700
     grading_cases = (700, 1400)
 
@@ -72,7 +90,7 @@ class TemporalAsOfJoinTask:
 
     def is_solution(self, problem, proposed):
         try:
-            return _same_materialized(proposed, _join(problem))
+            return _same_materialized(proposed, _verify_join(problem))
         except (KeyError, TypeError, ValueError, IndexError):
             return False
 

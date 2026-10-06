@@ -6,6 +6,7 @@ import heapq
 import math
 import random
 
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import load_candidate, plain_containers
 
 
@@ -112,7 +113,7 @@ def _checked_queries(problem):
 class DynamicShortestPathsTask:
     name = "dynamic_shortest_paths"
     task_version = "1.1.0"
-    display_name = "Dynamic Shortest-Path Query Engine"
+    display_name = TASK_CATALOG[name].display_name
     default_n = 400
     grading_cases = (400, 800)
 

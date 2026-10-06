@@ -1,12 +1,16 @@
 # Temporal Per-Entity As-Of Join
 
+## Input and submission
+
 Each dimension row is `(entity, timestamp, sequence, value)`, and each event is `(event_id, entity, event_time)`. For every event in input order, select the dimension row for the same entity with the greatest timestamp less than or equal to the event time. Equal timestamps choose the greatest integer sequence; if both timestamp and sequence tie, the later dimension input position wins. Return `(event_id, value)` or `(event_id, None)` when no eligible row exists. Event IDs need not be sorted or unique and do not affect selection.
 
-The complete result and each result row must be a plain built-in list or tuple; subclasses and lazy sequences are rejected before their length or iteration methods can run. Leaf values must retain the exact types and values produced by the contract.
+The complete result and each result row must be a built-in list or tuple. Leaf values must retain the exact types and values produced by the contract.
+
+## Reference and verification
+
+The verifier independently sorts each entity history and binary-searches the latest eligible version, including timestamp/sequence/input-position ties. The executable checker is `_verify_join` in `task_spec.py`.
 
 The reference scans every dimension row for every event. Candidates can group by entity, collapse duplicate keys with the input-position rule, sort versions, and binary-search event times, or sort both sides for a merge join. All indexing and joining is timed.
-
-Edit `candidate.py` and run `python -m speedupmark.harness tasks/temporal_asof_join`.
 
 ## Workload distribution
 
@@ -16,3 +20,17 @@ Edit `candidate.py` and run `python -m speedupmark.harness tasks/temporal_asof_j
 - **Fixed structure:** Every 67th version is duplicated. Event times extend before and after the version timestamp range.
 
 The executable definition is [`task_spec.py`](task_spec.py), `generate_problem` and its helpers. See [sampling and coverage](../../GUIDE.md#sampling) for how the grader chooses and records seeds.
+
+## Grading
+
+Edit only `candidate.py`, preserving `solve(problem, reference_solve)`.
+
+From the repository root:
+
+```console
+python3 -m speedupmark temporal_asof_join
+```
+
+Inside a managed run, use `python3 grade.py` to record progress.
+See the [submission rules](../../GUIDE.md#submission-rules) and
+[scoring guide](../../GUIDE.md#scoring) for shared requirements.

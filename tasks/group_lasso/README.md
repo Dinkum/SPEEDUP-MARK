@@ -1,4 +1,6 @@
-# Group Lasso
+# Logistic Group Lasso
+
+## Input and submission
 
 Solve logistic regression with an unsquared group-lasso penalty.
 
@@ -8,11 +10,11 @@ Input is `X`, `y` in `{0, 1}`, `gl` (group labels for the non-intercept columns)
 
 Seeds rotate through `balanced`, `correlated`, and `strong_penalty`.
 
+NumPy is the optional numerical extra. One BLAS thread is set before it loads.
+
+## Reference and verification
+
 The reference is FISTA with the group soft-threshold. It stops at the same stationarity test the grader uses.
-
-Optimize `candidate.py:solve(problem, reference_solve)`. NumPy is the optional numerical extra. One BLAS thread is set before it loads.
-
-Provenance: AlgoTune `AlgoTuneTasks/group_lasso` at `dff9914c10800c7a031c9e8c3d4d1c8cd1b38906`. The squared-norm discrepancy is resolved in favor of the implementation. No upstream source was copied.
 
 ## Workload distribution
 
@@ -22,3 +24,21 @@ Provenance: AlgoTune `AlgoTuneTasks/group_lasso` at `dff9914c10800c7a031c9e8c3d4
 - **Fixed structure:** Four groups for balanced, six otherwise; penalties 0.4, 0.3, 2.5 respectively. The first two labels force both classes to occur.
 
 The executable definition is [`task_spec.py`](task_spec.py), `generate_problem` and its helpers. See [sampling and coverage](../../GUIDE.md#sampling) for how the grader chooses and records seeds.
+
+## Grading
+
+Edit only `candidate.py`, preserving `solve(problem, reference_solve)`.
+
+From the repository root:
+
+```console
+python3 -m speedupmark group_lasso
+```
+
+Inside a managed run, use `python3 grade.py` to record progress.
+See the [submission rules](../../GUIDE.md#submission-rules) and
+[scoring guide](../../GUIDE.md#scoring) for shared requirements.
+
+## Provenance
+
+AlgoTune `AlgoTuneTasks/group_lasso` at `dff9914c10800c7a031c9e8c3d4d1c8cd1b38906`. The squared-norm discrepancy is resolved in favor of the implementation. No upstream source was copied.

@@ -16,6 +16,8 @@ Speedup is reference cost divided by candidate cost: **2.000x means twice as fas
 
 ![GPT-6 Luna medium with Hermes: verified speedup over time on the layout aware pipeline compiler](diagrams/luna-hermes-progress.png)
 
+![Smoke suite comparison](diagrams/smoke-codex-luna-hermes-deepseek-high-20261002.png)
+
 ## Prerequisites
 
 - **Python 3.10+** and a local copy of this repository. Run commands from the repository root.
@@ -85,56 +87,56 @@ Grading uses three samples and fresh seeds by default. Use `--seed` to replay a 
 
 | Task | Workload | Included in |
 | --- | --- | --- |
-| [Incremental spreadsheet recalculation](tasks/incremental_spreadsheet_recalculation/README.md) | Update inputs and answer spreadsheet cell queries | smoke, extended, all |
-| [Live fleet dispatch](tasks/live_fleet_dispatch/README.md) | Minimize battery limited tour time and penalties for unserved jobs on changing roads | smoke, extended, all |
-| [Incremental multiway join](tasks/incremental_multiway_join/README.md) | Weighted triangle aggregates under relation updates | smoke, extended, all |
-| [Ranked BPE tokenization](tasks/ranked_bpe_tokenization/README.md) | Apply ranked byte pair merges to arbitrary bytes | smoke, extended, all |
-| [Dynamic exact ray queries](tasks/dynamic_exact_ray_queries/README.md) | Find the nearest ray hit triangle as geometry changes | smoke, extended, all |
-| [Dynamic document search](tasks/dynamic_document_search/README.md) | Rank matching documents after additions, replacements, and deletions | smoke, extended, all |
-| [Dynamic shortest paths](tasks/dynamic_shortest_paths/README.md) | Distance queries under graph updates | smoke, extended, all |
-| [Adaptive query engine](tasks/adaptive_query_engine/README.md) | Execute relational query plans over in memory integer tables | smoke, extended, all |
-| [Layout aware pipeline compiler](tasks/layout_aware_pipeline_compiler/README.md) | Tensor layouts, fusion, and scheduling; simulated cycles | smoke, extended, all |
-| [SIMD Traversal Kernel](tasks/simd_traversal_kernel/README.md) | Schedule dependent SIMD table traversals; simulated cycles | smoke, extended, all |
-| [Temporal as of join](tasks/temporal_asof_join/README.md) | Match events to the latest eligible row for each entity | extended, all |
-| [Streaming literal replacement](tasks/streaming_literal_replacement/README.md) | Replace byte patterns across chunks using longest match precedence | extended, all |
-| [SQLite analytics reports](tasks/sqlite_analytics_reports/README.md) | Category aggregates, duplicate groups, and user totals with SQL NULL rules | extended, all |
-| [Durable log recovery](tasks/durable_log_recovery/README.md) | Checksummed prefix recovery and duplicate resolution | extended, all |
-| [Labeled graph isomorphism](tasks/labeled_graph_isomorphism/README.md) | Find a label preserving vertex mapping, or report no match | all |
-| [Integer factorization](tasks/integer_factorization/README.md) | Prime factors of bounded semiprimes | extended, all |
-| [Minimum spanning tree](tasks/minimum_spanning_tree/README.md) | Connect all vertices using a tree of minimum total weight | extended, all |
-| [Articulation points](tasks/articulation_points/README.md) | Vertices whose removal increases the number of connected components | extended, all |
-| [Minimum weight assignment](tasks/min_weight_assignment/README.md) | Find a minimum cost one to one assignment from a cost matrix | extended, all |
-| [Nearest neighbors](tasks/kd_tree/README.md) | Exact k nearest neighbors with deterministic ties | extended, all |
-| [Minimum cost maximum flow](tasks/max_flow_min_cost/README.md) | Maximum flow with minimum total cost | extended, all |
-| [Gzip compression](tasks/gzip_compression/README.md) | Exact round trip within a compressed size bound | extended, all |
-| [Matrix multiplication](tasks/matrix_multiplication/README.md) | Exact signed integer products | extended, all |
-| [Queens with obstacles](tasks/queens_with_obstacles/README.md) | Place as many nonattacking queens as possible, with obstacles blocking attacks | extended, all |
-| [Compiled streaming pattern matching](tasks/compiled_streaming_pattern_matching/README.md) | Compile patterns resembling regular expressions and detect matches across byte chunks | extended, all |
-| [Near duplicate document clustering](tasks/near_duplicate_document_clustering/README.md) | Group documents into components using exact word shingle Jaccard similarity | extended, all |
-| [Capacitated facility location](tasks/capacitated_facility_location/README.md) | Minimum cost facility opening and customer assignment | all |
-| [Delaunay triangulation](tasks/delaunay/README.md) | Triangulate planar integer points with exact Delaunay validity checks | all |
-| [Discrete logarithm](tasks/discrete_log/README.md) | Recover x from g^x ≡ h (mod p), with prime p | all |
-| [Earth mover's distance](tasks/earth_movers_distance/README.md) | Minimum cost transport between mass distributions | all |
-| [Integer signal convolution](tasks/fft_convolution/README.md) | Exact signed integer signal convolution | all |
-| [Graph coloring](tasks/graph_coloring_assign/README.md) | Proper coloring with the fewest colors | all |
-| [Logistic group lasso](tasks/group_lasso/README.md) | Fit logistic regression with a group sparsity penalty | all |
-| [Job shop scheduling](tasks/job_shop_scheduling/README.md) | Schedule fixed job operations to minimize the final completion time | all |
-| [Spectral radius matrix completion](tasks/matrix_completion/README.md) | Fill missing positive entries to minimize spectral radius, with product one | all |
-| [Three resource 0/1 knapsack](tasks/multi_dim_knapsack/README.md) | Maximum profit under three resource limits | all |
-| [Robertson chemical kinetics](tasks/ode_stiff_robertson/README.md) | Integrate a stiff three species chemical reaction system | all |
-| [Out of order session windows](tasks/out_of_order_session_windows/README.md) | Session merging, watermarks, and late events | all |
-| [PageRank](tasks/pagerank/README.md) | Compute PageRank scores on weighted graphs with dangling vertices | all |
-| [1D viscous Burgers equation](tasks/pde_burgers1d/README.md) | Integrate a fixed advection and diffusion system on a one dimensional grid | all |
-| [Low rank SVD](tasks/randomized_svd/README.md) | Low rank approximation within a quality bound | all |
-| [RBF interpolation](tasks/rbf_interpolation/README.md) | Radial basis fitting and prediction | all |
-| [Robust state estimation](tasks/robust_kalman_filter/README.md) | Estimate a state trajectory using a Huber penalty on measurement errors | all |
-| [Rocket landing](tasks/rocket_landing_optimization/README.md) | Minimum fuel trajectories under thrust constraints | all |
-| [Scratchpad dataflow compiler](tasks/scratchpad_dataflow_compiler/README.md) | Schedule integer computation graphs with limited scratch memory; simulated cycles | all |
-| [Sinkhorn scaling](tasks/sinkhorn/README.md) | Optimal transport with entropy regularization | all |
-| [Smallest sparse eigenvalues](tasks/sparse_lowest_eigenvalues_posdef/README.md) | Lowest eigenvalues of sparse symmetric positive definite matrices | all |
-| [Asymmetric traveling salesperson](tasks/tsp/README.md) | Minimum cost directed tour | all |
-| [Vehicle routing](tasks/vehicle_routing/README.md) | Minimize distance over depot returning routes, without capacity constraints | all |
-| [Affine gap sequence alignment](tasks/affine_gap_sequence_alignment/README.md) | Minimum cost global byte alignment with gap opening and extension costs | all |
+| [Incremental Spreadsheet Recalculation](tasks/incremental_spreadsheet_recalculation/README.md) | Dependency invalidation and selective recomputation: answer cell queries without recalculating unchanged spreadsheet regions | smoke, extended, all |
+| [Battery-Limited Fleet Tours](tasks/live_fleet_dispatch/README.md) | Resource constrained routing and fleet allocation: minimize battery limited tour time plus unserved job penalties on changing roads | smoke, extended, all |
+| [Incremental Weighted Multiway Join](tasks/incremental_multiway_join/README.md) | Incremental join maintenance: balance weighted triangle deltas and cached partial joins under skew and update bursts | smoke, extended, all |
+| [Ranked Byte-Pair Tokenization](tasks/ranked_bpe_tokenization/README.md) | Dynamic sequence maintenance: track the next ranked byte pair merge without repeatedly scanning and rebuilding the token list | smoke, extended, all |
+| [Dynamic Exact Ray Queries](tasks/dynamic_exact_ray_queries/README.md) | Dynamic spatial indexing: balance hierarchy construction, refits, and exact nearest hit search as triangles change | smoke, extended, all |
+| [Dynamic Ranked Document Search](tasks/dynamic_document_search/README.md) | Mutable inverted indexing and exact top k selection: balance posting updates against ranked document query cost | smoke, extended, all |
+| [Dynamic Shortest-Path Query Engine](tasks/dynamic_shortest_paths/README.md) | Dynamic shortest path maintenance: balance search, distance cache reuse, invalidation, and repair under graph updates | smoke, extended, all |
+| [Adaptive Query Engine](tasks/adaptive_query_engine/README.md) | Relational query optimization: choose predicate placement, join order, indexes, and shared computation across query plans | smoke, extended, all |
+| [Layout-Aware Pipeline Compiler](tasks/layout_aware_pipeline_compiler/README.md) | Joint tensor fusion, layout, and scheduling: minimize simulated cycles under scratch memory, bank, and issue limits | smoke, extended, all |
+| [SIMD Traversal Kernel](tasks/simd_traversal_kernel/README.md) | Latency hiding SIMD scheduling: balance traversal interleaving, table caching, banked gathers, and limited scratch; simulated cycles | smoke, extended, all |
+| [Temporal Per-Entity As-Of Join](tasks/temporal_asof_join/README.md) | Temporal indexing and batch joins: match each event to its latest eligible entity row while preserving duplicate tie rules | extended, all |
+| [Multi-Literal Replacement](tasks/multi_literal_replacement/README.md) | Overlapping multi pattern search: balance index construction and scanning while preserving longest matches across byte chunks | extended, all |
+| [Grouped Analytics Reports](tasks/grouped_analytics_reports/README.md) | Shared aggregation planning: fuse grouping, distinct tracking, and sorting across three reports while preserving SQL NULL rules | extended, all |
+| [Checksummed Durable Log Recovery](tasks/durable_log_recovery/README.md) | Validation constrained recovery: reduce checksum copying and duplicate bookkeeping while preserving the exact durable log prefix | extended, all |
+| [Vertex-Labeled Graph Isomorphism](tasks/labeled_graph_isomorphism/README.md) | Exact graph matching: combine label refinement, search ordering, and symmetry pruning to find a mapping or prove none exists | all |
+| [Integer Factorization](tasks/integer_factorization/README.md) | Semiprime factor search: choose factoring methods and batch modular arithmetic for bounded factors with differing structure | extended, all |
+| [Minimum Spanning Tree](tasks/minimum_spanning_tree/README.md) | Minimum weight graph connectivity: choose edge ordering, heaps, and disjoint set structures for graphs of differing density | extended, all |
+| [Articulation Points](tasks/articulation_points/README.md) | Graph separation analysis: find cut vertices with low link traversal instead of repeating connectivity checks after each removal | extended, all |
+| [Exact Minimum Weight Assignment](tasks/min_weight_assignment/README.md) | Exact bipartite assignment: minimize total cost through augmenting paths, dual potentials, and efficient slack updates | extended, all |
+| [Exact k-Nearest Neighbors](tasks/exact_k_nearest_neighbors/README.md) | Exact geometric search: balance spatial index construction, distance pruning, and selection without losing tied neighbors | extended, all |
+| [Exact Minimum Cost Maximum Flow](tasks/min_cost_max_flow/README.md) | Residual network optimization: maximize flow, then minimize cost through augmentations, reverse arcs, and shortest path potentials | extended, all |
+| [Gzip Compression](tasks/gzip_compression/README.md) | Compression speed versus size: choose compression policies that preserve an exact round trip within the compressed size ceiling | extended, all |
+| [Exact Integer Matrix Multiplication](tasks/matrix_multiplication/README.md) | Exact matrix product algorithm selection: balance sparse expansion, blocking, integer packing, and conversion across matrix shapes | extended, all |
+| [Queens With Obstacles](tasks/queens_with_obstacles/README.md) | Maximum independent set on queen attack graphs: find the largest nonattacking placement with obstacle blocked attacks | extended, all |
+| [Multi-Pattern Matching](tasks/multi_pattern_matching/README.md) | Automaton compilation versus scanning: choose shared states, literal filters, and representations for exact matches across byte chunks | extended, all |
+| [Exact Near-Duplicate Document Clustering](tasks/near_duplicate_document_clustering/README.md) | Exact set similarity joins: prune document pairs without missing Jaccard threshold edges, then compute connected components | extended, all |
+| [Capacitated Facility Location](tasks/capacitated_facility_location/README.md) | Coupled facility opening and assignment: minimize fixed and service costs while fitting indivisible customers into shared capacities | all |
+| [Delaunay Triangulation](tasks/delaunay/README.md) | Robust geometric construction: balance point location, local triangulation updates, and exact orientation and incircle checks | all |
+| [Prime-Field Discrete Logarithm](tasks/discrete_log/README.md) | Finite group exponent recovery: exploit subgroup orders and balance modular search time against lookup table memory | all |
+| [Earth Mover's Distance](tasks/earth_movers_distance/README.md) | Unregularized optimal transport: minimize mass moving cost while exploiting transport constraints, sparsity, and reduced cost structure | all |
+| [Exact Integer Convolution](tasks/exact_integer_convolution/README.md) | Exact polynomial multiplication: choose sparse, packed integer, or transform methods while reconstructing every signed coefficient exactly | all |
+| [Graph Coloring](tasks/graph_coloring/README.md) | Minimum graph coloring: combine clique bounds, vertex ordering, and symmetry pruning to prove the fewest colors | all |
+| [Logistic Group Lasso](tasks/group_lasso/README.md) | Nonsmooth convex optimization: balance logistic loss steps, group sparsity, active set screening, and convergence | all |
+| [Fixed-Route Job-Shop Makespan](tasks/job_shop_scheduling/README.md) | Precedence constrained resource scheduling: minimize makespan while jointly choosing exclusive machine orders and respecting job routes | all |
+| [Spectral-Radius Matrix Completion](tasks/spectral_radius_matrix_completion/README.md) | Log domain convex completion: minimize the Perron root under fixed observations and a product one constraint on missing entries | all |
+| [Three-Resource 0/1 Knapsack](tasks/multi_dim_knapsack/README.md) | Multidimensional subset optimization: maximize profit under three resource limits using bounds, dominance pruning, and state selection | all |
+| [Robertson Chemical Kinetics](tasks/ode_stiff_robertson/README.md) | Stiff chemical integration: balance implicit solves, Jacobian work, and error control across widely separated reaction timescales | all |
+| [Out-of-Order Session Window Trace](tasks/out_of_order_session_windows/README.md) | Dynamic interval merging and expiry: maintain exact session traces under out of order events, watermarks, and late event rules | all |
+| [Sparse Weighted PageRank](tasks/pagerank/README.md) | Sparse fixed point convergence: balance graph representation, iteration cost, and convergence while handling dangling vertices | all |
+| [1D Viscous Burgers Equation](tasks/pde_burgers1d/README.md) | Stiff nonlinear PDE integration: exploit the sparse spatial Jacobian while balancing advection, diffusion, and time step accuracy | all |
+| [Low-Rank Matrix Approximation](tasks/low_rank_approximation/README.md) | Accuracy constrained low rank factorization: balance matrix passes, subspace iteration, and orthogonalization within the reconstruction bound | all |
+| [RBF Interpolation](tasks/rbf_interpolation/README.md) | Structured kernel system solving: balance kernel assembly, constrained factorization, and batched prediction while preserving interpolation accuracy | all |
+| [Robust State Estimation](tasks/robust_kalman_filter/README.md) | Robust convex trajectory estimation: exploit temporal structure while minimizing process noise and Huber measurement loss | all |
+| [Minimum Fuel Rocket Landing](tasks/rocket_landing_optimization/README.md) | Constrained optimal control: minimize fuel with coupled trajectory dynamics, landing conditions, altitude, and thrust limits | all |
+| [Scratchpad Dataflow Compiler](tasks/scratchpad_dataflow_compiler/README.md) | Joint instruction scheduling and storage allocation: balance spilling, recomputation, fusion, and bank conflicts; simulated cycles | all |
+| [Entropy-Regularized Transport](tasks/sinkhorn/README.md) | Entropy regularized matrix scaling: balance convergence and numerical stability while satisfying transport marginals and the Gibbs condition | all |
+| [Smallest Eigenvalues of Sparse SPD Matrices](tasks/smallest_eigenvalues_sparse_spd/README.md) | Sparse extremal eigensolving: balance Krylov iteration, preconditioning, and shift invert factorization for clustered or ill conditioned spectra | all |
+| [Asymmetric Traveling Salesperson](tasks/asymmetric_tsp/README.md) | Exact directed tour optimization: combine bounds and search for small cases, and recover assignment tight Hamiltonian tours for larger cases | all |
+| [Vehicle Routing](tasks/vehicle_routing/README.md) | Joint customer partitioning and tour optimization: minimize total distance over exactly K nonempty depot returning routes | all |
+| [Exact Affine Gap Sequence Alignment](tasks/affine_gap_sequence_alignment/README.md) | Exact edit path optimization: balance full dynamic programming, wavefront search, and pruning across sparse edits, long gaps, and dense differences | all |
 
 ## Inspiration
 

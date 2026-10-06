@@ -5,11 +5,30 @@ import pathlib
 import random
 import re
 import unittest
+from unittest.mock import patch
 
 from speedupmark.harness import load_task
 
 
 TASK_ROOT = pathlib.Path(__file__).resolve().parents[1] / "tasks"
+
+
+def _routing_cost(problem, routes):
+    return sum(problem["D"][left][right]
+               for route in routes for left, right in zip(route, route[1:]))
+
+
+def _exhaustive_routing_options(problem):
+    # Enumerate customer orders and nonempty route cuts directly, without the
+    # reference's subset DP, reconstruction helpers, or optimality checker.
+    depot = problem["depot"]
+    customers = [node for node in range(len(problem["D"])) if node != depot]
+    for order in itertools.permutations(customers):
+        for cuts in itertools.combinations(range(1, len(customers)), problem["K"] - 1):
+            boundaries = (0, *cuts, len(customers))
+            routes = [[depot, *order[start:end], depot]
+                      for start, end in zip(boundaries, boundaries[1:])]
+            yield _routing_cost(problem, routes), routes
 
 
 class IndependentOracleTests(unittest.TestCase):
@@ -54,7 +73,7 @@ class IndependentOracleTests(unittest.TestCase):
                 self.assertEqual(task.solve(problem), tuple(tokens))
 
     def test_replacement_against_literal_regex_alternation(self):
-        task = load_task(TASK_ROOT / "streaming_literal_replacement")
+        task = load_task(TASK_ROOT / "multi_literal_replacement")
         rng = random.Random(873)
         for _ in range(100):
             data = bytes(rng.choice(b"abc") for _ in range(40))
@@ -78,13 +97,83 @@ class IndependentOracleTests(unittest.TestCase):
             }
             self.assertEqual(task.solve(problem), expected)
 
-    def test_sqlite_and_python_agree_on_small_null_heavy_inputs(self):
-        task = load_task(TASK_ROOT / "sqlite_analytics_reports")
-        for seed in range(20):
-            for size in (0, 1, 2, 5, 30):
-                with self.subTest(seed=seed, size=size):
-                    problem = task.generate_problem(size, seed)
-                    self.assertTrue(task.is_solution(problem, task.solve(problem)))
+    def test_vehicle_routing_matches_exhaustive_orders_and_splits(self):
+        task = load_task(TASK_ROOT / "vehicle_routing")
+        rng = random.Random(142607)
+        for customers in range(1, 6):
+            size = customers + 1
+            for trial in range(8):
+                distance = [[0] * size for _ in range(size)]
+                for left in range(size):
+                    for right in range(left + 1, size):
+                        distance[left][right] = distance[right][left] = rng.randint(1, 30)
+                depot = rng.randrange(size)
+                for vehicles in range(1, customers + 1):
+                    with self.subTest(customers=customers, trial=trial, vehicles=vehicles,
+                                      depot=depot):
+                        problem = {"D": distance, "K": vehicles, "depot": depot}
+                        options = list(_exhaustive_routing_options(problem))
+                        optimum, best_routes = min(options, key=lambda option: option[0])
+                        worst_cost, worst_routes = max(options, key=lambda option: option[0])
+                        reference_routes = task.solve(problem)
+                        self.assertEqual(_routing_cost(problem, reference_routes), optimum)
+                        self.assertTrue(task.is_solution(problem, reference_routes))
+                        self.assertTrue(task.is_solution(problem, best_routes))
+                        if worst_cost > optimum:
+                            self.assertFalse(task.is_solution(problem, worst_routes))
+
+    def test_vehicle_routing_accepts_optimal_routes_and_rejects_feasible_slow_routes(self):
+        task = load_task(TASK_ROOT / "vehicle_routing")
+        problem = {"D": [[0, 1, 1, 1], [1, 0, 1, 7],
+                         [1, 1, 0, 9], [1, 7, 9, 0]], "K": 2, "depot": 0}
+        optimal = [[0, 1, 2, 0], [0, 3, 0]]
+        alternative = [[0, 3, 0], [0, 2, 1, 0]]
+        suboptimal = [[0, 1, 3, 0], [0, 2, 0]]
+        self.assertEqual(_routing_cost(problem, optimal), 5)
+        self.assertEqual(_routing_cost(problem, suboptimal), 11)
+        self.assertTrue(task.is_solution(problem, optimal))
+        self.assertTrue(task.is_solution(problem, alternative))
+        self.assertFalse(task.is_solution(problem, suboptimal))
+        for cost, routes in _exhaustive_routing_options(problem):
+            self.assertEqual(task.is_solution(problem, routes), cost == 5)
+
+    def test_vehicle_routing_accepts_all_tied_route_orders(self):
+        task = load_task(TASK_ROOT / "vehicle_routing")
+        distance = [[int(left != right) for right in range(5)] for left in range(5)]
+        for vehicles in range(1, 5):
+            problem = {"D": distance, "K": vehicles, "depot": 2}
+            # Each valid route has one extra depot leg: four customers + K.
+            for cost, routes in _exhaustive_routing_options(problem):
+                self.assertEqual(cost, 4 + vehicles)
+                self.assertTrue(task.is_solution(problem, routes))
+
+    def test_sqlite_reference_on_null_duplicate_and_tie_fixture(self):
+        task = load_task(TASK_ROOT / "grouped_analytics_reports")
+        problem = {
+            "rows": ((0, None, None, None), (0, None, None, None),
+                     (1, "a", 5, "note"), (1, "a", 5, "note"), (2, "b", 10, None),
+                     (3, "c", -2, "x"), (3, "c", None, "x"), (4, "z", None, None)),
+            "minimum_total": 10,
+        }
+        expected = (
+            (("a", 2, 2, 10, 1), ("b", 1, 1, 10, 0), ("c", 2, 1, -2, 1),
+             (None, 2, 0, None, 0), ("z", 1, 0, None, 0)),
+            ((0, None, 2), (1, "a", 2), (3, "c", 2)),
+            ((1, 10), (2, 10)),
+        )
+        self.assertEqual(task.solve(problem), expected)
+        self.assertEqual(task.solve({"rows": (), "minimum_total": 0}), ((), (), ()))
+        self.assertEqual(task.solve(problem | {"minimum_total": 11}), (*expected[:2], ()))
+        lists = [[list(row) for row in report] for report in expected]
+        wrong_sum = ((expected[0][0][:3] + (11, 1), *expected[0][1:]), *expected[1:])
+        wrong_type = ((("a", True, 2, 10, 1), *expected[0][1:]), *expected[1:])
+        with patch.object(task, "solve", side_effect=AssertionError("verifier reran reference")):
+            self.assertTrue(task.is_solution(problem, expected, reference_output=expected))
+            self.assertTrue(task.is_solution(problem, lists, reference_output=expected))
+            for bad in (expected[:2], (tuple(reversed(expected[0])), *expected[1:]),
+                        wrong_sum, wrong_type):
+                with self.subTest(output=bad):
+                    self.assertFalse(task.is_solution(problem, bad, reference_output=expected))
 
 
 if __name__ == "__main__":

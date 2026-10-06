@@ -6,8 +6,8 @@ candidate as a parsed tree per query. There is no SQL text, no server, no disk
 and no networking: what is timed is planning, index construction and execution
 of a small engine, all inside the candidate call.
 
-Every generated family places its filters *above* the joins and writes its
-joins in a fixed left-deep order, so pushing a predicate into a scan, choosing
+Family anchors place filters above joins; randomized transformations vary join
+orientation, predicate nesting and output operators. Pushing predicates, choosing
 which side to hash, and reordering a three-way join are real decisions rather
 than decoration. Families are generated in regimes that disagree: a filter that
 is highly selective in one family is nearly useless in another, and the table
@@ -18,7 +18,9 @@ from __future__ import annotations
 
 import random
 import sys
+from itertools import groupby
 
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import forbidden_imports, load_candidate, watch_imports
 
 
@@ -149,6 +151,162 @@ def _answer(problem):
     )
 
 
+def _verify_node(node, tables):
+    """Independent relational interpreter: sort/merge joins and sorted groups.
+
+    Keep positional schemas: a join can contain duplicate column names, and
+    the language resolves those names to the first occurrence.
+    """
+    kind = node[0]
+    if kind == "scan":
+        table = tables[node[1]]
+        return tuple(table["columns"]), list(table["rows"])
+    if kind == "join":
+        left_schema, left = _verify_node(node[1], tables)
+        right_schema, right = _verify_node(node[2], tables)
+        li, ri = left_schema.index(node[3]), right_schema.index(node[4])
+        left_groups = iter(groupby(sorted(left, key=lambda row: row[li]), lambda row: row[li]))
+        right_groups = iter(groupby(sorted(right, key=lambda row: row[ri]), lambda row: row[ri]))
+        a, b = next(left_groups, None), next(right_groups, None)
+        rows = []
+        while a is not None and b is not None:
+            if a[0] < b[0]:
+                a = next(left_groups, None)
+            elif a[0] > b[0]:
+                b = next(right_groups, None)
+            else:
+                right_rows = list(b[1])
+                rows.extend(tuple(l) + tuple(r) for l in a[1] for r in right_rows)
+                a, b = next(left_groups, None), next(right_groups, None)
+        return left_schema + right_schema, rows
+    schema, rows = _verify_node(node[1], tables)
+    if kind == "filter":
+        index, op, value = schema.index(node[2]), node[3], node[4]
+        def keep(row):
+            x = row[index]
+            return {"eq": x == value, "ne": x != value, "lt": x < value,
+                    "le": x <= value, "gt": x > value, "ge": x >= value}[op]
+        return schema, list(filter(keep, rows))
+    if kind == "project":
+        indices = tuple(schema.index(column) for column in node[2])
+        return tuple(node[2]), [tuple(row[i] for i in indices) for row in rows]
+    if kind == "topk":
+        if node[3] < 1:
+            raise ValueError("topk requires a positive limit")
+        index = schema.index(node[2])
+        return schema, sorted(rows, key=lambda row: (-row[index], row))[:node[3]]
+    if kind == "group":
+        keys, aggregates = node[2:]
+        key_indices = tuple(schema.index(column) for column in keys)
+        key_of = lambda row: tuple(row[i] for i in key_indices)
+        result = []
+        for key, members in groupby(sorted(rows, key=key_of), key_of):
+            members = list(members)
+            values = []
+            for op, column in aggregates:
+                if op == "count":
+                    values.append(len(members))
+                else:
+                    index = schema.index(column)
+                    reducer = {"sum": sum, "min": min, "max": max}[op]
+                    values.append(reducer(row[index] for row in members))
+            result.append(key + tuple(values))
+        names = tuple(keys) + tuple("count" if col is None else f"{op}:{col}"
+                                    for op, col in aggregates)
+        return names, result
+    raise ValueError(f"unsupported plan node {kind!r}")
+
+
+def _verified_answer(problem):
+    return tuple(tuple(tuple(sorted(_verify_node(query, family["tables"])[1]))
+                       for query in family["queries"]) for family in problem["families"])
+
+
+def _vary_plans(family, rng):
+    """Sample the grammar, not just the data behind a published template.
+
+    Memoization preserves shared subtrees. Join reversal and column renaming
+    prevent positional/template dispatch while retaining each workload regime.
+    """
+    memo = {}
+    def vary(node):
+        if node in memo:
+            return memo[node]
+        kind = node[0]
+        if kind == "scan":
+            result = node
+        elif kind == "join":
+            left, right = vary(node[1]), vary(node[2])
+            if rng.randrange(2):
+                result = (kind, right, left, node[4], node[3])
+            else:
+                result = (kind, left, right, *node[3:])
+        elif kind == "filter":
+            # Preserve selective/permissive thresholds while varying equality,
+            # rank boundaries, and nested predicate depth in every family.
+            column, op, value = node[2:]
+            value += rng.choice((-1, 0, 1))
+            result = (kind, vary(node[1]), column, op, value)
+            if rng.randrange(3) == 0:
+                result = (kind, result, column, "ne", value + rng.randrange(1, 4))
+        elif kind == "group":
+            keys, aggregates = list(node[2]), list(node[3])
+            rng.shuffle(keys)
+            aggregates = [(rng.choice(AGGREGATES) if col is not None else "count", col)
+                          for _, col in aggregates]
+            rng.shuffle(aggregates)
+            result = (kind, vary(node[1]), tuple(keys), tuple(aggregates))
+        elif kind == "project":
+            columns = list(node[2])
+            rng.shuffle(columns)
+            result = (kind, vary(node[1]), tuple(columns))
+        elif kind == "topk":
+            result = (kind, vary(node[1]), node[2], rng.randrange(1, 17))
+        else:
+            raise ValueError(kind)
+        memo[node] = result
+        return result
+    queries = [vary(query) for query in family["queries"]]
+    # Extra compositions force support for operator nesting beyond the anchors.
+    for _ in range(rng.randrange(2, 5)):
+        source = rng.choice(queries)
+        schema = _verify_node(source, {name: table | {"rows": ()}
+                                     for name, table in family["tables"].items()})[0]
+        column = rng.choice(schema)
+        source = ("filter", source, column, rng.choice(("ne", "ge", "lt")), rng.randrange(12))
+        if rng.randrange(2):
+            source = ("group", source, (column,), (("count", None),))
+        else:
+            source = ("topk", source, column, rng.randrange(1, 12))
+        queries.append(source)
+    rng.shuffle(queries)
+    table_names = {name: f"t{rng.getrandbits(40):010x}" for name in family["tables"]}
+    columns = {column: f"c{rng.getrandbits(40):010x}"
+               for table in family["tables"].values() for column in table["columns"]}
+    def renamed(column):
+        if column in columns:
+            return columns[column]
+        if column == "count":
+            return column
+        op, original = column.split(":", 1)
+        return f"{op}:{renamed(original)}"
+    def rename(node):
+        kind = node[0]
+        if kind == "scan":
+            return kind, table_names[node[1]]
+        if kind == "join":
+            return kind, rename(node[1]), rename(node[2]), renamed(node[3]), renamed(node[4])
+        if kind == "group":
+            return (kind, rename(node[1]), tuple(map(renamed, node[2])),
+                    tuple((op, None if col is None else renamed(col)) for op, col in node[3]))
+        if kind == "project":
+            return kind, rename(node[1]), tuple(map(renamed, node[2]))
+        return kind, rename(node[1]), renamed(node[2]), *node[3:]
+    tables = {table_names[name]: table | {"columns": tuple(map(renamed, table["columns"]))}
+              for name, table in family["tables"].items()}
+    return family | {"tables": tables, "queries": tuple(map(rename, queries))}
+
+
 def _materialized(value):
     """Plain containers only: reject subclasses that defer work until verification."""
     if type(value) is int:
@@ -219,8 +377,8 @@ def _events(rng, rows, customers, regions):
 
 class AdaptiveQueryEngineTask:
     name = "adaptive_query_engine"
-    task_version = "1.1.0"
-    display_name = "Adaptive Query Engine"
+    task_version = "1.2.0"
+    display_name = TASK_CATALOG[name].display_name
     default_n = 2400
     grading_cases = (2400, 3600)
 
@@ -235,7 +393,7 @@ class AdaptiveQueryEngineTask:
             self._topk(n, rng),
             self._shared_subplan(n, rng),
         )
-        return {"families": families}
+        return {"families": tuple(_vary_plans(family, rng) for family in families)}
 
     def _selective_filter(self, n, rng):
         customers = max(4, n // 16)
@@ -388,7 +546,7 @@ class AdaptiveQueryEngineTask:
         try:
             if not _materialized(proposed):
                 return False
-            return _same_materialized(proposed, _answer(problem))
+            return _same_materialized(proposed, _verified_answer(problem))
         except (KeyError, TypeError, ValueError, IndexError):
             return False
 

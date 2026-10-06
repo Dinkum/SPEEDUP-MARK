@@ -17,6 +17,7 @@ os.environ.setdefault("MKL_NUM_THREADS", "1")
 os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
 os.environ.setdefault("VECLIB_MAXIMUM_THREADS", "1")
 
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import load_candidate
 
 
@@ -36,7 +37,7 @@ def _need():
         raise ImportError(
             "rbf_interpolation requires optional dependencies: numpy, scipy. "
             "Install the pinned numerical extra in requirements-numerical.txt. "
-            "Smoke and lightweight do not include this task."
+            "The smoke and extended suites do not include this task."
         ) from exc
     return numpy, scipy.interpolate
 
@@ -105,6 +106,7 @@ def _predict(train, values, queries, config):
 class RBFInterpolation:
     name = "rbf_interpolation"
     task_version = "1.1.0"
+    display_name = TASK_CATALOG[name].display_name
     default_n = 250
     grading_cases = (250, 500)
 

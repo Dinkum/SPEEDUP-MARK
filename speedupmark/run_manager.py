@@ -36,7 +36,7 @@ from .task import declared_task_version, fresh_candidate_payload, grading_cases
 ROOT = TASK_ROOT.parent
 # The working tree can import the shared protocol. The measurement runner
 # stays in the baseline and grading snapshots.
-AGENT_SPEEDUPMARK = ("__init__.py", "task.py")
+AGENT_SPEEDUPMARK = ("__init__.py", "catalog.py", "task.py")
 
 
 def _write_json(path, data):

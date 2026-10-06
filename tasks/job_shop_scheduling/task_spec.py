@@ -3,6 +3,7 @@
 import itertools
 import random
 
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import load_candidate
 
 
@@ -138,7 +139,7 @@ def _optimal_makespan(problem):
 class Task:
     name = "job_shop_scheduling"
     task_version = "1.1.0"
-    display_name = "Fixed-Route Job-Shop Makespan"
+    display_name = TASK_CATALOG[name].display_name
     default_n = 4
     grading_cases = (3, 4)
 

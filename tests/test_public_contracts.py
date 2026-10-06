@@ -74,7 +74,7 @@ class NumericalWitnessTests(unittest.TestCase):
     def test_sparse_eigenvalue_starter_survives_arpack_nonconvergence(self):
         import numpy
         from scipy.sparse.linalg import ArpackNoConvergence
-        benchmark = task('sparse_lowest_eigenvalues_posdef')
+        benchmark = task('smallest_eigenvalues_sparse_spd')
         problem = benchmark.generate_problem(60, 1)
         failure = ArpackNoConvergence('no convergence', numpy.array([]), numpy.empty((60, 0)))
         with patch('scipy.sparse.linalg.eigsh', side_effect=failure):
@@ -87,8 +87,8 @@ class NumericalWitnessTests(unittest.TestCase):
                 raise AssertionError('candidate work ran in verifier')
 
         cases = {
-            'randomized_svd': (8, ('U', 'S', 'V')),
-            'matrix_completion': (3, ('B',)),
+            'low_rank_approximation': (8, ('U', 'S', 'V')),
+            'spectral_radius_matrix_completion': (3, ('B',)),
             'robust_kalman_filter': (4, ('x_hat', 'w_hat', 'v_hat')),
             'rocket_landing_optimization': (8, ('position', 'velocity', 'thrust')),
         }
@@ -102,7 +102,7 @@ class NumericalWitnessTests(unittest.TestCase):
                     self.assertFalse(benchmark.is_solution(problem, answer | {field: Deferred()}))
 
     def test_nonfinite_objective_fields_are_rejected(self):
-        for name, size, field in (('matrix_completion', 3, 'optimal_value'),
+        for name, size, field in (('spectral_radius_matrix_completion', 3, 'optimal_value'),
                                   ('rocket_landing_optimization', 8, 'fuel_consumption')):
             benchmark = task(name)
             problem = benchmark.generate_problem(size, 0)

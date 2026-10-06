@@ -15,6 +15,7 @@ os.environ.setdefault("MKL_NUM_THREADS", "1")
 os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
 os.environ.setdefault("VECLIB_MAXIMUM_THREADS", "1")
 
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import load_candidate, plain_numeric
 
 
@@ -33,7 +34,7 @@ def _need():
         raise ImportError(
             "rocket_landing_optimization requires optional dependencies: cvxpy, numpy. "
             "Install the pinned numerical extra in requirements-numerical.txt. "
-            "Smoke and lightweight do not include this task."
+            "The smoke and extended suites do not include this task."
         ) from exc
     return cvxpy, numpy
 
@@ -75,6 +76,7 @@ def _optimal_fuel(problem):
 class RocketLanding:
     name = "rocket_landing_optimization"
     task_version = "1.2.1"
+    display_name = TASK_CATALOG[name].display_name
     default_n = 30
     grading_cases = (30, 60)
 

@@ -16,7 +16,7 @@ TASK_ROOT = ROOT / "tasks"
 
 class SubmissionContractTests(unittest.TestCase):
     def test_sqlite_and_log_outputs_reject_forged_nested_sequences(self):
-        for name in ("sqlite_analytics_reports", "durable_log_recovery"):
+        for name in ("grouped_analytics_reports", "durable_log_recovery"):
             task = load_task(TASK_ROOT / name)
             problem = task.generate_problem(32, 0)
             expected = task.solve(problem)
@@ -42,7 +42,7 @@ class SubmissionContractTests(unittest.TestCase):
                         self.assertFalse(task.is_solution(problem, proposed))
                         self.assertEqual(callbacks, [])
 
-                if name == "sqlite_analytics_reports":
+                if name == "grouped_analytics_reports":
                     claimed_length = len(expected[0][0])
                     proposed = ((Forged(), *expected[0][1:]), *expected[1:])
                     with self.subTest(task=name, container=base.__name__, location="row"):
@@ -51,7 +51,7 @@ class SubmissionContractTests(unittest.TestCase):
                         self.assertEqual(callbacks, [])
 
     def test_literal_replacement_rejects_bytes_with_forged_equality(self):
-        task = load_task(TASK_ROOT / "streaming_literal_replacement")
+        task = load_task(TASK_ROOT / "multi_literal_replacement")
         problem = {"chunks": (b"abc",), "replacements": ((b"a", b"x"),)}
         callbacks = []
 

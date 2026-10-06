@@ -69,6 +69,12 @@ class SpeedupMarkTask(Protocol):
     It returns reference/candidate evaluations and records replay context before
     execution; that context must never be supplied to candidate compilation.
 
+    A canonical-output task can declare ``uses_reference_output = True`` and
+    accept ``is_solution(problem, proposed, *, reference_output=None)``. The
+    harness supplies the already-measured, frozen reference answer as a detached
+    copy after both timers stop. Reference correctness is independently tested;
+    this comparison does not independently solve each graded input.
+
     Managed development and final grading both measure ``grading_cases``.
     That attribute is a non-empty sequence of positive problem sizes. The run
     controller does not add sizes of its own.
@@ -78,6 +84,7 @@ class SpeedupMarkTask(Protocol):
     """
 
     name: str
+    display_name: str
     task_version: str
 
     def generate_problem(self, n: int, random_seed: int = 0) -> Any: ...

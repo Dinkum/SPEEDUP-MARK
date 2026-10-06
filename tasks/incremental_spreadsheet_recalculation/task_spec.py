@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import random
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import load_candidate, plain_containers
 
 
@@ -36,10 +37,42 @@ def _run(problem):
     return tuple(answers)
 
 
+def _verify_sheet(problem):
+    """Evaluate only queried ancestors with an explicit DFS stack per edit."""
+    inputs = list(problem["initial_inputs"])
+    answers = []
+    for operation in problem["operations"]:
+        if operation[0] == "set":
+            inputs[operation[1]] = operation[2]
+            continue
+        values = dict(enumerate(inputs))
+        pending = [(operation[1], False)]
+        while pending:
+            cell, ready = pending.pop()
+            if cell in values:
+                continue
+            op, left, right = problem["formulas"][cell]
+            if ready:
+                if op == "scale":
+                    values[cell] = values[left] * right
+                elif op == "add":
+                    values[cell] = values[left] + values[right]
+                elif op == "sub":
+                    values[cell] = values[left] - values[right]
+                else:
+                    raise ValueError(op)
+            else:
+                pending.append((cell, True))
+                pending.append((left, False))
+                if op != "scale":
+                    pending.append((right, False))
+        answers.append(values[operation[1]])
+    return tuple(answers)
+
 class IncrementalSpreadsheetRecalculationTask:
     name = "incremental_spreadsheet_recalculation"
-    task_version = "1.1.0"
-    display_name = "Incremental Spreadsheet Recalculation"
+    task_version = "1.1.1"
+    display_name = TASK_CATALOG[name].display_name
     default_n = 650
     grading_cases = (650, 1300)
 
@@ -96,7 +129,7 @@ class IncrementalSpreadsheetRecalculationTask:
                 return False
             if any(type(value) is not int for value in proposed):
                 return False
-            return tuple(proposed) == _run(problem)
+            return tuple(proposed) == _verify_sheet(problem)
         except (KeyError, TypeError, ValueError, IndexError):
             return False
 

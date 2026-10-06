@@ -19,6 +19,7 @@ import sys
 import time
 from dataclasses import asdict, dataclass, field
 
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.suites import selected_tasks
 from speedupmark.task import SolutionEvaluation, declared_task_version, freeze_output
 from speedupmark.revision import task_revision
@@ -72,6 +73,10 @@ def load_task(task_dir: pathlib.Path):
         raise ValueError(
             f"{task_dir.name}: task name must match its directory identifier"
         )
+    if task_dir.parent == TASK_ROOT and task_dir.name in TASK_CATALOG:
+        metadata = TASK_CATALOG[task_dir.name]
+        if getattr(mod.TASK, "display_name", None) != metadata.display_name:
+            raise ValueError(f"{task_dir.name}: display name must match the task catalog")
     return mod.TASK
 
 
@@ -95,6 +100,24 @@ def resolve_seed(seed: int | None) -> int:
     if type(seed) is not int or seed < 0:
         raise ValueError("seed must be a nonnegative integer")
     return seed
+
+
+def _grading_functions(task):
+    """Track direct grading entrypoints; this is a sanity check, not a sandbox."""
+    functions = {
+        name: getattr(task, name, None)
+        for name in ("solve", "is_solution", "evaluate_solution", "evaluate_pair")
+    }
+    functions["timer"] = time.perf_counter_ns
+    # Bound method objects are recreated on access; compare their functions.
+    return {name: getattr(function, "__func__", function)
+            for name, function in functions.items()}
+
+
+def _check_grading_functions(task, expected):
+    for name, function in _grading_functions(task).items():
+        if function is not expected[name]:
+            raise ValueError(f"{task.name}: grading function changed: {name}")
 
 
 def run_task(
@@ -130,8 +153,10 @@ def run_task(
     candidate = getattr(task, "candidate_solve", task.solve)
     evaluate = getattr(task, "evaluate_solution", None)
     evaluate_pair = getattr(task, "evaluate_pair", None)
+    uses_reference_output = getattr(task, "uses_reference_output", False)
     metric_unit = getattr(task, "metric_unit", "score") if evaluate else "ms"
     measurements = []
+    grading_functions = _grading_functions(task)
 
     for index in range(samples):
         case_seed = seed + index
@@ -147,12 +172,14 @@ def run_task(
             else ("candidate", "reference")
         )
         for role in order:
+            _check_grading_functions(task, grading_functions)
             start = time.perf_counter_ns()
             try:
                 outputs[role] = freeze_output(solvers[role](inputs[role]))
             except ValueError as exc:
                 raise ValueError(f"{task.name}: {role} output: {exc}") from None
             scores[role] = (time.perf_counter_ns() - start) / 1_000_000
+            _check_grading_functions(task, grading_functions)
 
         verification = None
         paired = None
@@ -186,8 +213,12 @@ def run_task(
                 scores[role] = evaluation.score
                 correctness[role] = bool(evaluation.correct)
             else:
+                # Canonical-output tasks reuse the measured answer, outside
+                # timing, instead of supplying another solution algorithm.
+                verification_kwargs = ({"reference_output": copy.deepcopy(outputs["reference"])}
+                                       if uses_reference_output else {})
                 correctness[role] = bool(
-                    task.is_solution(copy.deepcopy(problem), outputs[role])
+                    task.is_solution(copy.deepcopy(problem), outputs[role], **verification_kwargs)
                 )
         if not correctness["reference"] or not _positive_score(scores["reference"]):
             raise ValueError(

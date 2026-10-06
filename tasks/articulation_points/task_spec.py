@@ -2,6 +2,7 @@
 
 import random
 
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import load_candidate
 
 _candidate = load_candidate(__file__)
@@ -33,8 +34,9 @@ def adjacency_of(problem):
 
 class Task:
     name = "articulation_points"
-    task_version = "1.1.0"
-    display_name = "Articulation Points Across Graph Components"
+    task_version = "1.1.1"
+    display_name = TASK_CATALOG[name].display_name
+    uses_reference_output = True
     default_n = 300
     grading_cases = (300, 600)
 
@@ -63,46 +65,19 @@ class Task:
         return {"articulation_points": [v for v in range(n)
                 if components(n, adjacency, v) > base]}
 
-    def is_solution(self, problem, proposed):
+    def is_solution(self, problem, proposed, *, reference_output=None):
         if type(proposed) is not dict or set(proposed) != {"articulation_points"}:
             return False
         points = proposed["articulation_points"]
-        if type(points) is not list or any(type(v) is not int for v in points):
+        if (type(points) is not list
+                or any(type(v) is not int or not 0 <= v < problem["num_nodes"] for v in points)
+                or points != sorted(set(points))):
             return False
-        # Iterative low-link DFS avoids recursion limits and provides a
-        # different correctness algorithm from remove-and-recount.
-        n, adjacency = problem["num_nodes"], adjacency_of(problem)
-        discovery, low, parent, children = [-1] * n, [0] * n, [-1] * n, [0] * n
-        found, clock = set(), 0
-        for root in range(n):
-            if discovery[root] != -1:
-                continue
-            discovery[root] = low[root] = clock
-            clock += 1
-            stack = [(root, iter(adjacency[root]))]
-            while stack:
-                u, neighbors = stack[-1]
-                v = next(neighbors, None)
-                if v is None:
-                    stack.pop()
-                    p = parent[u]
-                    if p == -1:
-                        if children[u] > 1:
-                            found.add(u)
-                    else:
-                        low[p] = min(low[p], low[u])
-                        if parent[p] != -1 and low[u] >= discovery[p]:
-                            found.add(p)
-                    continue
-                if discovery[v] == -1:
-                    parent[v] = u
-                    children[u] += 1
-                    discovery[v] = low[v] = clock
-                    clock += 1
-                    stack.append((v, iter(adjacency[v])))
-                elif v != parent[u]:
-                    low[u] = min(low[u], discovery[v])
-        return points == sorted(found)
+        # Direct checks can compute the existing reference; grading reuses its
+        # measured output and never reruns a solver for verification.
+        if reference_output is None:
+            reference_output = self.solve(problem)
+        return proposed == reference_output
 
     def candidate_solve(self, problem):
         return _candidate.solve(problem, self.solve)

@@ -15,6 +15,7 @@ os.environ.setdefault("MKL_NUM_THREADS", "1")
 os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
 os.environ.setdefault("VECLIB_MAXIMUM_THREADS", "1")
 
+from speedupmark.catalog import TASK_CATALOG
 from speedupmark.task import load_candidate
 
 
@@ -32,7 +33,7 @@ def _need():
         raise ImportError(
             "sinkhorn requires optional dependency: numpy. "
             "Install the pinned numerical extra in requirements-numerical.txt. "
-            "Smoke and lightweight do not include this task."
+            "The smoke and extended suites do not include this task."
         ) from exc
     return numpy
 
@@ -79,14 +80,15 @@ def _gibbs_residual(plan, cost, reg):
 
 class SinkhornTask:
     name = "sinkhorn"
-    task_version = "1.1.0"
-    default_n = 32
-    grading_cases = (32, 64)
+    task_version = "1.2.0"
+    display_name = TASK_CATALOG[name].display_name
+    default_n = 128
+    grading_cases = (128, 384)
 
     def workload_family(self, n, random_seed=0):
         return _family(random_seed)
 
-    def generate_problem(self, n=32, random_seed=0):
+    def generate_problem(self, n=128, random_seed=0):
         if n < 2:
             raise ValueError("n must be at least 2")
         numpy = _need()

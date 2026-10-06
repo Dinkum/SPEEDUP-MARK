@@ -1,10 +1,11 @@
-"""Build a source-only archive from an explicit inventory; never publish it."""
+"""Prepare source-only archives or check staged starter candidates; never publish."""
 
 import argparse
 import ast
 import hashlib
 import json
 import pathlib
+import subprocess
 import sys
 import zipfile
 
@@ -18,8 +19,11 @@ ROOT_FILES = (".gitignore", "LICENSE", "README.md", "GUIDE.md", "version.json",
               "THIRD_PARTY.json", "requirements-numerical.txt",
               "diagrams/luna-hermes-progress.png",
               "diagrams/luna-hermes-progress.svg",
-              "diagrams/luna-hermes-progress.json")
-PACKAGE_FILES = ("__init__.py", "__main__.py", "harness.py", "revision.py",
+              "diagrams/luna-hermes-progress.json",
+              "diagrams/smoke-codex-luna-hermes-deepseek-high-20261002.png",
+              "diagrams/smoke-codex-luna-hermes-deepseek-high-20261002.svg",
+              "diagrams/smoke-codex-luna-hermes-deepseek-high-20261002.json")
+PACKAGE_FILES = ("__init__.py", "__main__.py", "catalog.py", "harness.py", "revision.py",
                  "run_manager.py", "run_prompt.txt", "suites.py", "task.py")
 TASK_FILES = ("README.md", "candidate.py", "task_spec.py", "VALIDATION.md")
 
@@ -28,7 +32,7 @@ def public_payloads(root=ROOT):
     """Read only approved source paths; exclude local/private trees by construction."""
     root = pathlib.Path(root)
     names = list(ROOT_FILES) + [f"speedupmark/{name}" for name in PACKAGE_FILES]
-    names += ["tasks/SHORTLIST.md", "scripts/prepare_public.py"]
+    names += ["tasks/SHORTLIST.md", "scripts/prepare_public.py", "scripts/sync_task_names.py"]
     names += [path.relative_to(root).as_posix() for path in sorted((root / "tests").glob("*.py"))]
     names += [f"examples/example_gzip/{name}" for name in ("README.md", "candidate.py", "task_spec.py")]
     candidates = {"examples/example_gzip/candidate.py"}
@@ -61,6 +65,40 @@ def public_payloads(root=ROOT):
     return payloads
 
 
+def check_staged_candidates(root=ROOT):
+    """Reject non-starter candidate bytes in Git's index; never alter local files."""
+    root = pathlib.Path(root)
+
+    def git_output(*arguments):
+        try:
+            return subprocess.run(["git", *arguments], cwd=root, check=True,
+                                  capture_output=True).stdout
+        except (OSError, subprocess.CalledProcessError) as error:
+            raise ValueError("could not inspect the Git index for staged candidates") from error
+
+    entries = git_output("ls-files", "--stage", "-z")
+    count = 0
+    invalid = []
+    for entry in entries.decode("utf-8", "surrogateescape").split("\0"):
+        if not entry:
+            continue
+        metadata, name = entry.split("\t", 1)
+        parts = pathlib.PurePosixPath(name).parts
+        if len(parts) < 3 or parts[0] not in ("tasks", "examples") or parts[-1] != "candidate.py":
+            continue
+        mode, object_id, stage = metadata.split()
+        count += 1
+        if (stage != "0" or mode not in ("100644", "100755")
+                or git_output("cat-file", "blob", object_id) != DEFAULT_CANDIDATE.encode()):
+            invalid.append(name)
+    if invalid:
+        raise ValueError("staged candidates must be fresh reference-delegating starters: "
+                         + ", ".join(sorted(set(invalid))))
+    if not count:
+        raise ValueError("no staged candidate files found in the Git index")
+    return count
+
+
 def build_archive(destination, root=ROOT):
     payloads = public_payloads(root)
     manifest = {
@@ -83,7 +121,18 @@ def build_archive(destination, root=ROOT):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("destination", type=pathlib.Path)
+    parser.add_argument("destination", type=pathlib.Path, nargs="?")
+    parser.add_argument("--check-index", action="store_true",
+                        help="reject non-starter candidates staged for a Git release")
     args = parser.parse_args()
-    manifest = build_archive(args.destination)
-    print(f"Prepared {args.destination}: {len(manifest['files'])} source files; publication is a separate action.")
+    if args.destination is None and not args.check_index:
+        parser.error("supply an archive destination or --check-index")
+    if args.check_index:
+        try:
+            count = check_staged_candidates()
+        except ValueError as error:
+            parser.error(str(error))
+        print(f"Checked Git index: {count} fresh starter candidates.")
+    if args.destination is not None:
+        manifest = build_archive(args.destination)
+        print(f"Prepared {args.destination}: {len(manifest['files'])} source files; publication is a separate action.")
