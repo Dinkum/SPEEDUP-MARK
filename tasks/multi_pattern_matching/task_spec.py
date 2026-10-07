@@ -18,41 +18,22 @@ how many streams reuse one compiled rule set.
 from __future__ import annotations
 
 import random
-import sys
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import forbidden_imports, load_candidate, watch_imports
+from speedupmark.task import load_reference
 
 
-_candidate = load_candidate(__file__)
+_reference = load_reference(__file__)
+_check_patterns = _reference._check_patterns
+_compile = _reference._compile
+_matches = _reference._matches
+
 
 # Handing the whole job to an existing regex engine is a contract violation:
 # building the matcher is the task. Byte-search primitives, sets and heaps are
 # primitives, not engines.
 ENGINE_ROOTS = ("re", "_sre", "sre_compile", "sre_parse", "regex", "hyperscan",
                 "pyre2", "rure", "re2", "oniguruma")
-MAX_STATES = 400
-BYTE_RANGE = range(256)
-
-
-def _min_length(pattern):
-    """Shortest string the pattern can match.
-
-    Legal whole patterns require at least one byte; subpatterns may match the
-    empty string, as long as the complete pattern cannot.
-    """
-    kind = pattern[0]
-    if kind == "lit":
-        return len(pattern[1])
-    if kind == "class":
-        return 1
-    if kind == "cat":
-        return sum(_min_length(child) for child in pattern[1:])
-    if kind == "alt":
-        return min(_min_length(child) for child in pattern[1:])
-    if kind == "rep":
-        return pattern[2] * _min_length(pattern[1])
-    raise ValueError(f"unsupported pattern node {kind!r}")
 
 
 def _witness(pattern, rng):
@@ -71,155 +52,6 @@ def _witness(pattern, rng):
         ceiling = low + 2 if high is None else high
         return b"".join(_witness(child, rng) for _ in range(rng.randrange(low, ceiling + 1)))
     raise ValueError(f"unsupported pattern node {kind!r}")
-
-
-def _compile(pattern):
-    """Thompson construction with an unanchored scan prefix.
-
-    Returns ``(transitions, epsilon, start, accepting)``. The start state loops
-    on every byte, so one simulation pass covers every start position instead of
-    restarting the automaton once per byte. Bounded repetitions are expanded,
-    which keeps the automaton counter-free and makes a bit-parallel state set a
-    legal implementation choice.
-    """
-    # The scan prefix consumes arbitrary bytes, so acceptance must require a
-    # byte from the pattern itself. Nullable subpatterns remain legal.
-    _check_patterns((pattern,))
-    transitions = {}
-    epsilon = {}
-    accepting = set()
-
-    def new_state():
-        state = len(transitions)
-        if state >= MAX_STATES:
-            raise ValueError("pattern compiles to too many states")
-        transitions[state] = {}
-        epsilon[state] = []
-        return state
-
-    def step(state, byte, target):
-        transitions[state].setdefault(byte, []).append(target)
-
-    def link(source, target):
-        epsilon[source].append(target)
-
-    def build(node):
-        """Return ``(entry, exit)`` states for a node."""
-        kind = node[0]
-        if kind == "lit":
-            entry = exit_state = new_state()
-            for byte in node[1]:
-                following = new_state()
-                step(exit_state, byte, following)
-                exit_state = following
-            return entry, exit_state
-        if kind == "class":
-            # One byte is consumed between distinct entry and exit states: a
-            # self-looping state would make the exit reachable without matching
-            # its byte, which is a false accept waiting to happen.
-            entry, exit_state = new_state(), new_state()
-            for byte in sorted(node[1]):
-                step(entry, byte, exit_state)
-            return entry, exit_state
-        if kind == "cat":
-            entry = exit_state = None
-            for child in node[1:]:
-                child_entry, child_exit = build(child)
-                if entry is None:
-                    entry = child_entry
-                else:
-                    link(exit_state, child_entry)
-                exit_state = child_exit
-            return entry, exit_state
-        if kind == "alt":
-            entry, exit_state = new_state(), new_state()
-            for child in node[1:]:
-                child_entry, child_exit = build(child)
-                link(entry, child_entry)
-                link(child_exit, exit_state)
-            return entry, exit_state
-        if kind == "rep":
-            # Explicit join states: after the mandatory copies, and after every
-            # optional copy, the repetition may stop. Without them a pattern
-            # like ``x{1,2}`` could only accept the maximum count.
-            _, child, low, high = node
-            entry, exit_state = new_state(), new_state()
-            cursor = entry
-            for _ in range(low):
-                child_entry, child_exit = build(child)
-                link(cursor, child_entry)
-                cursor = child_exit
-            link(cursor, exit_state)
-            if high is None:
-                loop = new_state()
-                link(cursor, loop)
-                link(loop, exit_state)
-                child_entry, child_exit = build(child)
-                link(loop, child_entry)
-                link(child_exit, loop)
-            else:
-                for _ in range(high - low):
-                    child_entry, child_exit = build(child)
-                    link(cursor, child_entry)
-                    link(child_exit, exit_state)
-                    cursor = child_exit
-            return entry, exit_state
-        raise ValueError(f"unsupported pattern node {kind!r}")
-
-    entry, exit_state = build(pattern)
-    accepting.add(exit_state)
-    start = new_state()
-    for byte in BYTE_RANGE:
-        step(start, byte, start)
-    link(start, entry)
-    return transitions, epsilon, start, accepting
-
-
-def _closure(states, epsilon):
-    seen = set()
-    stack = list(states)
-    while stack:
-        state = stack.pop()
-        if state in seen:
-            continue
-        seen.add(state)
-        stack.extend(epsilon[state])
-    return seen
-
-
-def _matches(data, program):
-    """True when some non-empty substring of ``data`` is in the pattern's language."""
-    transitions, epsilon, start, accepting = program
-    current = _closure((start,), epsilon)
-    for byte in data:
-        following = set()
-        for state in current:
-            targets = transitions[state].get(byte)
-            if targets:
-                following.update(targets)
-        if not following:
-            return False
-        current = _closure(following, epsilon)
-        if current & accepting:
-            return True
-    return False
-
-
-def _scan(problem):
-    """Reference answer: one compiled automaton per pattern, one pass per stream."""
-    answers = []
-    for family in problem["families"]:
-        programs = [_compile(pattern) for pattern in family["patterns"]]
-        family_answers = []
-        for chunks in family["streams"]:
-            data = b"".join(chunks)
-            mask = 0
-            for index, program in enumerate(programs):
-                if _matches(data, program):
-                    mask |= 1 << index
-            family_answers.append(mask)
-        answers.append(tuple(family_answers))
-    return tuple(answers)
 
 
 def _verify_patterns(problem):
@@ -274,13 +106,6 @@ def _same_materialized(actual, expected):
             and all(_same_materialized(a, e) for a, e in zip(actual, expected))
         )
     return type(actual) is type(expected) and actual == expected
-
-
-def _check_patterns(patterns):
-    """Require positive minimum match length for every complete pattern."""
-    for pattern in patterns:
-        if _min_length(pattern) < 1:
-            raise ValueError("whole patterns must have positive minimum match length")
 
 
 def _informative(patterns, chunked):
@@ -339,8 +164,9 @@ def _seam_boundaries(rng, data, patterns):
 
 
 class CompiledStreamingPatternMatchingTask:
+    forbidden_import_roots = ENGINE_ROOTS
     name = "multi_pattern_matching"
-    task_version = "2.0.1"
+    task_version = "3.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 2048
     grading_cases = (2048, 3072)
@@ -472,22 +298,8 @@ class CompiledStreamingPatternMatchingTask:
                             max(64, n // 4), b"abcdefgh",
                             injection=0.45, boundaries=_seam_boundaries)
 
-    def solve(self, problem):
-        return _scan(problem)
+    solve = staticmethod(_reference.solve)
 
-    def candidate_solve(self, problem):
-        self.policy_violations = ()
-        loaded = set(sys.modules)
-        with watch_imports(ENGINE_ROOTS) as imported_during:
-            result = _candidate.solve(problem, self.solve)
-        violations = forbidden_imports(_candidate, ENGINE_ROOTS, loaded, imported_during)
-        if violations:
-            # An invalid submission must not be scored as a fast one; the value
-            # returned here cannot be a valid answer, so only the candidate fails.
-            self.policy_violations = violations
-            print(f"candidate uses forbidden engine imports: {', '.join(violations)}")
-            return None
-        return result
 
     def is_solution(self, problem, proposed):
         try:

@@ -20,7 +20,7 @@ and execution-unit selection interact; no external compiler or GPU is required.
   `node % banks`, with one total transfer per bank per cycle.
 - `family`: descriptive workload label; correctness is defined by the graph.
 
-Implement `candidate.py::solve(problem, reference_solve)`. Return one schedule per
+Implement `candidate.py::solve(problem)`. Return one schedule per
 workload, in order. A schedule is a built-in list or tuple of cycle packets, each a built-in list or
 tuple of instructions. Empty packets are idle cycles. All instruction indexes
 must be exact Python integers.
@@ -92,7 +92,7 @@ The executable definition is [`task_spec.py`](task_spec.py), `generate_problem` 
 
 ## Grading
 
-Edit only `candidate.py`, preserving `solve(problem, reference_solve)`.
+Inside a managed run, edit only `candidate.py`, preserving `solve(problem)`.
 
 From the repository root:
 

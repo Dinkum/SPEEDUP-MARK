@@ -4,10 +4,10 @@ import math
 import random
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_candidate
+from speedupmark.task import load_reference
 
 
-_candidate = load_candidate(__file__)
+_reference = load_reference(__file__)
 
 
 def _step(problem, scores):
@@ -28,35 +28,9 @@ def _step(problem, scores):
     return result
 
 
-def _dense_reference(problem):
-    """Straight dense power iteration; the input matrix is intentionally sparse."""
-    matrix = problem["weights"]
-    n = len(matrix)
-    damping, tolerance = problem["damping"], problem["tolerance"]
-    out_weight = [sum(row) for row in matrix]
-    scores = [1.0 / n] * n
-    for _ in range(500):
-        dangling = math.fsum(scores[u] for u, total in enumerate(out_weight) if total == 0)
-        base = (1.0 - damping) / n + damping * dangling / n
-        next_scores = [base] * n
-        for source, row in enumerate(matrix):
-            total = out_weight[source]
-            if total:
-                scale = damping * scores[source] / total
-                for target in range(n):
-                    weight = row[target]
-                    if weight:
-                        next_scores[target] += scale * weight
-        change = math.fsum(abs(a - b) for a, b in zip(next_scores, scores))
-        scores = next_scores
-        if change <= tolerance * (1.0 - damping) * 0.5:
-            break
-    return {"scores": scores}
-
-
 class Task:
     name = "pagerank"
-    task_version = "1.1.0"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 256
     grading_cases = (256, 384)
@@ -88,8 +62,7 @@ class Task:
             "tolerance": 1e-9,
         }
 
-    def solve(self, problem):
-        return _dense_reference(problem)
+    solve = staticmethod(_reference.solve)
 
     def is_solution(self, problem, proposed):
         if type(proposed) is not dict or set(proposed) != {"scores"}:
@@ -106,9 +79,6 @@ class Task:
         # PageRank's update is a damping contraction in L1, so this residual
         # certifies distance from its unique fixed point without calling solve.
         return residual <= problem["tolerance"] * (1.0 - problem["damping"]) * (1.0 + 1e-6)
-
-    def candidate_solve(self, problem):
-        return _candidate.solve(problem, self.solve)
 
 
 TASK = Task()

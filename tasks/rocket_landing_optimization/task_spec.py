@@ -16,27 +16,15 @@ os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
 os.environ.setdefault("VECLIB_MAXIMUM_THREADS", "1")
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_candidate, plain_numeric
+from speedupmark.task import load_reference, plain_numeric
 
 
-_candidate = load_candidate(__file__)
+_reference = load_reference(__file__)
+_need = _reference._need
 
 
 def _family(seed):
     return ("short", "offset", "near_limit")[seed % 3]
-
-
-def _need():
-    try:
-        import cvxpy
-        import numpy
-    except ImportError as exc:
-        raise ImportError(
-            "rocket_landing_optimization requires optional dependencies: cvxpy, numpy. "
-            "Install the pinned numerical extra in requirements-numerical.txt. "
-            "The smoke and extended suites do not include this task."
-        ) from exc
-    return cvxpy, numpy
 
 
 def _fuel(thrust, gamma):
@@ -75,7 +63,7 @@ def _optimal_fuel(problem):
 
 class RocketLanding:
     name = "rocket_landing_optimization"
-    task_version = "1.2.1"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 30
     grading_cases = (30, 60)
@@ -115,40 +103,8 @@ class RocketLanding:
             "gamma": 1.0,
         }
 
-    def solve(self, problem):
-        cvxpy, numpy = _need()
-        steps = int(problem["K"])
-        mass = float(problem["m"])
-        step = float(problem["h"])
-        gravity = float(problem["g"])
-        position = cvxpy.Variable((steps + 1, 3))
-        velocity = cvxpy.Variable((steps + 1, 3))
-        thrust = cvxpy.Variable((steps, 3))
-        constraints = [
-            velocity[0] == numpy.asarray(problem["v0"], dtype=float),
-            position[0] == numpy.asarray(problem["p0"], dtype=float),
-            velocity[steps] == 0,
-            position[steps] == numpy.asarray(problem["p_target"], dtype=float),
-            position[:, 2] >= 0,
-            velocity[1:, :2] == velocity[:-1, :2] + step * thrust[:, :2] / mass,
-            velocity[1:, 2] == velocity[:-1, 2] + step * (thrust[:, 2] / mass - gravity),
-            position[1:] == position[:-1] + (step / 2) * (velocity[:-1] + velocity[1:]),
-            cvxpy.norm(thrust, axis=1) <= float(problem["F_max"]),
-        ]
-        fuel = float(problem["gamma"]) * cvxpy.sum(cvxpy.norm(thrust, axis=1))
-        problem_model = cvxpy.Problem(cvxpy.Minimize(fuel), constraints)
-        problem_model.solve(solver=cvxpy.CLARABEL, verbose=False)
-        if position.value is None:
-            raise ValueError("rocket landing reference is infeasible")
-        return {
-            "position": position.value.tolist(),
-            "velocity": velocity.value.tolist(),
-            "thrust": thrust.value.tolist(),
-            "fuel_consumption": float(problem_model.value),
-        }
+    solve = staticmethod(_reference.solve)
 
-    def candidate_solve(self, problem):
-        return _candidate.solve(problem, self.solve)
 
     def is_solution(self, problem, proposed):
         numpy = _need()[1]

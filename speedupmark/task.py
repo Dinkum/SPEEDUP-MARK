@@ -1,8 +1,8 @@
 """SPEEDUP-MARK task interface — mirrors AlgoTune: generate / solve / verify.
 
-Each task's complete spec lives in ``tasks/<name>/task_spec.py``: inputs,
-reference, correctness, and any deterministic metric. This module is only the
-shared protocol and the default submission starter.
+Each ``tasks/<name>/task_spec.py`` defines inputs, correctness, and any
+deterministic metric. The sibling ``reference.py`` supplies the baseline and
+submission starter. This module contains the shared protocol and helpers.
 """
 
 import dis
@@ -27,16 +27,16 @@ def declared_task_version(task: Any) -> str:
     return version
 
 
-def load_candidate(task_file: str) -> ModuleType:
-    """Load the sibling candidate without changing sys.path or global imports."""
-    path = pathlib.Path(task_file).resolve().with_name("candidate.py")
-    name = f"speedupmark_candidate_{path.parent.name}"
+def _load_solver(task_file: str, filename: str) -> ModuleType:
+    """Load a task-local solver without changing sys.path or global imports."""
+    path = pathlib.Path(task_file).resolve().with_name(filename)
+    name = f"speedupmark_{path.stem}_{path.parent.name}"
     spec = importlib.util.spec_from_file_location(name, path)
     if spec is None or spec.loader is None:
-        raise ImportError(f"Cannot load candidate from {path}")
+        raise ImportError(f"Cannot load solver from {path}")
     module = importlib.util.module_from_spec(spec)
     # Dataclasses and similar introspection require a registered module while
-    # the file executes. A failed import must not leave a half-loaded candidate.
+    # the file executes. A failed import must not leave a half-loaded solver.
     sys.modules[name] = module
     try:
         spec.loader.exec_module(module)
@@ -44,6 +44,16 @@ def load_candidate(task_file: str) -> ModuleType:
         sys.modules.pop(name, None)
         raise
     return module
+
+
+def load_reference(task_file: str) -> ModuleType:
+    """Load the authoritative baseline used by a task's specification."""
+    return _load_solver(task_file, "reference.py")
+
+
+def load_candidate(task_file: str) -> ModuleType:
+    """Load the submission supplied to the grader for this task."""
+    return _load_solver(task_file, "candidate.py")
 
 
 @dataclass(frozen=True)
@@ -59,10 +69,9 @@ class SpeedupMarkTask(Protocol):
 
     Tasks with a deterministic cost model may also expose ``metric_unit`` and
     ``evaluate_solution(problem, proposed) -> SolutionEvaluation``. The harness
-    otherwise measures ``solve`` and ``candidate_solve`` in wall-clock
-    milliseconds. A task whose submission entrypoint is not
-    ``solve(problem, reference_solve)`` implements ``fresh_candidate`` and
-    returns that starter's source.
+    otherwise measures reference and candidate ``solve(problem)`` calls in
+    wall-clock milliseconds. The grader supplies the candidate entrypoint;
+    references are self-contained and copied verbatim into new run candidates.
 
     A task needing a shared private correctness challenge can implement
     ``evaluate_pair(problem, outputs, *, replay=None, record=None)`` instead.
@@ -90,32 +99,6 @@ class SpeedupMarkTask(Protocol):
     def generate_problem(self, n: int, random_seed: int = 0) -> Any: ...
     def solve(self, problem: Any) -> Any: ...
     def is_solution(self, problem: Any, proposed: Any) -> bool: ...
-
-
-# Shared starter for specs that call ``candidate.solve(problem, reference_solve)``.
-DEFAULT_CANDIDATE = '''"""Fresh baseline candidate; replace the delegated reference with your optimization."""
-
-
-def solve(problem, reference_solve):
-    return reference_solve(problem)
-'''
-
-
-def fresh_candidate_payload(task: Any) -> str | bytes:
-    """Source for a new run's ``candidate.py``, taken from the task spec.
-
-    Specs with a different submission entrypoint implement ``fresh_candidate``
-    and return text or bytes. Every other spec gets ``DEFAULT_CANDIDATE``.
-    """
-    custom = getattr(task, "fresh_candidate", None)
-    if custom is None:
-        return DEFAULT_CANDIDATE
-    payload = custom() if callable(custom) else custom
-    if isinstance(payload, str) and payload.strip():
-        return payload
-    if isinstance(payload, (bytes, bytearray)) and payload.strip():
-        return bytes(payload)
-    raise ValueError(f"{getattr(task, 'name', task)}: fresh_candidate must return source")
 
 
 def grading_cases(task: Any) -> tuple[int, ...]:

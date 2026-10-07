@@ -3,16 +3,15 @@
 import random
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_candidate
+from speedupmark.task import load_reference
 
-_candidate = load_candidate(__file__)
 
-import heapq
+_reference = load_reference(__file__)
 
 
 class Task:
     name = "minimum_spanning_tree"
-    task_version = "1.1.0"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 500
     grading_cases = (500, 1000)
@@ -30,24 +29,7 @@ class Task:
         rng.shuffle(edges)
         return {"num_nodes": n, "edges": edges}
 
-    def solve(self, problem):
-        n, edges = problem["num_nodes"], problem["edges"]
-        adjacency = [[] for _ in range(n)]
-        for i, (u, v, weight) in enumerate(edges):
-            adjacency[u].append((weight, v, i))
-            adjacency[v].append((weight, u, i))
-        seen, heap, selected = {0}, list(adjacency[0]), []
-        heapq.heapify(heap)
-        while heap and len(seen) < n:
-            _, v, i = heapq.heappop(heap)
-            if v in seen:
-                continue
-            seen.add(v)
-            selected.append(i)
-            for item in adjacency[v]:
-                if item[1] not in seen:
-                    heapq.heappush(heap, item)
-        return {"edge_indices": sorted(selected)}
+    solve = staticmethod(_reference.solve)
 
     def is_solution(self, problem, proposed):
         if type(proposed) is not dict or set(proposed) != {"edge_indices"}:
@@ -81,9 +63,6 @@ class Task:
                 parent[a] = b
                 optimum += w
         return total == optimum
-
-    def candidate_solve(self, problem):
-        return _candidate.solve(problem, self.solve)
 
 
 TASK = Task()

@@ -8,7 +8,6 @@ costs are intentional. See README.md.
 """
 
 import os
-import random
 
 os.environ.setdefault("OMP_NUM_THREADS", "1")
 os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
@@ -17,27 +16,15 @@ os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
 os.environ.setdefault("VECLIB_MAXIMUM_THREADS", "1")
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_candidate
+from speedupmark.task import load_reference
 
 
-_candidate = load_candidate(__file__)
+_reference = load_reference(__file__)
+_need = _reference._need
 
 
 def _family(seed):
     return ("unequal", "sparse", "tied")[seed % 3]
-
-
-def _need():
-    try:
-        import numpy
-        import scipy.optimize
-    except ImportError as exc:
-        raise ImportError(
-            "earth_movers_distance requires optional dependencies: numpy, scipy. "
-            "Install the pinned numerical extra in requirements-numerical.txt. "
-            "The smoke and extended suites do not include this task."
-        ) from exc
-    return numpy, scipy.optimize
 
 
 def _plan_cost(cost, plan):
@@ -55,31 +42,6 @@ def _marginals_ok(plan, source, target, tol):
         all(abs(got - want) <= tol for got, want in zip(rows, source))
         and all(abs(got - want) <= tol for got, want in zip(cols, target))
     )
-
-
-def _optimal_cost(source, target, cost):
-    numpy, optimize = _need()
-    source = numpy.asarray(source, dtype=float)
-    target = numpy.asarray(target, dtype=float)
-    matrix = numpy.asarray(cost, dtype=float)
-    rows, cols = matrix.shape
-    # One marginal equation is implied by equal total mass.
-    equalities = numpy.zeros((rows + cols - 1, rows * cols))
-    for i in range(rows):
-        equalities[i, i * cols:(i + 1) * cols] = 1.0
-    for j in range(cols - 1):
-        equalities[rows + j, j::cols] = 1.0
-    result = optimize.linprog(
-        matrix.ravel(),
-        A_eq=equalities,
-        b_eq=numpy.concatenate([source, target[:-1]]),
-        bounds=(0, None),
-        method="highs",
-    )
-    if not result.success:
-        raise ValueError(f"transport solver failed: {result.message}")
-    plan = result.x.reshape(rows, cols)
-    return float(result.fun), plan
 
 
 def _transport_dual_bound(source, target, cost):
@@ -106,7 +68,7 @@ def _transport_dual_bound(source, target, cost):
 
 class EarthMoversDistance:
     name = "earth_movers_distance"
-    task_version = "1.1.1"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 48
     grading_cases = (48, 90)
@@ -146,13 +108,8 @@ class EarthMoversDistance:
             "cost_matrix": [[float(value) for value in row] for row in costs],
         }
 
-    def solve(self, problem):
-        _cost, plan = _optimal_cost(problem["source_weights"], problem["target_weights"], problem["cost_matrix"])
-        numpy, _optimize = _need()
-        return {"transport_plan": numpy.asarray(plan, dtype=float).tolist()}
+    solve = staticmethod(_reference.solve)
 
-    def candidate_solve(self, problem):
-        return _candidate.solve(problem, self.solve)
 
     def is_solution(self, problem, proposed):
         if type(proposed) is not dict or set(proposed) != {"transport_plan"}:

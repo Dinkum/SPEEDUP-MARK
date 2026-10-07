@@ -11,15 +11,17 @@ import secrets
 import struct
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import SolutionEvaluation, load_candidate
+from speedupmark.task import SolutionEvaluation, load_reference
 
 
-_candidate = load_candidate(__file__)
+_reference = load_reference(__file__)
+MULTIPLIER = _reference.MULTIPLIER
+
+
 MASK = (1 << 32) - 1
 LANES = 8
 REGISTERS = 20
 BANKS = 4
-MULTIPLIER = 2654435761
 FAMILIES = ("shared", "scattered", "deep", "crowded")
 GENERATOR = "simd_traversal_kernel-shake256-v1"
 TRIALS = 3
@@ -243,29 +245,6 @@ class Machine:
         return self.stats["cycles"]
 
 
-def _compile(workload):
-    """Readable scalar baseline retaining each state in scratch across rounds."""
-    program = []
-    for item in range(workload["batch"]):
-        program.extend((("load", 1, 0, workload["positions"] + item),
-                        ("load", 1, 1, workload["values"] + item)))
-        for _ in range(workload["rounds"]):
-            program.extend((
-                ("gather", 1, 2, workload["payload"], 0),
-                ("rotli", 1, 3, 1, 7),
-                ("xor", 1, 2, 1, 2),
-                ("muli", 1, 2, 2, MULTIPLIER),
-                ("add", 1, 1, 2, 3),
-                ("shri", 1, 3, 1, 31),
-                ("muli", 1, 4, 0, 2),
-                ("add", 1, 4, 4, 3),
-                ("gather", 1, 0, workload["edges"], 4),
-            ))
-        program.extend((("store", 1, 0, workload["out_positions"] + item),
-                        ("store", 1, 1, workload["out_values"] + item)))
-    return tuple(program)
-
-
 def _verify(workloads, programs, memories):
     if programs is None:
         return SolutionEvaluation(0.0, False)
@@ -324,7 +303,7 @@ def _evaluate_submissions(problem, outputs, *, replay=None, record=None):
 
 class SIMDTraversalKernelTask:
     name = "simd_traversal_kernel"
-    task_version = "1.1.0"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 64
     grading_cases = (32, 128)
@@ -352,11 +331,8 @@ class SIMDTraversalKernelTask:
                                   memory=out_values + 3 * batch + 64))
         return {"workloads": tuple(workloads)}
 
-    def solve(self, problem):
-        return tuple(_compile(workload) for workload in problem["workloads"])
+    solve = staticmethod(_reference.solve)
 
-    def candidate_solve(self, problem):
-        return _candidate.solve(problem, self.solve)
 
     def evaluate_pair(self, problem, outputs, *, replay=None, record=None):
         if type(outputs) is not dict or set(outputs) != {"reference", "candidate"}:

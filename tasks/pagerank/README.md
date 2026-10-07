@@ -10,7 +10,7 @@ Inputs are read-only. A verified residual `||F(x)-x||_1 <= (1-damping)*tolerance
 
 ## Reference and verification
 
-The reference uses dense power iteration; fresh managed runs delegate to that reference. Converting the matrix to sparse outgoing rows is an accessible first optimization. The verifier checks a contraction-based residual bound directly and does not run the reference. This is a standard-library task; input-dependent conversion and iteration are timed.
+The reference uses dense power iteration; fresh managed runs copy that implementation into `candidate.py`. Converting the matrix to sparse outgoing rows is an accessible first optimization. The verifier checks a contraction-based residual bound directly and does not run the reference. This is a standard-library task; input-dependent conversion and iteration are timed.
 
 ## Workload distribution
 
@@ -23,7 +23,7 @@ The executable definition is [`task_spec.py`](task_spec.py), `generate_problem` 
 
 ## Grading
 
-Edit only `candidate.py`, preserving `solve(problem, reference_solve)`.
+Inside a managed run, edit only `candidate.py`, preserving `solve(problem)`.
 
 From the repository root:
 

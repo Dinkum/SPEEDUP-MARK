@@ -4,67 +4,16 @@ from __future__ import annotations
 
 import math
 import random
-import sys
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import forbidden_imports, load_candidate, plain_containers, watch_imports
+from speedupmark.task import load_reference, plain_containers
 
 
-_candidate = load_candidate(__file__)
+_reference = load_reference(__file__)
+
+
 ENGINE_ROOTS = ("sqlite3", "_sqlite3", "duckdb", "_duckdb", "sqlalchemy", "apsw",
                 "polars", "pandas", "datafusion", "pyarrow", "sqlglot", "pandasql")
-
-
-def _dot(left, right):
-    if len(left) > len(right):
-        left, right = right, left
-    return sum(weight * right.get(key, 0) for key, weight in left.items())
-
-
-def _indexed_join(problem):
-    results = []
-    for scenario in problem["scenarios"]:
-        outgoing = {name: {} for name in ("R", "S", "T")}
-        incoming = {name: {} for name in ("R", "S", "T")}
-
-        def store(name, source, target, weight):
-            forward = outgoing[name].setdefault(source, {})
-            reverse = incoming[name].setdefault(target, {})
-            if weight == 0:
-                forward.pop(target, None)
-                reverse.pop(source, None)
-            else:
-                forward[target] = weight
-                reverse[source] = weight
-
-        for name, rows in scenario["relations"].items():
-            for source, target, weight in rows:
-                store(name, source, target, weight)
-        total = sum(
-            weight * _dot(outgoing["S"].get(b, {}), incoming["T"].get(a, {}))
-            for a, row in outgoing["R"].items()
-            for b, weight in row.items()
-        )
-        answers = []
-        for operation in scenario["operations"]:
-            if operation[0] == "query":
-                answers.append(total)
-                continue
-            kind, name, source, target, *value = operation
-            weight = value[0] if kind == "set" else 0
-            previous = outgoing[name].get(source, {}).get(target, 0)
-            if name == "R":
-                coefficient = _dot(outgoing["S"].get(target, {}), incoming["T"].get(source, {}))
-            elif name == "S":
-                coefficient = _dot(incoming["R"].get(source, {}), outgoing["T"].get(target, {}))
-            else:
-                coefficient = _dot(incoming["S"].get(source, {}), outgoing["R"].get(target, {}))
-            # The changed relation occurs once in each triangle, so this delta
-            # remains exact for replacement, signed weights, and deletion.
-            total += (weight - previous) * coefficient
-            store(name, source, target, weight)
-        results.append(tuple(answers))
-    return tuple(results)
 
 
 def _recompute_join(problem):
@@ -97,8 +46,9 @@ def _recompute_join(problem):
 
 
 class IncrementalMultiwayJoinTask:
+    forbidden_import_roots = ENGINE_ROOTS
     name = "incremental_multiway_join"
-    task_version = "1.1.0"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 1200
     grading_cases = (1200, 2400)
@@ -157,20 +107,8 @@ class IncrementalMultiwayJoinTask:
             scenarios.append({"family": family, "relations": initial, "operations": tuple(operations)})
         return {"scenarios": tuple(scenarios)}
 
-    def solve(self, problem):
-        return _indexed_join(problem)
+    solve = staticmethod(_reference.solve)
 
-    def candidate_solve(self, problem):
-        self.policy_violations = ()
-        loaded = set(sys.modules)
-        with watch_imports(ENGINE_ROOTS) as imported_during:
-            result = _candidate.solve(problem, self.solve)
-        violations = forbidden_imports(_candidate, ENGINE_ROOTS, loaded, imported_during)
-        if violations:
-            self.policy_violations = violations
-            print(f"candidate uses forbidden relational engine imports: {', '.join(violations)}")
-            return None
-        return result
 
     def is_solution(self, problem, proposed):
         if not plain_containers(proposed) or type(proposed) not in (tuple, list) or len(proposed) != len(problem["scenarios"]):

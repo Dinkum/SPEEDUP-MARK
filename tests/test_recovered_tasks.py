@@ -19,7 +19,6 @@ class RecoveredTaskTests(unittest.TestCase):
         for seed in range(5):
             problem = benchmark.generate_problem(11, seed)
             answer = benchmark.solve(problem)
-            candidate_answer = benchmark.candidate_solve(problem)
             optimum = 0
             for mask in range(1 << len(problem["profits"])):
                 used = [0, 0, 0]
@@ -32,7 +31,6 @@ class RecoveredTaskTests(unittest.TestCase):
                 if all(used[d] <= problem["capacities"][d] for d in range(3)):
                     optimum = max(optimum, profit)
             self.assertEqual(answer["profit"], optimum)
-            self.assertEqual(candidate_answer["profit"], optimum)
             self.assertTrue(benchmark.is_solution(problem, answer))
             self.assertFalse(benchmark.is_solution(problem, {"profit": True}))
 
@@ -48,18 +46,15 @@ class RecoveredTaskTests(unittest.TestCase):
                     for middle in itertools.permutations(range(1, n))
                 )
                 self.assertEqual(answer["cost"], optimum)
-                candidate_answer = benchmark.candidate_solve(problem)
-                self.assertEqual(candidate_answer["cost"], optimum)
-                self.assertTrue(benchmark.is_solution(problem, candidate_answer))
                 self.assertTrue(benchmark.is_solution(problem, answer))
                 broken = {"tour": answer["tour"][:-2] + [0, answer["tour"][-2], 0], "cost": answer["cost"]}
                 self.assertFalse(benchmark.is_solution(problem, broken))
 
-    def test_pagerank_sparse_candidate_has_residual_certificate(self):
+    def test_pagerank_baseline_has_residual_certificate(self):
         benchmark = task("pagerank")
         for seed in range(3):
             problem = benchmark.generate_problem(48, seed)
-            answer = benchmark.candidate_solve(problem)
+            answer = benchmark.solve(problem)
             self.assertTrue(benchmark.is_solution(problem, answer))
             bad = {"scores": [1.0 / len(answer["scores"])] * len(answer["scores"])}
             self.assertFalse(benchmark.is_solution(problem, bad))

@@ -37,7 +37,7 @@ def calibrate():
                 memories = [spec._runtime_memory(workload, seed, index, trial) for trial in range(3)]
                 expected = [spec._oracle(workload, memory) for memory in memories]
                 for name, options in variants.items():
-                    program = spec._compile(workload) if options is None else compile_workload(workload, **options)
+                    program = spec._reference._compile(workload) if options is None else compile_workload(workload, **options)
                     # Exercise the production plain-data boundary as well.
                     program = spec._freeze((program,), (workload,))[0]
                     stats = []

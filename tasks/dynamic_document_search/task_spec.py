@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import random
-import sys
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import forbidden_imports, load_candidate, plain_containers, watch_imports
+from speedupmark.task import load_reference, plain_containers
 
 
-_candidate = load_candidate(__file__)
+_reference = load_reference(__file__)
+
+
 ENGINE_ROOTS = ("sqlite3", "_sqlite3", "duckdb", "_duckdb", "sqlalchemy", "apsw",
                 "polars", "pandas", "datafusion", "pyarrow", "whoosh", "tantivy")
 
@@ -22,36 +23,6 @@ def _same_materialized(actual, expected):
             and all(_same_materialized(a, e) for a, e in zip(actual, expected))
         )
     return type(actual) is type(expected) and actual == expected
-
-
-def _search(problem):
-    documents = {}
-    answers = []
-    for operation in problem["operations"]:
-        if operation[0] == "add":
-            _, document_id, text = operation
-            frequencies = {}
-            for term in text.split():
-                frequencies[term] = frequencies.get(term, 0) + 1
-            documents[document_id] = frequencies
-        elif operation[0] == "delete":
-            documents.pop(operation[1], None)
-        else:
-            _, query_terms, limit = operation
-            query_frequencies = {}
-            for term in query_terms:
-                query_frequencies[term] = query_frequencies.get(term, 0) + 1
-            ranked = []
-            for document_id, frequencies in documents.items():
-                score = sum(
-                    frequencies.get(term, 0) * weight
-                    for term, weight in query_frequencies.items()
-                )
-                if score > 0:
-                    ranked.append((document_id, score))
-            ranked.sort(key=lambda row: (-row[1], row[0]))
-            answers.append(tuple(ranked[:limit]))
-    return tuple(answers)
 
 
 def _verify_search(problem):
@@ -70,8 +41,9 @@ def _verify_search(problem):
     return tuple(answers)
 
 class DynamicDocumentSearchTask:
+    forbidden_import_roots = ENGINE_ROOTS
     name = "dynamic_document_search"
-    task_version = "1.2.1"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 800
     grading_cases = (800, 1600)
@@ -116,20 +88,8 @@ class DynamicDocumentSearchTask:
                 live.add(document_id)
         return {"operations": tuple(operations)}
 
-    def solve(self, problem):
-        return _search(problem)
+    solve = staticmethod(_reference.solve)
 
-    def candidate_solve(self, problem):
-        self.policy_violations = ()
-        loaded = set(sys.modules)
-        with watch_imports(ENGINE_ROOTS) as imported_during:
-            result = _candidate.solve(problem, self.solve)
-        violations = forbidden_imports(_candidate, ENGINE_ROOTS, loaded, imported_during)
-        if violations:
-            self.policy_violations = violations
-            print(f"candidate uses forbidden search engine imports: {', '.join(violations)}")
-            return None
-        return result
 
     def is_solution(self, problem, proposed):
         try:

@@ -144,7 +144,7 @@ class RayQueryTests(unittest.TestCase):
                     for identifier, triangle in enumerate(triangles):
                         if triangle is None:
                             continue
-                        hit = module._hit_parameter(ray, triangle)
+                        hit = module._reference._hit_parameter(ray, triangle)
                         if hit is not None:
                             hits[identifier] = Fraction(hit[0], hit[1])
                     if hits:

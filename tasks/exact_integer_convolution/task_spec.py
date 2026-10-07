@@ -3,34 +3,16 @@
 import random
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_candidate
+from speedupmark.task import load_reference
 
 
-_candidate = load_candidate(__file__)
-
-
-def _convolve(problem):
-    x, y = problem["signal_x"], problem["signal_y"]
-    if not x or not y:
-        return ()
-    output = [0] * (len(x) + len(y) - 1)
-    for i, left in enumerate(x):
-        for j, right in enumerate(y):
-            output[i + j] += left * right
-    mode = problem["mode"]
-    if mode == "full":
-        return tuple(output)
-    if mode == "same":
-        start = (len(y) - 1) // 2
-        return tuple(output[start : start + len(x)])
-    if mode == "valid":
-        return tuple(output[min(len(x), len(y)) - 1 : max(len(x), len(y))])
-    raise ValueError("unsupported convolution mode")
+_reference = load_reference(__file__)
+_convolve = _reference._convolve
 
 
 class ConvolutionTask:
     name = "exact_integer_convolution"
-    task_version = "1.1.0"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 420
     grading_cases = (420, 840)
@@ -46,11 +28,8 @@ class ConvolutionTask:
             y = tuple(value if rng.random() < 0.1 else 0 for value in y)
         return {"signal_x": x, "signal_y": y, "mode": ("full", "same", "valid")[random_seed % 3]}
 
-    def solve(self, problem):
-        return {"convolution": _convolve(problem)}
+    solve = staticmethod(_reference.solve)
 
-    def candidate_solve(self, problem):
-        return _candidate.solve(problem, self.solve)
 
     def is_solution(self, problem, proposed):
         if type(proposed) is not dict or set(proposed) != {"convolution"}:

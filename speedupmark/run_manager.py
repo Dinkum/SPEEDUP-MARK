@@ -30,13 +30,10 @@ from types import SimpleNamespace
 from .harness import TASK_ROOT, discover_tasks, load_task, resolve_seed
 from .revision import task_revision
 from .suites import selected_tasks
-from .task import declared_task_version, fresh_candidate_payload, grading_cases
+from .task import declared_task_version, grading_cases
 
 
 ROOT = TASK_ROOT.parent
-# The working tree can import the shared protocol. The measurement runner
-# stays in the baseline and grading snapshots.
-AGENT_SPEEDUPMARK = ("__init__.py", "catalog.py", "task.py")
 
 
 def _write_json(path, data):
@@ -83,20 +80,13 @@ def _differences(expected, actual, label):
             if expected.get(name) != actual.get(name)]
 
 
-def _agent_visible(name):
-    """Baseline files the agent workspace is given and must leave unchanged."""
-    if not name.startswith("speedupmark/"):
-        return True
-    return name.split("/", 1)[1] in AGENT_SPEEDUPMARK
-
-
 def _controller_log(name):
     return name.startswith("grader-") and name.endswith(".stderr.txt")
 
 
 def _integrity_errors(run, manifest):
-    if manifest.get("version") != 2:
-        raise ValueError("this run predates trusted grading; create a fresh run")
+    if manifest.get("version") != 3:
+        raise ValueError("this run predates separate agent workspaces; create a fresh run")
     candidate = f"tasks/{manifest['task']}/candidate.py"
     expected = manifest["baseline_files"]
     errors = _differences(expected, _inventory(run / "baseline"), "baseline")
@@ -104,8 +94,7 @@ def _integrity_errors(run, manifest):
     if controller_hash and _hash(pathlib.Path(__file__)) != controller_hash:
         errors.append("controller: run_manager.py changed since run creation")
     errors += _differences(
-        {name: digest for name, digest in expected.items()
-         if name != candidate and _agent_visible(name)},
+        manifest["workspace_files"],
         _inventory(run / "workspace", exclude=(candidate, "scratch")), "workspace",
     )
     submitted = run / "workspace" / candidate
@@ -221,37 +210,35 @@ def create_run(task, *, harness=None, model=None, effort=None, runtime_notes=Non
     source = TASK_ROOT / task
     if source not in discover_tasks():
         raise ValueError(f"{task}: select an implemented task name")
-    task_definition = load_task(source)
+    task_definition = load_task(source, with_candidate=False)
     task_version = declared_task_version(task_definition)
     run_root = pathlib.Path(root or ROOT / "runs").resolve()
     run_root.mkdir(parents=True, exist_ok=True)
     run = run_root / f"{datetime.datetime.now(datetime.timezone.utc):%Y%m%dT%H%M%SZ}-{task}-{uuid.uuid4().hex[:8]}"
     workspace = run / "workspace"
-    package = workspace / "speedupmark"
-    package.mkdir(parents=True)
-    for name in AGENT_SPEEDUPMARK:
-        shutil.copy2(ROOT / "speedupmark" / name, package / name)
     destination = workspace / "tasks" / task
-    destination.parent.mkdir()
-    _copy(source, destination)
+    destination.mkdir(parents=True)
 
-    # Do not inherit an optimized candidate. The spec owns the fresh submission.
+    # Copy the single maintained reference; never inherit a source-checkout
+    # submission or expose the controller's specification in the workspace.
     candidate = destination / "candidate.py"
-    payload = fresh_candidate_payload(task_definition)
-    if isinstance(payload, bytes):
-        candidate.write_bytes(payload)
-    else:
-        candidate.write_text(payload)
+    shutil.copyfile(source / "reference.py", candidate)
     readme = source / "README.md"
     if readme.exists():
-        task_readme = readme.read_text()
+        # Source-only generator links and direct-grading commands do not apply
+        # inside the standalone agent workspace. Preserve the full task contract.
+        sections = readme.read_text().split("\n## ")
+        task_readme = "\n## ".join(section for section in sections
+                                   if not section.startswith("Grading\n"))
+        task_readme = "\n\n".join(paragraph for paragraph in task_readme.split("\n\n")
+                                    if not paragraph.startswith("The executable definition is "))
     else:
-        task_readme = f"# {task}\n\nRead `tasks/{task}/task_spec.py` for the contract.\n"
+        task_readme = f"# {task}\n\nOptimize `tasks/{task}/candidate.py` and check it with `grade.py`.\n"
     task_readme += (
         f"\nTask contract version: `{task_version}`.\n"
         f"\n## Managed run\n\nEdit only `tasks/{task}/candidate.py`. "
         "Use the standard library, plus libraries the task README lists as already installed. Do not install dependencies. "
-        "Keep temporary files under `scratch/`. Do not change the spec, reference, or grader; "
+        "Keep temporary files under `scratch/`. Do not change `grade.py` or run records; "
         "benchmark file changes invalidate the run.\n\n"
         "Run `python3 grade.py` from this workspace to grade and automatically save progress.\n"
     )
@@ -269,25 +256,26 @@ def create_run(task, *, harness=None, model=None, effort=None, runtime_notes=Non
     )
     (workspace / "prompt.md").write_text(prompt)
     (workspace / "AGENTS.md").write_text(prompt)
-    # Use a separate controller process to avoid import collisions with the
-    # candidate-facing copy of speedupmark. This is not a permissions boundary.
+    # Only this launcher enters the workspace. The frozen benchmark and
+    # measurement runner stay outside it; this is not a permissions boundary.
     (workspace / "grade.py").write_text(
         "import subprocess\nimport sys\n\n"
         f"raise SystemExit(subprocess.call([{sys.executable!r}, '-m', 'speedupmark', "
         f"'run', 'evaluate', {str(run)!r}], cwd={str(ROOT)!r}))\n"
     )
-    # The baseline holds the measurement runner. The workspace copy does not.
-    # Hash checks catch ordinary tampering; these are still same-user files.
+    # Freeze the benchmark directly from controller-owned source rather than
+    # deriving it from agent-visible files.
     baseline = run / "baseline"
-    _copy(workspace, baseline)
-    for path in (ROOT / "speedupmark").iterdir():
-        if path.is_file() and path.name not in AGENT_SPEEDUPMARK:
-            shutil.copy2(path, baseline / "speedupmark" / path.name)
+    baseline_task = baseline / "tasks" / task
+    baseline_task.parent.mkdir(parents=True)
+    _copy(source, baseline_task)
+    shutil.copyfile(source / "reference.py", baseline_task / "candidate.py")
+    _copy(ROOT / "speedupmark", baseline / "speedupmark")
     revision, revision_files = task_revision(baseline / "tasks" / task,
                                              baseline / "speedupmark")
     now = time.time()
     manifest = {
-        "version": 2, "run_id": run.name, "task": task,
+        "version": 3, "run_id": run.name, "task": task,
         "task_version": task_version, "task_revision": revision,
         "task_revision_files": revision_files, "optimizer": optimizer,
         "created_at": now, "created_utc": _utc(now),
@@ -297,12 +285,15 @@ def create_run(task, *, harness=None, model=None, effort=None, runtime_notes=Non
         "grade_timeout_seconds": grade_timeout,
         "safety_timeout_seconds": safety_timeout,
         "starter_sha256": _hash(candidate),
-        "prompt_sha256": _hash(baseline / "prompt.md"),
+        "reference_sha256": _hash(baseline_task / "reference.py"),
+        "prompt_sha256": _hash(workspace / "prompt.md"),
         "submission_policy": "best_verified",
         "harness_sha256": _hash(baseline / "speedupmark" / "harness.py"),
         "python": platform.python_version(), "platform": platform.platform(),
         "command": None, "usage": None,
-        "baseline_files": _inventory(run / "baseline"), "integrity_errors": [],
+        "baseline_files": _inventory(baseline),
+        "workspace_files": _inventory(workspace, exclude=(f"tasks/{task}/candidate.py", "scratch")),
+        "integrity_errors": [],
     }
     _write_json(run / "manifest.json", manifest)
     return run

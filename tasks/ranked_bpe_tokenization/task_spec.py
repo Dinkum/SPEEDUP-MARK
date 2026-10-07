@@ -3,44 +3,17 @@
 from __future__ import annotations
 
 import random
-import sys
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import forbidden_imports, load_candidate, plain_containers, watch_imports
+from speedupmark.task import load_reference, plain_containers
 
 
-_candidate = load_candidate(__file__)
+_reference = load_reference(__file__)
+_encode = _reference._encode
+
+
 TOKENIZER_ROOTS = ("tokenizers", "tiktoken", "sentencepiece", "transformers",
                    "subword_nmt", "youtokentome")
-
-
-def _encode(problem):
-    tokens = list(problem["data"])
-    ranks = {}
-    for rank, pair in enumerate(problem["merges"]):
-        # A repeated pair retains its lowest rank and that rank's token ID.
-        ranks.setdefault(pair, rank)
-    while len(tokens) > 1:
-        best_rank = None
-        for index in range(len(tokens) - 1):
-            rank = ranks.get((tokens[index], tokens[index + 1]))
-            if rank is not None and (best_rank is None or rank < best_rank):
-                best_rank = rank
-        if best_rank is None:
-            break
-        pair = problem["merges"][best_rank]
-        merged_id = 256 + best_rank
-        output = []
-        index = 0
-        while index < len(tokens):
-            if index + 1 < len(tokens) and (tokens[index], tokens[index + 1]) == pair:
-                output.append(merged_id)
-                index += 2
-            else:
-                output.append(tokens[index])
-                index += 1
-        tokens = output
-    return tuple(tokens)
 
 
 def _verify_encoding(problem):
@@ -78,8 +51,9 @@ def _verify_encoding(problem):
     return tuple(token for token, live in zip(tokens, alive) if live)
 
 class RankedBPETokenizationTask:
+    forbidden_import_roots = TOKENIZER_ROOTS
     name = "ranked_bpe_tokenization"
-    task_version = "1.2.2"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 3000
     grading_cases = (3000, 6000)
@@ -132,20 +106,8 @@ class RankedBPETokenizationTask:
             data.extend(motif)
         return {"data": bytes(data[:n]), "merges": tuple(merges)}
 
-    def solve(self, problem):
-        return _encode(problem)
+    solve = staticmethod(_reference.solve)
 
-    def candidate_solve(self, problem):
-        self.policy_violations = ()
-        loaded = set(sys.modules)
-        with watch_imports(TOKENIZER_ROOTS) as imported_during:
-            result = _candidate.solve(problem, self.solve)
-        violations = forbidden_imports(_candidate, TOKENIZER_ROOTS, loaded, imported_during)
-        if violations:
-            self.policy_violations = violations
-            print(f"candidate uses forbidden tokenizer imports: {', '.join(violations)}")
-            return None
-        return result
 
     def is_solution(self, problem, proposed):
         try:

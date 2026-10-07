@@ -16,54 +16,15 @@ os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
 os.environ.setdefault("VECLIB_MAXIMUM_THREADS", "1")
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_candidate
+from speedupmark.task import load_reference
 
 
-_candidate = load_candidate(__file__)
+_reference = load_reference(__file__)
+_need = _reference._need
 
 
 def _family(seed):
     return ("weak_reg", "strong_reg", "uneven")[seed % 3]
-
-
-def _need():
-    try:
-        import numpy
-    except ImportError as exc:
-        raise ImportError(
-            "sinkhorn requires optional dependency: numpy. "
-            "Install the pinned numerical extra in requirements-numerical.txt. "
-            "The smoke and extended suites do not include this task."
-        ) from exc
-    return numpy
-
-
-def _logsumexp(values):
-    numpy = _need()
-    peak = numpy.max(values, axis=1, keepdims=True)
-    return (peak + numpy.log(numpy.sum(numpy.exp(values - peak), axis=1, keepdims=True))).ravel()
-
-
-def _sinkhorn(source, target, cost, reg, accuracy):
-    numpy = _need()
-    source = numpy.asarray(source, dtype=float)
-    target = numpy.asarray(target, dtype=float)
-    matrix = numpy.asarray(cost, dtype=float)
-    log_source = numpy.log(source)
-    log_target = numpy.log(target)
-    kernel = -matrix / reg
-    potential_f = numpy.zeros(source.shape)
-    potential_g = numpy.zeros(target.shape)
-    plan = None
-    for _ in range(20000):
-        potential_f = log_source - _logsumexp(kernel + potential_g)
-        potential_g = log_target - _logsumexp((kernel + potential_f[:, None]).T)
-        plan = numpy.exp(potential_f[:, None] + kernel + potential_g)
-        row_error = numpy.abs(plan.sum(axis=1) - source).sum()
-        col_error = numpy.abs(plan.sum(axis=0) - target).sum()
-        if row_error + col_error <= accuracy * 0.2:
-            break
-    return plan
 
 
 def _gibbs_residual(plan, cost, reg):
@@ -80,7 +41,7 @@ def _gibbs_residual(plan, cost, reg):
 
 class SinkhornTask:
     name = "sinkhorn"
-    task_version = "1.2.0"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 128
     grading_cases = (128, 384)
@@ -126,15 +87,8 @@ class SinkhornTask:
             "accuracy": 1e-5,
         }
 
-    def solve(self, problem):
-        plan = _sinkhorn(
-            problem["source_weights"], problem["target_weights"], problem["cost_matrix"],
-            problem["reg"], problem["accuracy"],
-        )
-        return {"transport_plan": plan.tolist()}
+    solve = staticmethod(_reference.solve)
 
-    def candidate_solve(self, problem):
-        return _candidate.solve(problem, self.solve)
 
     def is_solution(self, problem, proposed):
         numpy = _need()

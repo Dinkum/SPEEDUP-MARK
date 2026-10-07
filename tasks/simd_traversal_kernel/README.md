@@ -22,7 +22,7 @@ previous step. The table and initial states vary at runtime.
 
 ## Input and submission
 
-Implement `candidate.py::solve(problem, reference_solve)`. `problem["workloads"]`
+Implement `candidate.py::solve(problem)`. `problem["workloads"]`
 contains four descriptor dictionaries. Return one instruction stream per workload,
 in that order: a built-in list/tuple of built-in lists/tuples of instruction
 lists/tuples. Each instruction contains an opcode string followed by exact Python
@@ -162,7 +162,7 @@ rules, and three runtime trials are fixed. `task_spec.py::generate_problem` and
 
 ## Grading
 
-Edit only `candidate.py`, preserving `solve(problem, reference_solve)`.
+Inside a managed run, edit only `candidate.py`, preserving `solve(problem)`.
 
 From the repository root:
 

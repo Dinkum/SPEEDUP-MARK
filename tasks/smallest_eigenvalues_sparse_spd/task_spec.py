@@ -16,48 +16,21 @@ os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
 os.environ.setdefault("VECLIB_MAXIMUM_THREADS", "1")
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_candidate
+from speedupmark.task import load_reference
 
 
-_candidate = load_candidate(__file__)
+_reference = load_reference(__file__)
+_dense_smallest = _reference._dense_smallest
+_need = _reference._need
 
 
 def _family(seed):
     return ("banded", "clustered", "ill_conditioned")[seed % 3]
 
 
-def _need():
-    try:
-        import numpy
-        import scipy.sparse
-        import scipy.sparse.linalg
-    except ImportError as exc:
-        raise ImportError(
-            "smallest_eigenvalues_sparse_spd requires optional dependencies: numpy, scipy. "
-            "Install the pinned numerical extra in requirements-numerical.txt. "
-            "The smoke and extended suites do not include this task."
-        ) from exc
-    return numpy, scipy.sparse, scipy.sparse.linalg
-
-
-def _matrix(problem):
-    numpy, sparse, _linalg = _need()
-    return sparse.csr_matrix(
-        (problem["data"], problem["indices"], problem["indptr"]),
-        shape=tuple(problem["shape"]),
-        dtype=float,
-    )
-
-
-def _dense_smallest(problem):
-    numpy, _sparse, _linalg = _need()
-    values = numpy.linalg.eigvalsh(_matrix(problem).toarray())
-    return [float(value) for value in values[: problem["k"]]]
-
-
 class SparseLowestEigenvalues:
     name = "smallest_eigenvalues_sparse_spd"
-    task_version = "1.2.0"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 512
     grading_cases = (512, 1536)
@@ -114,24 +87,8 @@ class SparseLowestEigenvalues:
             "k": 5,
         }
 
-    def solve(self, problem):
-        numpy, _sparse, linalg = _need()
-        matrix = _matrix(problem)
-        count = problem["k"]
-        if matrix.shape[0] < 2 * count + 2:
-            return _dense_smallest(problem)
-        # Fix solver randomness for replay. Repeated/clustered eigenvalues can
-        # still defeat ARPACK; a bounded dense solve keeps the starter valid.
-        start = numpy.random.default_rng(0).standard_normal(matrix.shape[0])
-        try:
-            values = linalg.eigsh(matrix, k=count, which="SA", return_eigenvectors=False,
-                                  tol=1e-10, v0=start)
-        except linalg.ArpackNoConvergence:
-            return _dense_smallest(problem)
-        return [float(value) for value in numpy.sort(numpy.real(values))]
+    solve = staticmethod(_reference.solve)
 
-    def candidate_solve(self, problem):
-        return _candidate.solve(problem, self.solve)
 
     def is_solution(self, problem, proposed):
         count = problem["k"]

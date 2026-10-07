@@ -4,31 +4,10 @@ from __future__ import annotations
 
 import random
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_candidate
+from speedupmark.task import load_reference
 
 
-_candidate = load_candidate(__file__)
-
-
-def _replace(problem):
-    data = b"".join(problem["chunks"])
-    patterns = problem["replacements"]
-    output = bytearray()
-    position = 0
-    while position < len(data):
-        matches = [
-            (len(needle), -precedence, replacement)
-            for precedence, (needle, replacement) in enumerate(patterns)
-            if data.startswith(needle, position)
-        ]
-        if matches:
-            length, _, replacement = max(matches)
-            output.extend(replacement)
-            position += length
-        else:
-            output.append(data[position])
-            position += 1
-    return bytes(output)
+_reference = load_reference(__file__)
 
 
 def _verify_replacement(problem):
@@ -58,7 +37,7 @@ def _verify_replacement(problem):
 
 class StreamingLiteralReplacementTask:
     name = "multi_literal_replacement"
-    task_version = "1.1.2"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 8000
     grading_cases = (8000, 16000)
@@ -103,11 +82,8 @@ class StreamingLiteralReplacementTask:
             position += width
         return {"chunks": tuple(chunks), "replacements": tuple(replacements)}
 
-    def solve(self, problem):
-        return _replace(problem)
+    solve = staticmethod(_reference.solve)
 
-    def candidate_solve(self, problem):
-        return _candidate.solve(problem, self.solve)
 
     def is_solution(self, problem, proposed):
         try:

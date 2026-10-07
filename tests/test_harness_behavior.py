@@ -2,6 +2,7 @@
 
 import json
 import pathlib
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -9,7 +10,7 @@ import textwrap
 import unittest
 from unittest.mock import patch
 
-from speedupmark.harness import _run_isolated, discover_tasks, load_task, resolve_seed, run_task
+from speedupmark.harness import CandidateNotReady, _run_isolated, discover_tasks, load_task, resolve_seed, run_task
 from speedupmark.suites import SMOKE_TASKS
 from speedupmark.task import freeze_output, load_candidate
 
@@ -19,10 +20,11 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 class MeasurementTests(unittest.TestCase):
     def test_fresh_seeds_and_explicit_replay(self):
+        path = self.submission(ROOT / 'examples/example_gzip')
         with patch('speedupmark.harness.secrets.randbits', side_effect=[123, 456]) as entropy:
-            first = run_task(ROOT / 'examples/example_gzip', samples=3)
-            second = run_task(ROOT / 'examples/example_gzip', samples=3)
-            replay = run_task(ROOT / 'examples/example_gzip', seed=123, samples=3)
+            first = run_task(path, samples=3)
+            second = run_task(path, samples=3)
+            replay = run_task(path, seed=123, samples=3)
         self.assertEqual(entropy.call_count, 2)
         self.assertEqual([s.seed for s in first.samples], [123, 124, 125])
         self.assertEqual([s.seed for s in second.samples], [456, 457, 458])
@@ -34,7 +36,8 @@ class MeasurementTests(unittest.TestCase):
                 resolve_seed(bad)
 
     def test_cli_records_random_seed_and_accepts_replay(self):
-        command = [sys.executable, '-B', '-m', 'speedupmark', 'examples/example_gzip', '--json']
+        path = self.submission(ROOT / 'examples/example_gzip')
+        command = [sys.executable, '-B', '-m', 'speedupmark', str(path), '--json']
         first = json.loads(subprocess.check_output(command, cwd=ROOT, text=True))
         seed = first['config']['seed']
         self.assertEqual(first['config']['seed_source'], 'random')
@@ -50,7 +53,51 @@ class MeasurementTests(unittest.TestCase):
         self.addCleanup(directory.cleanup)
         path = pathlib.Path(directory.name)
         (path / "task_spec.py").write_text(textwrap.dedent(source))
+        # Synthetic tasks retain stateful hooks for measurement-integrity tests.
+        # Import the real candidate file and capture the hook before loader wiring.
+        (path / "candidate.py").write_text(
+            'import sys\n'
+            f'_task = sys.modules["speedupmark_task_{path.name}"].TASK\n'
+            '_solve = getattr(_task, "candidate_solve", _task.solve)\n'
+            'def solve(problem): return _solve(problem)\n')
         return path
+
+    def submission(self, source):
+        path = self.task((source / "task_spec.py").read_text())
+        shutil.copyfile(source / "reference.py", path / "reference.py")
+        (path / "candidate.py").write_bytes(
+            (source / "reference.py").read_bytes() + b'\n# Test submission.\n')
+        return path
+
+    def test_missing_and_unchanged_candidates_stop_before_task_import(self):
+        path = self.task('raise AssertionError("task imported")')
+        reference = 'raise AssertionError("reference imported")\n'
+        (path / "reference.py").write_text(reference)
+        (path / "candidate.py").rename(path / "saved-candidate.py")
+        for code in ("missing_candidate", "unchanged_candidate"):
+            if code == "unchanged_candidate":
+                (path / "candidate.py").write_text(reference)
+            with self.subTest(code=code), patch("speedupmark.harness.load_task") as load:
+                with self.assertRaises(CandidateNotReady) as raised:
+                    run_task(path)
+                self.assertEqual(raised.exception.code, code)
+                load.assert_not_called()
+            with patch("speedupmark.harness.subprocess.run") as worker:
+                with self.assertRaises(CandidateNotReady):
+                    _run_isolated(path, None, 0, 1, 5)
+                worker.assert_not_called()
+            command = [sys.executable, "-m", "speedupmark", str(path)]
+            text = subprocess.run(command, cwd=ROOT, capture_output=True, text=True)
+            self.assertEqual(text.returncode, 1)
+            self.assertIn("INFO" if code == "unchanged_candidate" else "ERROR", text.stdout)
+            self.assertNotIn("Traceback", text.stderr)
+            report = subprocess.run(command + ["--json"], cwd=ROOT,
+                                    capture_output=True, text=True)
+            payload = json.loads(report.stdout)
+            self.assertEqual(payload["results"], [])
+            self.assertEqual(payload["errors"][0]["code"], code)
+            self.assertFalse(payload["correct"])
+            self.assertIsNone(payload["geomean_speedup"])
 
     def test_each_timed_output_is_checked_on_a_fresh_seed(self):
         path = self.task('''
@@ -85,7 +132,7 @@ class MeasurementTests(unittest.TestCase):
     def test_canonical_tasks_reuse_each_measured_reference_answer(self):
         for name in ("articulation_points", "grouped_analytics_reports"):
             with self.subTest(task=name):
-                path = ROOT / "tasks" / name
+                path = self.submission(ROOT / "tasks" / name)
                 benchmark = load_task(path)
                 reference_solve = benchmark.solve
                 with patch.object(benchmark, "solve", wraps=reference_solve) as reference, \
@@ -216,20 +263,21 @@ class MeasurementTests(unittest.TestCase):
 
     def test_session_window_audit_exploit_is_rejected(self):
         path = self.task((ROOT / "tasks/out_of_order_session_windows/task_spec.py").read_text())
+        (path / "reference.py").write_bytes((ROOT / "tasks/out_of_order_session_windows/reference.py").read_bytes())
         (path / "candidate.py").write_text(textwrap.dedent('''
             class Deferred(tuple):
                 def _value(self):
                     raise AssertionError("untimed session computation ran")
                 def __len__(self): return len(self._value())
                 def __iter__(self): return iter(self._value())
-            def solve(problem, reference_solve):
+            def solve(problem):
                 return Deferred()
         '''))
         with self.assertRaisesRegex(ValueError, "candidate output:.*completed plain data"):
             run_task(path, n=32, seed=39185, samples=1)
 
     def test_compiler_receipts_replay_only_the_recorded_source_and_seed(self):
-        path = ROOT / "tasks/layout_aware_pipeline_compiler"
+        path = self.submission(ROOT / "tasks/layout_aware_pipeline_compiler")
         records = []
         first = run_task(path, n=8, seed=41, samples=1,
                          verification_record=records.append)
@@ -279,11 +327,11 @@ class MeasurementTests(unittest.TestCase):
             @dataclass
             class Answer:
                 value: int
-            def solve(problem, reference_solve):
+            def solve(problem):
                 return Answer(problem)
         '''))
         candidate = load_candidate(str(path / "task_spec.py"))
-        self.assertEqual(candidate.solve(12, None).value, 12)
+        self.assertEqual(candidate.solve(12).value, 12)
 
     def test_reference_is_verified_with_runtime_checks(self):
         path = self.task('''
@@ -367,7 +415,6 @@ class MeasurementTests(unittest.TestCase):
         ''')
         result = _run_isolated(path, None, 0, 1, 5)
         self.assertTrue(result.correct)
-        self.assertTrue(result.candidate_is_reference)
 
     def test_default_cli_lists_exactly_ten_and_includes_simd_traversal_kernel(self):
         completed = subprocess.run([sys.executable, "-m", "speedupmark", "--list", "--json"], cwd=ROOT, capture_output=True, text=True, check=True)

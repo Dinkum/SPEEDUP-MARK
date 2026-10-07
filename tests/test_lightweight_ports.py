@@ -39,7 +39,6 @@ class LightweightPortsTests(unittest.TestCase):
                     answer = task.solve(problem)
                     self.assertEqual(original, problem)
                     self.assertTrue(task.is_solution(problem, answer))
-                    self.assertTrue(task.is_solution(problem, task.candidate_solve(problem)))
                     for bad in [None, True, (), iter([]), {"junk": 0}]:
                         self.assertFalse(task.is_solution(problem, bad))
 

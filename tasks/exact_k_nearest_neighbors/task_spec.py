@@ -3,13 +3,15 @@
 import random
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_candidate
+from speedupmark.task import load_reference
 
-_candidate = load_candidate(__file__)
+
+_reference = load_reference(__file__)
+
 
 class Task:
     name = "exact_k_nearest_neighbors"
-    task_version = "1.1.0"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 700
     grading_cases = (700, 1400)
@@ -28,14 +30,7 @@ class Task:
                    for i in range(max(1, n // 7))]
         return {"points": points, "queries": queries, "k": min(n, (1, 5, 13)[random_seed % 3])}
 
-    def solve(self, problem):
-        points, k = problem["points"], problem["k"]
-        result = []
-        for query in problem["queries"]:
-            distances = [(sum((a - b) ** 2 for a, b in zip(point, query)), i)
-                         for i, point in enumerate(points)]
-            result.append([i for _, i in sorted(distances)[:k]])
-        return {"indices": result}
+    solve = staticmethod(_reference.solve)
 
     def is_solution(self, problem, proposed):
         if type(proposed) is not dict or set(proposed) != {"indices"}:
@@ -57,9 +52,6 @@ class Task:
             if any(key(i) < ranked[-1] for i in range(len(points)) if i not in chosen):
                 return False
         return True
-
-    def candidate_solve(self, problem):
-        return _candidate.solve(problem, self.solve)
 
 
 TASK = Task()

@@ -3,55 +3,10 @@
 import random
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_candidate
-
-_candidate = load_candidate(__file__)
-
-def compatibility(board):
-    height, width = len(board), len(board[0])
-    squares = [(r, c) for r in range(height) for c in range(width) if not board[r][c]]
-    index = {square: i for i, square in enumerate(squares)}
-    masks = []
-    for i, (r, c) in enumerate(squares):
-        attacks = 1 << i
-        for dr, dc in ((-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)):
-            rr, cc = r + dr, c + dc
-            while 0 <= rr < height and 0 <= cc < width and not board[rr][cc]:
-                attacks |= 1 << index[(rr, cc)]
-                rr, cc = rr + dr, cc + dc
-        masks.append(((1 << len(squares)) - 1) ^ attacks)
-    return squares, masks
+from speedupmark.task import load_reference
 
 
-def maximum_clique(neighbors):
-    best = []
-    def visit(chosen, available):
-        nonlocal best
-        # Greedy independent color classes give an upper bound on any
-        # compatible clique remaining in this branch.
-        order, bounds, remaining, color = [], [], available, 0
-        while remaining:
-            color += 1
-            independent = remaining
-            while independent:
-                bit = independent & -independent
-                v = bit.bit_length() - 1
-                order.append(v)
-                bounds.append(color)
-                remaining ^= bit
-                independent &= ~bit & ~neighbors[v]
-        for position in range(len(order) - 1, -1, -1):
-            if len(chosen) + bounds[position] <= len(best):
-                return
-            v = order[position]
-            compatible = available & neighbors[v]
-            if compatible:
-                visit(chosen + [v], compatible)
-            elif len(chosen) + 1 > len(best):
-                best = chosen + [v]
-            available &= ~(1 << v)
-    visit([], (1 << len(neighbors)) - 1)
-    return best
+_reference = load_reference(__file__)
 
 
 def has_larger_placement(board, count):
@@ -111,7 +66,7 @@ def has_larger_placement(board, count):
 
 class Task:
     name = "queens_with_obstacles"
-    task_version = "1.1.0"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 10
     grading_cases = (10, 12)
@@ -125,9 +80,7 @@ class Task:
         board = [[rng.random() < density for _ in range(width)] for _ in range(n)]
         return {"obstacles": board}
 
-    def solve(self, problem):
-        squares, neighbors = compatibility(problem["obstacles"])
-        return {"queens": [list(square) for square in sorted(squares[i] for i in maximum_clique(neighbors))]}
+    solve = staticmethod(_reference.solve)
 
     def is_solution(self, problem, proposed):
         if type(proposed) is not dict or set(proposed) != {"queens"}:
@@ -152,9 +105,6 @@ class Task:
                 if (at_r, at_c) == (rr, cc):
                     return False
         return not has_larger_placement(board, len(queens))
-
-    def candidate_solve(self, problem):
-        return _candidate.solve(problem, self.solve)
 
 
 TASK = Task()

@@ -4,70 +4,11 @@ from __future__ import annotations
 
 import random
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_candidate
+from speedupmark.task import load_reference
 
 
-_candidate = load_candidate(__file__)
-
-
-def _adjacency(graph):
-    size = len(graph["labels"])
-    adjacency = [set() for _ in range(size)]
-    for left, right in graph["edges"]:
-        adjacency[left].add(right)
-        adjacency[right].add(left)
-    return adjacency
-
-
-def _find_mapping(problem):
-    left, right = problem["left"], problem["right"]
-    if len(left["labels"]) != len(right["labels"]):
-        return None
-    size = len(left["labels"])
-    left_adj, right_adj = _adjacency(left), _adjacency(right)
-    candidates = []
-    for node in range(size):
-        matches = [
-            other
-            for other in range(size)
-            if left["labels"][node] == right["labels"][other]
-            and len(left_adj[node]) == len(right_adj[other])
-        ]
-        if not matches:
-            return None
-        candidates.append(matches)
-    order = []
-    remaining = set(range(size))
-    while remaining:
-        node = min(remaining, key=lambda v: (-len(left_adj[v].intersection(order)),
-                                            len(candidates[v]), -len(left_adj[v]), v))
-        order.append(node)
-        remaining.remove(node)
-    mapping = [-1] * size
-    used = set()
-
-    def visit(depth):
-        if depth == size:
-            return True
-        node = order[depth]
-        for other in candidates[node]:
-            if other in used:
-                continue
-            if any(
-                ((prior in left_adj[node]) != (mapping[prior] in right_adj[other]))
-                for prior in range(size)
-                if mapping[prior] >= 0
-            ):
-                continue
-            mapping[node] = other
-            used.add(other)
-            if visit(depth + 1):
-                return True
-            used.remove(other)
-            mapping[node] = -1
-        return False
-
-    return tuple(mapping) if visit(0) else None
+_reference = load_reference(__file__)
+_find_mapping = _reference._find_mapping
 
 
 def _valid_mapping(problem, mapping):
@@ -90,7 +31,7 @@ def _valid_mapping(problem, mapping):
 
 class LabeledGraphIsomorphismTask:
     name = "labeled_graph_isomorphism"
-    task_version = "1.2.1"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 10
     grading_cases = (10, 20)
@@ -165,11 +106,8 @@ class LabeledGraphIsomorphismTask:
                     return problem
         raise ValueError("could not generate a connected non-isomorphic pair")
 
-    def solve(self, problem):
-        return _find_mapping(problem)
+    solve = staticmethod(_reference.solve)
 
-    def candidate_solve(self, problem):
-        return _candidate.solve(problem, self.solve)
 
     def is_solution(self, problem, proposed):
         try:

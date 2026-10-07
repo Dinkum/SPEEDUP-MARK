@@ -12,27 +12,15 @@ import math
 import random
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_candidate
+from speedupmark.task import load_reference
 
 
-_candidate = load_candidate(__file__)
+_reference = load_reference(__file__)
+_need = _reference._need
 
 
 def _family(seed):
     return ("clustered", "nearly_collinear", "nearly_cocircular")[seed % 3]
-
-
-def _need():
-    try:
-        import numpy
-        import scipy.spatial
-    except ImportError as exc:
-        raise ImportError(
-            "delaunay requires optional dependencies: numpy, scipy. "
-            "Install the pinned numerical extra in requirements-numerical.txt. "
-            "The smoke and extended suites do not include this task."
-        ) from exc
-    return numpy, scipy.spatial
 
 
 def _orient(a, b, c):
@@ -99,7 +87,7 @@ def _crosses(points, first, second):
 
 class DelaunayTask:
     name = "delaunay"
-    task_version = "1.2.2"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 128
     grading_cases = (128, 256)
@@ -152,18 +140,8 @@ class DelaunayTask:
         rng.shuffle(points)
         return {"points": [list(point) for point in points]}
 
-    def solve(self, problem):
-        numpy, spatial = _need()
-        # Qhull matches the exact integer predicates on every generated family,
-        # including collinear boundary points and rounded cocircular sets.
-        triangulation = spatial.Delaunay(numpy.asarray(problem["points"], dtype=float))
-        return {
-            "simplices": [[int(vertex) for vertex in triangle] for triangle in triangulation.simplices],
-            "convex_hull": [[int(vertex) for vertex in edge] for edge in triangulation.convex_hull],
-        }
+    solve = staticmethod(_reference.solve)
 
-    def candidate_solve(self, problem):
-        return _candidate.solve(problem, self.solve)
 
     def is_solution(self, problem, proposed):
         if type(proposed) is not dict or set(proposed) != {"simplices", "convex_hull"}:

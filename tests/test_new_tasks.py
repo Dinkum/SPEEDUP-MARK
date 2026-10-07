@@ -221,10 +221,8 @@ class NewTaskContractTests(unittest.TestCase):
                 self.assertEqual(pickle.loads(pickle.dumps(first)), first)
                 pristine = copy.deepcopy(first)
                 reference = benchmark.solve(first)
-                candidate = benchmark.candidate_solve(first)
                 self.assertEqual(first, pristine)
                 self.assertTrue(benchmark.is_solution(first, reference))
-                self.assertTrue(benchmark.is_solution(first, candidate))
 
     def test_default_workloads_finish_as_a_light_suite(self):
         for slug in SLUGS:
@@ -232,9 +230,7 @@ class NewTaskContractTests(unittest.TestCase):
                 benchmark = task(slug)
                 problem = benchmark.generate_problem(benchmark.default_n, 0)
                 reference = benchmark.solve(copy.deepcopy(problem))
-                candidate = benchmark.candidate_solve(copy.deepcopy(problem))
                 self.assertTrue(benchmark.is_solution(problem, reference))
-                self.assertTrue(benchmark.is_solution(problem, candidate))
 
 
 if __name__ == "__main__":

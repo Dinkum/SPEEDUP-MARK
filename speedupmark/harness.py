@@ -21,7 +21,8 @@ from dataclasses import asdict, dataclass, field
 
 from speedupmark.catalog import TASK_CATALOG
 from speedupmark.suites import selected_tasks
-from speedupmark.task import SolutionEvaluation, declared_task_version, freeze_output
+from speedupmark.task import (SolutionEvaluation, declared_task_version, forbidden_imports,
+                             freeze_output, load_candidate, watch_imports)
 from speedupmark.revision import task_revision
 
 
@@ -49,11 +50,31 @@ class RunResult:
     speedup: float
     correct: bool
     samples: list[SampleResult] = field(default_factory=list)
-    candidate_is_reference: bool = False
     problem_size: int = 0
 
 
-def load_task(task_dir: pathlib.Path):
+class CandidateNotReady(ValueError):
+    """A submission is absent or still contains the unchanged reference source."""
+
+    def __init__(self, code: str, message: str):
+        super().__init__(message)
+        self.code = code
+
+
+def candidate_sha256(task_dir: pathlib.Path) -> str:
+    """Reject absent/unchanged submissions before importing any task code."""
+    candidate = task_dir / "candidate.py"
+    if not candidate.is_file():
+        raise CandidateNotReady("missing_candidate", "candidate.py is missing; nothing to grade")
+    digest = hashlib.sha256(candidate.read_bytes()).hexdigest()
+    reference = task_dir / "reference.py"
+    if reference.is_file() and digest == hashlib.sha256(reference.read_bytes()).hexdigest():
+        raise CandidateNotReady("unchanged_candidate",
+                                "candidate.py matches reference.py; nothing to grade")
+    return digest
+
+
+def load_task(task_dir: pathlib.Path, *, with_candidate: bool = True):
     task_dir = pathlib.Path(task_dir).resolve()
     module_name = f"speedupmark_task_{task_dir.name}"
     spec = importlib.util.spec_from_file_location(module_name, task_dir / "task_spec.py")
@@ -77,6 +98,29 @@ def load_task(task_dir: pathlib.Path):
         metadata = TASK_CATALOG[task_dir.name]
         if getattr(mod.TASK, "display_name", None) != metadata.display_name:
             raise ValueError(f"{task_dir.name}: display name must match the task catalog")
+    mod.TASK.policy_violations = ()
+    candidate_path = task_dir / "candidate.py"
+    has_candidate = with_candidate and candidate_path.is_file()
+    if has_candidate:
+        candidate = load_candidate(str(task_dir / "task_spec.py"))
+        roots = getattr(mod.TASK, "forbidden_import_roots", ())
+        if roots:
+            def solve_candidate(problem):
+                mod.TASK.policy_violations = ()
+                loaded = set(sys.modules)
+                with watch_imports(roots) as imported_during:
+                    result = candidate.solve(problem)
+                violations = forbidden_imports(candidate, roots, loaded, imported_during)
+                mod.TASK.policy_violations = violations
+                # Reject only the submission; the unchanged reference is graded
+                # independently even when a candidate violates its library rules.
+                if violations:
+                    print(f"candidate uses forbidden imports: {', '.join(violations)}")
+                    return None
+                return result
+            mod.TASK.candidate_solve = solve_candidate
+        else:
+            mod.TASK.candidate_solve = candidate.solve
     return mod.TASK
 
 
@@ -132,12 +176,10 @@ def run_task(
     """
     if samples < 1 or (n is not None and n < 1):
         raise ValueError("samples and problem size must be positive")
-    seed = resolve_seed(seed)
     task_dir = pathlib.Path(task_dir)
+    candidate_hash = candidate_sha256(task_dir)
+    seed = resolve_seed(seed)
     revision = task_revision(task_dir, pathlib.Path(__file__).resolve().parent)[0]
-    candidate_path = task_dir / "candidate.py"
-    candidate_hash = (hashlib.sha256(candidate_path.read_bytes()).hexdigest()
-                      if candidate_path.is_file() else None)
     if verification_replay is not None:
         if len(verification_replay) != samples:
             raise ValueError("verification replay must contain one record per sample")
@@ -149,8 +191,7 @@ def run_task(
                 raise ValueError("verification replay source revision, candidate, or seed changed")
     task = load_task(task_dir)
     problem_size = n if n is not None else getattr(task, "default_n", 1000)
-    candidate_is_reference = not hasattr(task, "candidate_solve")
-    candidate = getattr(task, "candidate_solve", task.solve)
+    candidate = task.candidate_solve
     evaluate = getattr(task, "evaluate_solution", None)
     evaluate_pair = getattr(task, "evaluate_pair", None)
     uses_reference_output = getattr(task, "uses_reference_output", False)
@@ -252,7 +293,6 @@ def run_task(
         speedup=_geomean([sample.speedup for sample in measurements]) if correct else 0.0,
         correct=correct,
         samples=measurements,
-        candidate_is_reference=candidate_is_reference,
         problem_size=problem_size,
     )
 
@@ -296,6 +336,7 @@ def _run_isolated(
     *, verification_log: pathlib.Path | None = None,
 ) -> RunResult:
     """One fresh interpreter per task, sequentially to avoid CPU contention."""
+    candidate_sha256(task_dir)
     command = [
         sys.executable, "-m", "speedupmark", str(task_dir.resolve()),
         "--_worker", "--seed", str(seed), "--samples", str(samples),
@@ -373,8 +414,12 @@ def main() -> None:
             results.append(result)
             if not args.json:
                 marker = "PASS" if result.correct else "FAIL"
-                baseline = " (reference fallback)" if result.candidate_is_reference else ""
-                print(f"{marker} {result.task}@{result.task_version}+{result.task_revision[:12]}: {result.speedup:.3f}x | reference {result.reference_score:.3f}, candidate {result.candidate_score:.3f} {result.metric_unit}{baseline}", flush=True)
+                print(f"{marker} {result.task}@{result.task_version}+{result.task_revision[:12]}: {result.speedup:.3f}x | reference {result.reference_score:.3f}, candidate {result.candidate_score:.3f} {result.metric_unit}", flush=True)
+        except CandidateNotReady as exc:
+            errors.append({"task": path.name, "error": str(exc), "code": exc.code})
+            if not args.json:
+                marker = "INFO" if exc.code == "unchanged_candidate" else "ERROR"
+                print(f"{marker} {path.name}: {exc}", flush=True)
         except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired) as exc:
             message = f"exceeded {args.timeout:g}s task timeout" if isinstance(exc, subprocess.TimeoutExpired) else str(exc)
             errors.append({"task": path.name, "error": message})

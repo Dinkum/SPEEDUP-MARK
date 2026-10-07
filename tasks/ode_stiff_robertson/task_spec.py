@@ -16,57 +16,21 @@ os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
 os.environ.setdefault("VECLIB_MAXIMUM_THREADS", "1")
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_candidate
+from speedupmark.task import load_reference
 
 
-_candidate = load_candidate(__file__)
+_reference = load_reference(__file__)
+_integrate = _reference._integrate
+_need = _reference._need
 
 
 def _family(seed):
     return ("transient", "equilibrium", "rescaled")[seed % 3]
 
 
-def _need():
-    try:
-        import numpy
-        import scipy.integrate
-    except ImportError as exc:
-        raise ImportError(
-            "ode_stiff_robertson requires optional dependencies: numpy, scipy. "
-            "Install the pinned numerical extra in requirements-numerical.txt. "
-            "The smoke and extended suites do not include this task."
-        ) from exc
-    return numpy, scipy.integrate
-
-
-def robertson_rhs(_time, state, rates):
-    y1, y2, y3 = state
-    k1, k2, k3 = rates
-    return (
-        -k1 * y1 + k3 * y2 * y3,
-        k1 * y1 - k2 * y2 * y2 - k3 * y2 * y3,
-        k2 * y2 * y2,
-    )
-
-
-def _integrate(problem, method):
-    numpy, integrate = _need()
-    solution = integrate.solve_ivp(
-        lambda time, state: robertson_rhs(time, state, problem["k"]),
-        (problem["t0"], problem["t1"]),
-        problem["y0"],
-        method=method,
-        rtol=1e-8,
-        atol=1e-10,
-    )
-    if not solution.success:
-        raise ValueError(f"Robertson integrator failed: {solution.message}")
-    return [float(value) for value in solution.y[:, -1]]
-
-
 class Robertson:
     name = "ode_stiff_robertson"
-    task_version = "1.2.0"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 4
     grading_cases = (4, 10)
@@ -105,11 +69,8 @@ class Robertson:
             initial = [initial[0] + transfer, initial[1], initial[2] - transfer]
         return {"t0": 0.0, "t1": horizon, "y0": initial, "k": rates}
 
-    def solve(self, problem):
-        return _integrate(problem, "Radau")
+    solve = staticmethod(_reference.solve)
 
-    def candidate_solve(self, problem):
-        return _candidate.solve(problem, self.solve)
 
     def is_solution(self, problem, proposed):
         numpy = _need()[0]

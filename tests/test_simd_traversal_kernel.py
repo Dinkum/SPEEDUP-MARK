@@ -2,7 +2,9 @@
 
 import copy
 import pathlib
+import shutil
 import sys
+import tempfile
 import unittest
 from unittest import mock
 
@@ -29,7 +31,7 @@ class SIMDTraversalKernelTests(unittest.TestCase):
                 self.assertEqual(problem, self.task.generate_problem(size, 91))
                 self.assertEqual(tuple(w["family"] for w in problem["workloads"]), self.spec.FAMILIES)
                 self.assertTrue(all(type(value) in (str, int) for w in problem["workloads"] for value in w.values()))
-                self.task.candidate_solve(problem)
+                self.task.solve(problem)
         for invalid in (0, -1, True, 4097, 1.5):
             with self.subTest(invalid=invalid), self.assertRaises(ValueError):
                 self.task.generate_problem(invalid)
@@ -87,7 +89,7 @@ class SIMDTraversalKernelTests(unittest.TestCase):
         memory[workload["values"]:workload["values"] + 2] = [0, 1]
         expected = ((4, 3), (2654435761, 128))
         self.assertEqual(self.spec._oracle(workload, memory), expected)
-        for program in (self.spec._compile(workload), compile_workload(workload, cached=True)):
+        for program in (self.spec._reference._compile(workload), compile_workload(workload, cached=True)):
             machine = self.spec.Machine(workload, memory)
             machine.run(program)
             actual = tuple(tuple(machine.memory[workload[key]:workload[key] + 2])
@@ -203,7 +205,7 @@ class SIMDTraversalKernelTests(unittest.TestCase):
         for seed in (8, 91):
             for index, workload in enumerate(self.task.generate_problem(32, seed)["workloads"]):
                 memory = self.spec._runtime_memory(workload, "37" * 32, index, 0)
-                scalar = self.spec.Machine(workload, memory).run(self.spec._compile(workload))
+                scalar = self.spec.Machine(workload, memory).run(self.spec._reference._compile(workload))
                 vector = self.spec.Machine(workload, memory).run(compile_workload(workload))
                 interleaved = self.spec.Machine(workload, memory).run(
                     compile_workload(workload, streams=4, scheduled=True))
@@ -215,12 +217,18 @@ class SIMDTraversalKernelTests(unittest.TestCase):
                     self.assertLess(cached, interleaved)
 
     def test_harness_cycle_score_and_replay_at_declared_sizes(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        path = pathlib.Path(directory.name) / "simd_traversal_kernel"
+        shutil.copytree(ROOT / "tasks/simd_traversal_kernel", path)
+        (path / "candidate.py").write_bytes(
+            (path / "reference.py").read_bytes() + b"\n# Test submission.\n")
         for size in self.task.grading_cases:
-            result = run_task(ROOT / "tasks/simd_traversal_kernel", n=size, seed=123, samples=1)
+            result = run_task(path, n=size, seed=123, samples=1)
             self.assertTrue(result.correct)
             self.assertEqual(result.metric_unit, "cycles")
             self.assertEqual(result.speedup, 1.0)
-            replay = run_task(ROOT / "tasks/simd_traversal_kernel", n=size, seed=123, samples=1,
+            replay = run_task(path, n=size, seed=123, samples=1,
                               verification_replay=[result.samples[0].verification])
             self.assertEqual(result, replay)
 

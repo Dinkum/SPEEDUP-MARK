@@ -14,7 +14,7 @@ order, where an update is `("move", id, vertices)`, `("add", vertices)` — whic
 appends at the next unused id — or `("remove", id)`. Ids stay stable across
 updates.
 
-Implement `candidate.py::solve(problem, reference_solve)` and return, per scene,
+Implement `candidate.py::solve(problem)` and return, per scene,
 one tuple of hit ids per ray phase, in ray order.
 
 The scene, phase, and hit sequences must be built-in tuples or lists; hit ids must be exact Python `int` values.
@@ -79,7 +79,7 @@ The executable definition is [`task_spec.py`](task_spec.py), `generate_problem` 
 
 ## Grading
 
-Edit only `candidate.py`, preserving `solve(problem, reference_solve)`.
+Inside a managed run, edit only `candidate.py`, preserving `solve(problem)`.
 
 From the repository root:
 

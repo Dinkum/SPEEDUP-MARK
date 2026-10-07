@@ -4,37 +4,10 @@ from __future__ import annotations
 
 import random
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_candidate, plain_containers
+from speedupmark.task import load_reference, plain_containers
 
 
-_candidate = load_candidate(__file__)
-
-
-def _recalculate(problem, inputs):
-    input_count = problem["input_count"]
-    values = list(inputs) + [0] * (len(problem["formulas"]) - input_count)
-    for cell in range(input_count, len(values)):
-        operation, left, right = problem["formulas"][cell]
-        if operation == "add":
-            values[cell] = values[left] + values[right]
-        elif operation == "sub":
-            values[cell] = values[left] - values[right]
-        else:
-            values[cell] = values[left] * right
-    return values
-
-
-def _run(problem):
-    inputs = list(problem["initial_inputs"])
-    answers = []
-    for operation in problem["operations"]:
-        if operation[0] == "set":
-            _, cell, value = operation
-            inputs[cell] = value
-        else:
-            _, cell = operation
-            answers.append(_recalculate(problem, inputs)[cell])
-    return tuple(answers)
+_reference = load_reference(__file__)
 
 
 def _verify_sheet(problem):
@@ -71,7 +44,7 @@ def _verify_sheet(problem):
 
 class IncrementalSpreadsheetRecalculationTask:
     name = "incremental_spreadsheet_recalculation"
-    task_version = "1.1.1"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 650
     grading_cases = (650, 1300)
@@ -117,11 +90,8 @@ class IncrementalSpreadsheetRecalculationTask:
             "operations": tuple(operations),
         }
 
-    def solve(self, problem):
-        return _run(problem)
+    solve = staticmethod(_reference.solve)
 
-    def candidate_solve(self, problem):
-        return _candidate.solve(problem, self.solve)
 
     def is_solution(self, problem, proposed):
         try:

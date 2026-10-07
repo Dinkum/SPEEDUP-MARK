@@ -25,7 +25,7 @@ The five workload families anchor selective filters, permissive filters, skew, t
 
 A column name resolves to its first occurrence in the input schema; equality joins preserve both copies of a duplicated join-key column.
 
-Implement `candidate.py::solve(problem, reference_solve)` and return, per family,
+Implement `candidate.py::solve(problem)` and return, per family,
 a tuple of answers, one per query. An answer is a tuple of row tuples sorted
 ascending with duplicates preserved. `topk` selects the `k` rows under the total
 order (*column* descending, then the whole row tuple ascending) and returns the
@@ -72,7 +72,7 @@ The executable definition is [`task_spec.py`](task_spec.py), `generate_problem` 
 
 ## Grading
 
-Edit only `candidate.py`, preserving `solve(problem, reference_solve)`.
+Inside a managed run, edit only `candidate.py`, preserving `solve(problem)`.
 
 From the repository root:
 

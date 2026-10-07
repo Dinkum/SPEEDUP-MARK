@@ -3,13 +3,15 @@
 import random
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_candidate
+from speedupmark.task import load_reference
 
-_candidate = load_candidate(__file__)
+
+_reference = load_reference(__file__)
+
 
 class Task:
     name = "matrix_multiplication"
-    task_version = "1.1.0"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 45
     grading_cases = (45, 75)
@@ -25,10 +27,7 @@ class Task:
         return {"A": [[value() for _ in range(inner)] for _ in range(rows)],
                 "B": [[value() for _ in range(columns)] for _ in range(inner)]}
 
-    def solve(self, problem):
-        a, b = problem["A"], problem["B"]
-        return [[sum(a[i][k] * b[k][j] for k in range(len(b)))
-                 for j in range(len(b[0]))] for i in range(len(a))]
+    solve = staticmethod(_reference.solve)
 
     def is_solution(self, problem, proposed):
         a, b = problem["A"], problem["B"]
@@ -45,9 +44,6 @@ class Task:
             if proposed[i] != expected:
                 return False
         return True
-
-    def candidate_solve(self, problem):
-        return _candidate.solve(problem, self.solve)
 
 
 TASK = Task()

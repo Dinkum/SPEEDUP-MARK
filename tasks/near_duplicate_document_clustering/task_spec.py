@@ -4,62 +4,10 @@ from __future__ import annotations
 
 import random
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_candidate, plain_containers
+from speedupmark.task import load_reference, plain_containers
 
 
-_candidate = load_candidate(__file__)
-
-
-def _clusters(problem):
-    docs = problem["documents"]
-    width = problem["shingle_width"]
-    numerator, denominator = problem["threshold"]
-    shingles = []
-    for document in docs:
-        words = document.split()
-        if not words:
-            shingles.append(None)
-        elif len(words) < width:
-            shingles.append({tuple(words)})
-        else:
-            shingles.append(
-                {tuple(words[i : i + width]) for i in range(len(words) - width + 1)}
-            )
-
-    parent = list(range(len(docs)))
-
-    def find(node):
-        while parent[node] != node:
-            parent[node] = parent[parent[node]]
-            node = parent[node]
-        return node
-
-    def union(left, right):
-        left, right = find(left), find(right)
-        if left != right:
-            if left > right:
-                left, right = right, left
-            parent[right] = left
-
-    for left in range(len(docs)):
-        for right in range(left + 1, len(docs)):
-            if shingles[left] is None or shingles[right] is None:
-                continue
-            intersection = len(shingles[left] & shingles[right])
-            union_size = len(shingles[left] | shingles[right])
-            similar = intersection * denominator >= union_size * numerator
-            if similar:
-                union(left, right)
-
-    groups = {}
-    for index in range(len(docs)):
-        groups.setdefault(find(index), []).append(index)
-    labels = [0] * len(docs)
-    for members in groups.values():
-        label = min(members)
-        for member in members:
-            labels[member] = label
-    return tuple(labels)
+_reference = load_reference(__file__)
 
 
 def _checked_clusters(problem):
@@ -106,7 +54,7 @@ def _checked_clusters(problem):
 
 class NearDuplicateDocumentClusteringTask:
     name = "near_duplicate_document_clustering"
-    task_version = "1.2.0"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 360
     grading_cases = (360, 720)
@@ -148,11 +96,8 @@ class NearDuplicateDocumentClusteringTask:
             "threshold": threshold,
         }
 
-    def solve(self, problem):
-        return _clusters(problem)
+    solve = staticmethod(_reference.solve)
 
-    def candidate_solve(self, problem):
-        return _candidate.solve(problem, self.solve)
 
     def is_solution(self, problem, proposed):
         try:

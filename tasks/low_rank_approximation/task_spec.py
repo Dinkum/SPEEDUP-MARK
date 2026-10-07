@@ -16,38 +16,15 @@ os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
 os.environ.setdefault("VECLIB_MAXIMUM_THREADS", "1")
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_candidate, plain_numeric
+from speedupmark.task import load_reference, plain_numeric
 
 
-_candidate = load_candidate(__file__)
+_reference = load_reference(__file__)
+_need = _reference._need
 
 
 def _family(seed):
     return ("rapid", "slow", "clustered")[seed % 3]
-
-
-def _need():
-    try:
-        import numpy
-    except ImportError as exc:
-        raise ImportError(
-            "low_rank_approximation requires optional dependency: numpy. "
-            "Install the pinned numerical extra in requirements-numerical.txt. "
-            "The smoke and extended suites do not include this task."
-        ) from exc
-    return numpy
-
-
-def _factor(matrix, rank, iterations, rng):
-    numpy = _need()
-    _rows, cols = matrix.shape
-    width = min(cols, rank + 8)
-    sketch = matrix @ rng.standard_normal((cols, width))
-    for _ in range(iterations):
-        sketch = matrix @ (matrix.T @ sketch)
-    basis, _rest = numpy.linalg.qr(sketch, mode="reduced")
-    small_u, values, vt = numpy.linalg.svd(basis.T @ matrix, full_matrices=False)
-    return basis @ small_u[:, :rank], values[:rank], vt[:rank].T
 
 
 def _tail(matrix, rank):
@@ -58,7 +35,7 @@ def _tail(matrix, rank):
 
 class RandomizedSVD:
     name = "low_rank_approximation"
-    task_version = "1.2.0"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 384
     grading_cases = (384, 768)
@@ -98,19 +75,8 @@ class RandomizedSVD:
             "power_iterations": iterations,
         }
 
-    def solve(self, problem):
-        numpy = _need()
-        matrix = numpy.asarray(problem["matrix"], dtype=float)
-        rng = numpy.random.default_rng(0)
-        left, values, right = _factor(matrix, problem["k"], problem["power_iterations"], rng)
-        return {
-            "U": left.tolist(),
-            "S": [float(value) for value in values],
-            "V": right.tolist(),
-        }
+    solve = staticmethod(_reference.solve)
 
-    def candidate_solve(self, problem):
-        return _candidate.solve(problem, self.solve)
 
     def is_solution(self, problem, proposed):
         numpy = _need()

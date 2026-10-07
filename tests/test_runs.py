@@ -13,19 +13,20 @@ from unittest.mock import patch
 
 from speedupmark import run_manager
 from speedupmark.revision import task_revision
-from speedupmark.task import DEFAULT_CANDIDATE
 
 
-FIXTURE = '''from speedupmark.task import load_candidate
-_candidate = load_candidate(__file__)
+REFERENCE = 'def solve(problem): return sum(problem)\n'
+
+
+FIXTURE = '''from speedupmark.task import load_reference
+_reference = load_reference(__file__)
 class Task:
     name = 'fixture'
     task_version = '1.0.0'
     default_n = 4
     grading_cases = (4, 8)
     def generate_problem(self, n, random_seed=0): return list(range(n)) + [random_seed]
-    def solve(self, problem): return sum(problem)
-    def candidate_solve(self, problem): return _candidate.solve(problem, self.solve)
+    solve = staticmethod(_reference.solve)
     def is_solution(self, problem, proposed): return type(proposed) is int and proposed == sum(problem)
 TASK = Task()
 '''
@@ -49,16 +50,23 @@ class RunFlowTests(unittest.TestCase):
         self.source = self.root / 'tasks' / 'fixture'
         self.source.mkdir(parents=True)
         (self.source / 'task_spec.py').write_text(FIXTURE)
-        (self.source / 'candidate.py').write_text('def solve(problem, reference_solve): return -999\n')
+        (self.source / 'reference.py').write_text(REFERENCE)
+        (self.source / 'candidate.py').write_text('def solve(problem): return -999\n')
         (self.source / 'README.md').write_text('# Fixture\nReturn the integer sum.\n')
         for patcher in (patch.object(run_manager, 'TASK_ROOT', self.source.parent),
                         patch.object(run_manager, 'discover_tasks', return_value=[self.source])):
             patcher.start()
             self.addCleanup(patcher.stop)
 
-    def create(self, **kwargs):
-        return run_manager.create_run('fixture', root=self.root / 'runs', samples=1,
+    def create(self, *, edited=True, **kwargs):
+        run = run_manager.create_run('fixture', root=self.root / 'runs', samples=1,
                                       **(PROVENANCE | kwargs))
+        if edited:
+            # A distinct submission for lifecycle tests; starter generation is
+            # checked separately with edited=False.
+            (run / 'workspace/tasks/fixture/candidate.py').write_text(
+                'def solve(problem): return sum(reversed(problem))\n')
+        return run
 
     def test_optimizer_identity_is_required_and_reported(self):
         run = self.create(**PROVENANCE)
@@ -71,7 +79,7 @@ class RunFlowTests(unittest.TestCase):
         self.assertTrue((run / 'workspace/prompt.md').is_file())
         self.assertEqual((run / 'workspace/AGENTS.md').read_bytes(),
                          (run / 'workspace/prompt.md').read_bytes())
-        self.assertEqual(run_manager._manifest(run)['baseline_files']['AGENTS.md'],
+        self.assertEqual(run_manager._manifest(run)['workspace_files']['AGENTS.md'],
                          run_manager._manifest(run)['prompt_sha256'])
         for field in ('harness', 'model', 'effort'):
             invalid = dict(PROVENANCE)
@@ -91,16 +99,31 @@ class RunFlowTests(unittest.TestCase):
         legacy['optimizer'] = None
         self.assertEqual(run_manager._reported_optimizer(legacy)['model'], 'unknown')
 
+    def test_workspace_contains_only_submission_instructions_and_launcher(self):
+        run = self.create()
+        files = set(run_manager._inventory(run / 'workspace'))
+        self.assertEqual(files, {'README.md', 'prompt.md', 'AGENTS.md', 'grade.py',
+                                 'tasks/fixture/candidate.py'})
+        self.assertTrue((run / 'baseline/tasks/fixture/task_spec.py').is_file())
+        self.assertTrue((run / 'baseline/tasks/fixture/reference.py').is_file())
+        self.assertTrue((run / 'baseline/speedupmark/harness.py').is_file())
+        self.assertNotIn('reference_solve', (run / 'workspace/tasks/fixture/candidate.py').read_text())
+
     def test_fresh_runs_ignore_optimized_source_candidates(self):
-        left, right = self.create(), self.create()
+        left, right = self.create(edited=False), self.create(edited=False)
         self.assertNotEqual(left, right)
         for run in (left, right):
             candidate = run / 'workspace/tasks/fixture/candidate.py'
-            self.assertEqual(candidate.read_text(), DEFAULT_CANDIDATE)
+            self.assertEqual(candidate.read_text(), REFERENCE)
             self.assertEqual(run_manager._manifest(run)['starter_sha256'], run_manager._hash(candidate))
         (left / 'workspace/tasks/fixture/candidate.py').write_text('changed')
-        self.assertEqual((right / 'workspace/tasks/fixture/candidate.py').read_text(), DEFAULT_CANDIDATE)
+        self.assertEqual((right / 'workspace/tasks/fixture/candidate.py').read_text(), REFERENCE)
         self.assertIn('-999', (self.source / 'candidate.py').read_text())
+
+    def test_run_creation_does_not_execute_source_submission(self):
+        (self.source / 'candidate.py').write_text('raise RuntimeError("must not import")\n')
+        run = self.create(edited=False)
+        self.assertEqual((run / 'workspace/tasks/fixture/candidate.py').read_text(), REFERENCE)
 
     def test_revision_links_task_grader_and_prompt_bytes(self):
         package = self.root / 'speedupmark'
@@ -115,7 +138,7 @@ class RunFlowTests(unittest.TestCase):
         self.assertIn('speedupmark/run_prompt.txt', files)
         (self.source / 'candidate.py').write_text('changed candidate')
         self.assertEqual(task_revision(self.source, package)[0], original)
-        for path in (self.source / 'task_spec.py', package / 'harness.py',
+        for path in (self.source / 'task_spec.py', self.source / 'reference.py', package / 'harness.py',
                      package / 'run_manager.py',
                      package / 'run_prompt.txt'):
             before = path.read_bytes()
@@ -134,6 +157,20 @@ class RunFlowTests(unittest.TestCase):
         self.assertIn('controller: run_manager.py changed since run creation',
                       row['integrity_errors'])
 
+    def test_unchanged_starter_has_no_measurements_or_verified_checkpoint(self):
+        run = self.create(edited=False)
+        development = run_manager.evaluate_run(run)
+        self.assertFalse(development['correct'])
+        self.assertEqual(development['speedup'], 0)
+        for report in development['reports']:
+            self.assertEqual(report['results'], [])
+            self.assertEqual(report['errors'][0]['code'], 'unchanged_candidate')
+            self.assertIsNone(report['geomean_speedup'])
+        final = run_manager.finish_run(run)
+        self.assertIsNone(final['best_development'])
+        self.assertFalse(final['final']['correct'])
+        self.assertIn('unchanged_candidate', json.dumps(final['final']))
+
     def test_shared_grading_command_logs_snapshot_and_result(self):
         run = self.create()
         completed = subprocess.run([sys.executable, 'grade.py'], cwd=run / 'workspace', capture_output=True, text=True)
@@ -147,7 +184,7 @@ class RunFlowTests(unittest.TestCase):
         self.assertGreaterEqual(row['elapsed_seconds'], row['started_elapsed_seconds'])
         snapshot_candidate = run / row['snapshot'] / 'tasks/fixture/candidate.py'
         before = snapshot_candidate.read_bytes()
-        (run / 'workspace/tasks/fixture/candidate.py').write_text('def solve(problem, reference_solve): return -1\n')
+        (run / 'workspace/tasks/fixture/candidate.py').write_text('def solve(problem): return -1\n')
         bad = run_manager.evaluate_run(run)
         self.assertFalse(bad['correct'])
         self.assertEqual(bad['speedup'], 0)
@@ -228,10 +265,10 @@ class RunFlowTests(unittest.TestCase):
         self.assertEqual(row['speedup'], 0)
         self.assertIn('grading_cases', json.dumps(row))
 
-    def test_workspace_receives_the_protocol_and_not_the_grader(self):
+    def test_workspace_omits_the_entire_benchmark_package(self):
         run = self.create()
-        visible = sorted(path.name for path in (run / 'workspace/speedupmark').iterdir())
-        self.assertEqual(visible, ['__init__.py', 'catalog.py', 'task.py'])
+        self.assertFalse((run / 'workspace/speedupmark').exists())
+        self.assertFalse((run / 'workspace/tasks/fixture/task_spec.py').exists())
         self.assertTrue((run / 'baseline/speedupmark/harness.py').is_file())
         self.assertTrue((run / 'baseline/speedupmark/run_manager.py').is_file())
         self.assertFalse((run / 'workspace/speedupmark/harness.py').exists())
@@ -246,13 +283,13 @@ class RunFlowTests(unittest.TestCase):
     def test_final_selects_best_recorded_candidate_despite_later_regressions(self):
         run = self.create()
         candidate = run / 'workspace/tasks/fixture/candidate.py'
-        candidate.write_text('def solve(problem, reference_solve): return sum(problem)\n')
+        candidate.write_text('def solve(problem): return sum(value for value in problem)\n')
         best = run_manager.evaluate_run(run)
-        candidate.write_text('import time\ndef solve(problem, reference_solve):\n'
+        candidate.write_text('import time\ndef solve(problem):\n'
                              '    time.sleep(0.01)\n    return sum(problem)\n')
         slower = run_manager.evaluate_run(run)
         self.assertGreater(best['speedup'], slower['speedup'])
-        candidate.write_text('def solve(problem, reference_solve): return -1\n')
+        candidate.write_text('def solve(problem): return -1\n')
         self.assertFalse(run_manager.evaluate_run(run)['correct'])
         final = run_manager.finish_run(run)['final']
         self.assertTrue(final['correct'])
@@ -263,7 +300,7 @@ class RunFlowTests(unittest.TestCase):
     def test_selected_best_must_pass_independent_final_grading(self):
         run = self.create()
         (run / 'workspace/tasks/fixture/candidate.py').write_text(
-            'def solve(problem, reference_solve):\n'
+            'def solve(problem):\n'
             '    return sum(problem) if problem[-1] < 1000 else -1\n')
         with patch('speedupmark.harness.secrets.randbits', side_effect=[10, 2000]):
             best = run_manager.evaluate_run(run)
@@ -292,7 +329,7 @@ class RunFlowTests(unittest.TestCase):
         run = self.create()
         best = run_manager.evaluate_run(run)
         (run / best['snapshot'] / 'tasks/fixture/candidate.py').write_text(
-            'def solve(problem, reference_solve): return sum(problem)\n')
+            'def solve(problem): return sum(value for value in problem)\n')
         summary = run_manager.finish_run(run)
         self.assertEqual(summary['status'], 'integrity_failed')
         self.assertFalse(summary['final']['correct'])
@@ -315,7 +352,7 @@ class RunFlowTests(unittest.TestCase):
     def test_grading_timeout_is_logged(self):
         run = self.create(grade_timeout=0.2)
         (run / 'workspace/tasks/fixture/candidate.py').write_text(
-            'import time\ndef solve(problem, reference_solve):\n    time.sleep(10)\n    return reference_solve(problem)\n'
+            'import time\ndef solve(problem):\n    time.sleep(10)\n    return sum(problem)\n'
         )
         row = run_manager.evaluate_run(run)
         self.assertFalse(row['correct'])
@@ -325,6 +362,8 @@ class RunFlowTests(unittest.TestCase):
     def test_launch_command_gets_prompt_logs_progress_and_finishes(self):
         agent = self.root / 'fake_agent.py'
         agent.write_text('''import os, subprocess, sys
+from pathlib import Path
+Path('tasks/fixture/candidate.py').write_text('def solve(problem): return sum(reversed(problem))\\n')
 assert 'Read README.md' in sys.stdin.read()
 assert os.path.isfile(os.environ['SPEEDUPMARK_PROMPT_FILE'])
 assert os.path.isfile(sys.argv[1])
@@ -349,7 +388,8 @@ print('agent finished')
                     safety_timeout=0.2, **PROVENANCE,
                 )
                 self.assertEqual(summary['status'], expected)
-                self.assertTrue(summary['final']['correct'])
+                self.assertFalse(summary['final']['correct'])
+                self.assertIn('unchanged_candidate', json.dumps(summary['final']))
 
     def test_checkpoint_curve_never_uses_future_or_final_results(self):
         run = self.create()
@@ -372,21 +412,26 @@ print('agent finished')
         self.assertNotIn('SIMDTraversalKernelTask', source)
         self.assertNotIn('problem_size', source)
         # The shared protocol module is named once. Per-task specs are not.
-        self.assertEqual(source.count('task.py'), 1)
+        self.assertNotIn('AGENT_SPEEDUPMARK', source)
 
-    def test_spec_owned_starter_hook_is_used(self):
-        starter = 'def solve(problem, reference_solve): return sum(problem)\n'
-        spec = self.source / 'task_spec.py'
-        spec.write_text(FIXTURE.replace('TASK = Task()',
-            f'Task.fresh_candidate = lambda self: {starter!r}\nTASK = Task()'))
-        run = self.create()
-        self.assertEqual((run / 'workspace/tasks/fixture/candidate.py').read_text(), starter)
+    def test_reference_is_the_only_starter_source(self):
+        reference = self.source / 'reference.py'
+        starter = 'def solve(problem): return sum(value for value in problem)\n'
+        reference.write_text(starter)
+        run = self.create(edited=False)
+        self.assertEqual((run / 'workspace/tasks/fixture/candidate.py').read_bytes(),
+                         reference.read_bytes())
+        self.assertEqual(run_manager._manifest(run)['reference_sha256'],
+                         run_manager._manifest(run)['starter_sha256'])
 
     def test_simd_traversal_kernel_managed_run_grades_declared_sizes_and_finishes(self):
         source = run_manager.ROOT / 'tasks/simd_traversal_kernel'
         with patch.object(run_manager, 'TASK_ROOT', source.parent), patch.object(run_manager, 'discover_tasks', return_value=[source]):
             run = run_manager.create_run(source.name, root=self.root / 'runs', samples=1, **PROVENANCE)
-        self.assertEqual((run / 'workspace/tasks/simd_traversal_kernel/candidate.py').read_text(), DEFAULT_CANDIDATE)
+        self.assertEqual((run / 'workspace/tasks/simd_traversal_kernel/candidate.py').read_bytes(),
+                         (source / 'reference.py').read_bytes())
+        candidate = run / 'workspace/tasks/simd_traversal_kernel/candidate.py'
+        candidate.write_bytes(candidate.read_bytes() + b'\n# Test submission.\n')
         row = run_manager.evaluate_run(run)
         self.assertTrue(row['correct'])
         self.assertEqual(_sizes(row), [32, 128])
@@ -397,7 +442,6 @@ print('agent finished')
 
 
     def test_modified_benchmark_files_are_rejected_before_execution(self):
-        (self.source / 'reference.py').write_text('# reference fixture\n')
         targets = ('workspace/speedupmark/task.py', 'workspace/speedupmark/harness.py',
                    'workspace/tasks/fixture/task_spec.py', 'workspace/tasks/fixture/reference.py',
                    'workspace/grade.py', 'baseline/speedupmark/harness.py')
@@ -405,6 +449,7 @@ print('agent finished')
             with self.subTest(target=target):
                 run = self.create()
                 marker = run / 'untrusted-code-ran'
+                (run / target).parent.mkdir(parents=True, exist_ok=True)
                 (run / target).write_text(
                     f'from pathlib import Path\nPath({str(marker)!r}).touch()\n'
                     'print(\'{"correct": true, "geomean_speedup": 999999}\')\n'
@@ -418,9 +463,9 @@ print('agent finished')
 
     def test_verifier_bypass_stays_invalid_after_file_restoration(self):
         run = self.create()
-        task = run / 'workspace/tasks/fixture/task_spec.py'
+        task = run / 'baseline/tasks/fixture/task_spec.py'
         original = task.read_bytes()
-        (task.parent / 'candidate.py').write_text('def solve(problem, reference_solve): return -1\n')
+        (run / 'workspace/tasks/fixture/candidate.py').write_text('def solve(problem): return -1\n')
         self.assertFalse(run_manager.evaluate_run(run)['correct'])
         with task.open('a') as stream:
             stream.write('\nTASK.is_solution = lambda problem, proposed: True\n')
@@ -464,7 +509,7 @@ print('agent finished')
     def test_candidate_printing_fake_results_cannot_pass(self):
         run = self.create()
         (run / 'workspace/tasks/fixture/candidate.py').write_text(
-            'def solve(problem, reference_solve):\n'
+            'def solve(problem):\n'
             '    print(\'{"correct": true, "geomean_speedup": 999999}\')\n'
             '    return -1\n'
         )
@@ -476,10 +521,10 @@ print('agent finished')
         run = self.create()
         (run / 'workspace/tasks/fixture/candidate.py').write_text(
             'from pathlib import Path\n'
-            'def solve(problem, reference_solve):\n'
+            'def solve(problem):\n'
             '    path = Path(__file__).with_name("task_spec.py")\n'
             '    path.write_text(path.read_text() + "\\n# modified during execution\\n")\n'
-            '    return reference_solve(problem)\n'
+            '    return sum(problem)\n'
         )
         row = run_manager.evaluate_run(run)
         self.assertEqual(row['integrity'], 'failed')

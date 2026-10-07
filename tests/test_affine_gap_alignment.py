@@ -39,7 +39,7 @@ class AffineGapAlignmentTests(unittest.TestCase):
                 case = (left, right, *penalties)
                 expected = exhaustive(*case)
                 with self.subTest(case=case):
-                    self.assertEqual(self.module._reference_cost(*case), expected)
+                    self.assertEqual(self.module._reference._reference_cost(*case), expected)
                     self.assertEqual(self.module._checked_cost(*case), expected)
 
     def test_boundary_gaps_and_opposite_gaps(self):
@@ -48,12 +48,12 @@ class AffineGapAlignmentTests(unittest.TestCase):
                                ((b'', b'AAA', 4, 5, 2), 9),
                                ((b'A', b'B', 9, 2, 1), 4),
                                ((b'ABC', b'ABC', 4, 5, 2), 0)):
-            self.assertEqual(self.module._reference_cost(*case), expected)
+            self.assertEqual(self.module._reference._reference_cost(*case), expected)
             self.assertTrue(self.task.is_solution({'alignments': (case,)}, (expected,)))
 
     def test_checker_does_not_trust_reference(self):
         problem = {'alignments': ((b'A', b'B', 9, 2, 1),)}
-        with patch.object(self.module, '_reference_cost', return_value=0):
+        with patch.object(self.module._reference, '_reference_cost', return_value=0):
             self.assertFalse(self.task.is_solution(problem, self.task.solve(problem)))
             self.assertTrue(self.task.is_solution(problem, (4,)))
 

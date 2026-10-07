@@ -5,10 +5,11 @@ from __future__ import annotations
 import random
 import zlib
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_candidate
+from speedupmark.task import load_reference
 
 
-_candidate = load_candidate(__file__)
+_reference = load_reference(__file__)
+_checksum = _reference._checksum
 
 
 def _same_materialized(actual, expected):
@@ -19,39 +20,6 @@ def _same_materialized(actual, expected):
             and all(_same_materialized(a, e) for a, e in zip(actual, expected))
         )
     return type(actual) is type(expected) and actual == expected
-
-
-def _checksum(lsn, payload):
-    return zlib.crc32(lsn.to_bytes(8, "little", signed=False) + payload) & 0xFFFFFFFF
-
-
-def _recover(problem):
-    chosen = {}
-    for segment in problem["segments"]:
-        segment_id = segment["segment_id"]
-        for offset, record in enumerate(segment["records"]):
-            if not isinstance(record, tuple) or len(record) != 3:
-                break
-            lsn, payload, checksum = record
-            if (
-                type(lsn) is not int
-                or not 0 <= lsn < 1 << 64
-                or not isinstance(payload, bytes)
-                or type(checksum) is not int
-                or checksum != _checksum(lsn, payload)
-            ):
-                break
-            priority = (segment_id, offset)
-            if lsn not in chosen or priority < chosen[lsn][0]:
-                chosen[lsn] = (priority, payload)
-
-    recovered = []
-    lsn = problem["start_lsn"]
-    while lsn in chosen:
-        (segment_id, _), payload = chosen[lsn]
-        recovered.append((lsn, payload, segment_id))
-        lsn += 1
-    return tuple(recovered)
 
 
 def _verify_recovery(problem):
@@ -84,7 +52,7 @@ def _verify_recovery(problem):
 
 class DurableLogRecoveryTask:
     name = "durable_log_recovery"
-    task_version = "1.1.2"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 12000
     grading_cases = (12000, 24000)
@@ -122,11 +90,8 @@ class DurableLogRecoveryTask:
         rng.shuffle(segments)
         return {"start_lsn": 1, "segments": tuple(segments)}
 
-    def solve(self, problem):
-        return _recover(problem)
+    solve = staticmethod(_reference.solve)
 
-    def candidate_solve(self, problem):
-        return _candidate.solve(problem, self.solve)
 
     def is_solution(self, problem, proposed):
         try:

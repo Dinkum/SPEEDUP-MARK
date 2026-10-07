@@ -21,7 +21,7 @@ Subpatterns may match the empty string. For example, optional `a` followed by
 mandatory `b` is legal, but optional `a` alone is not. The reference rejects
 whole patterns that can match the empty string with `ValueError`.
 
-Implement `candidate.py::solve(problem, reference_solve)` and return, per
+Implement `candidate.py::solve(problem)` and return, per
 family, one integer per stream: bit `i` set when pattern `i` matches anywhere in
 that stream. A pattern matches when some non-empty substring of the stream
 belongs to the pattern's language; non-matching positives and negatives are both
@@ -80,7 +80,7 @@ The executable definition is [`task_spec.py`](task_spec.py), `generate_problem` 
 
 ## Grading
 
-Edit only `candidate.py`, preserving `solve(problem, reference_solve)`.
+Inside a managed run, edit only `candidate.py`, preserving `solve(problem)`.
 
 From the repository root:
 

@@ -111,7 +111,7 @@ class PatternMatchingTests(unittest.TestCase):
             problem = self.task.generate_problem(size, 7)
             for family in problem["families"]:
                 for pattern in family["patterns"]:
-                    self.assertGreaterEqual(module._min_length(pattern), 1)
+                    self.assertGreaterEqual(module._reference._min_length(pattern), 1)
 
     def test_nullable_whole_patterns_are_outside_the_contract(self):
         module = self.task_module()
@@ -160,7 +160,7 @@ class PatternMatchingTests(unittest.TestCase):
         pristine = copy.deepcopy(problem)
         reference = self.task.solve(problem)
         self.assertEqual(problem, pristine)
-        candidate = self.task.candidate_solve(copy.deepcopy(problem))
+        candidate = self.task.solve(copy.deepcopy(problem))
         self.assertTrue(self.task.is_solution(problem, candidate))
         self.assertFalse(self.task.is_solution(problem, None))
         self.assertFalse(self.task.is_solution(problem, "nope"))
@@ -181,20 +181,20 @@ class EnginePolicyTests(unittest.TestCase):
     HOSTILE = '''"""Hostile probe: delegate to the forbidden engine from inside solve()."""
 
 
-def solve(problem, reference_solve):
+def solve(problem):
     import re
     _ = re.escape
-    return reference_solve(problem)
+    return ()
 '''
 
     CLEAN = '''"""Honest probe: ordinary structures, no engine."""
 
 
-def solve(problem, reference_solve):
+def solve(problem):
     seen = set()
     for family in problem["families"]:
         seen.update(str(len(family["streams"])).encode())
-    return reference_solve(problem)
+    return ()
 '''
 
     def grade(self, source):
@@ -202,6 +202,7 @@ def solve(problem, reference_solve):
         directory.mkdir()
         shutil.copy(ROOT / "tasks/multi_pattern_matching/task_spec.py",
                     directory / "task_spec.py")
+        shutil.copy(ROOT / "tasks/multi_pattern_matching/reference.py", directory / "reference.py")
         (directory / "candidate.py").write_text(source)
         task = load_task(directory)
         problem = task.generate_problem(task.grading_cases[0], 0)

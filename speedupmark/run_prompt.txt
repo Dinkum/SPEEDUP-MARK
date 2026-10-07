@@ -4,10 +4,10 @@ Your goal is to achieve the largest verified speedup you can while preserving co
 
 Explore promising approaches, measure improvements with `grade.py`, and iterate. Finish when you judge further work unlikely to produce a meaningful improvement.
 
-The submission is {candidate}. Edit only that submission file; put temporary scripts and files under scratch/. Use Python's standard library and do not install dependencies. Libraries the task README lists as already installed may be imported. Do not change task_spec.py, references, verifiers, the grader, baseline, or run records. Changed benchmark files invalidate the run. Do not read or reuse solutions from other runs. All input-dependent work belongs inside the candidate call. Return completed data using exact built-in scalars, lists, tuples, dictionaries or bytearrays; numerical tasks may also return exact numeric NumPy scalars and arrays. Custom objects, subclasses, iterators, object arrays and cyclic outputs are rejected. The grader copies completed output before stopping the timer.
+The submission is {candidate}. Edit only that submission file; put temporary scripts and files under scratch/. Use Python's standard library and do not install dependencies. Libraries the task README lists as already installed may be imported. Do not change the grader, baseline, or run records. Changed benchmark files invalidate the run. Do not read or reuse solutions from other runs. All input-dependent work belongs inside the candidate call. Return completed data using exact built-in scalars, lists, tuples, dictionaries or bytearrays; numerical tasks may also return exact numeric NumPy scalars and arrays. Custom objects, subclasses, iterators, object arrays and cyclic outputs are rejected. The grader copies completed output before stopping the timer.
 
 Run `{python} grade.py` to check correctness and speed. This shared command automatically records your candidate snapshot, elapsed time, and measured result. Other commands do not record benchmark progress.
 
-Report what changed and its measured performance. Development grading and the final grading use the same cases declared in the task spec. The final grading repeats those cases on fresh seeds.
+Report what changed and its measured performance. Development grading and the final grading use the same declared grading cases. The final grading repeats those cases on fresh seeds.
 
 {safety_timeout}

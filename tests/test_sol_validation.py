@@ -67,7 +67,7 @@ class FrontierSemanticValidationTests(unittest.TestCase):
 
     def test_queens_clique_search_against_bruteforce_graphs(self):
         benchmark = task("queens_with_obstacles")
-        maximum_clique = benchmark.solve.__func__.__globals__["maximum_clique"]
+        maximum_clique = benchmark.solve.__globals__["maximum_clique"]
         rng = random.Random(9173)
         for size in range(1, 10):
             for _ in range(20):

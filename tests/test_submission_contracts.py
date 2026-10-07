@@ -186,9 +186,10 @@ class SubmissionContractTests(unittest.TestCase):
                 task_dir = pathlib.Path(temp) / name
                 task_dir.mkdir()
                 shutil.copyfile(TASK_ROOT / name / "task_spec.py", task_dir / "task_spec.py")
+                shutil.copyfile(TASK_ROOT / name / "reference.py", task_dir / "reference.py")
                 (task_dir / "candidate.py").write_text(
-                    "def solve(problem, reference_solve):\n"
-                    "    return reference_solve(problem)\n\n"
+                    "def solve(problem):\n"
+                    "    return None\n\n"
                     "def unused():\n"
                     f"    import {root}\n"
                 )
@@ -197,13 +198,13 @@ class SubmissionContractTests(unittest.TestCase):
                 self.assertIsNone(task.candidate_solve(problem))
                 self.assertIn(root, task.policy_violations)
 
-    def test_clean_reference_delegate_remains_valid(self):
+    def test_clean_reference_copy_remains_valid(self):
         for name in ("dynamic_document_search", "incremental_multiway_join",
                      "ranked_bpe_tokenization"):
             with self.subTest(task=name):
                 task = load_task(TASK_ROOT / name)
                 problem = task.generate_problem(32, 0)
-                self.assertTrue(task.is_solution(problem, task.candidate_solve(problem)))
+                self.assertTrue(task.is_solution(problem, task.solve(problem)))
                 self.assertEqual(task.policy_violations, ())
 
 

@@ -3,21 +3,19 @@
 import random
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_candidate
+from speedupmark.task import load_reference
 
-_candidate = load_candidate(__file__)
 
 import zlib
 
 
-def compress(data):
-    stream = zlib.compressobj(level=9, method=zlib.DEFLATED, wbits=31)
-    return stream.compress(data) + stream.flush()
+_reference = load_reference(__file__)
+compress = _reference.compress
 
 
 class Task:
     name = "gzip_compression"
-    task_version = "1.1.0"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 100000
     grading_cases = (100000, 250000)
@@ -50,8 +48,7 @@ class Task:
             data = b"".join(chunks)[:n]
         return {"plaintext": data}
 
-    def solve(self, problem):
-        return {"compressed_data": compress(problem["plaintext"])}
+    solve = staticmethod(_reference.solve)
 
     def is_solution(self, problem, proposed):
         if (type(proposed) is not dict or set(proposed) != {"compressed_data"}
@@ -67,9 +64,6 @@ class Task:
             return decoded == data and stream.eof and not stream.unused_data and not stream.unconsumed_tail
         except zlib.error:
             return False
-
-    def candidate_solve(self, problem):
-        return _candidate.solve(problem, self.solve)
 
 
 TASK = Task()

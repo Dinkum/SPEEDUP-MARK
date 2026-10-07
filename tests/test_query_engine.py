@@ -73,7 +73,7 @@ class QueryEngineTests(unittest.TestCase):
 
     def test_candidate_and_reference_agree_and_lists_are_rejected_once_mutated(self):
         problem = self.task.generate_problem(320, 1)
-        candidate = self.task.candidate_solve(copy.deepcopy(problem))
+        candidate = self.task.solve(copy.deepcopy(problem))
         self.assertTrue(self.task.is_solution(problem, candidate))
         mutated = [list(family) for family in candidate]
         if mutated[0]:
@@ -112,19 +112,19 @@ class QueryEnginePolicyTests(unittest.TestCase):
     HOSTILE = '''"""Hostile probe: run the whole query through an embedded engine."""
 
 
-def solve(problem, reference_solve):
+def solve(problem):
     import sqlite3
     _ = sqlite3.connect
-    return reference_solve(problem)
+    return ()
 '''
 
     CLEAN = '''"""Honest probe: dictionaries and tuples only."""
 
 
-def solve(problem, reference_solve):
+def solve(problem):
     scored = {family["family"]: len(family["queries"]) for family in problem["families"]}
     assert all(value > 0 for value in scored.values())
-    return reference_solve(problem)
+    return ()
 '''
 
     def grade(self, source):
@@ -132,6 +132,7 @@ def solve(problem, reference_solve):
         directory.mkdir()
         shutil.copy(ROOT / "tasks/adaptive_query_engine/task_spec.py",
                     directory / "task_spec.py")
+        shutil.copy(ROOT / "tasks/adaptive_query_engine/reference.py", directory / "reference.py")
         (directory / "candidate.py").write_text(source)
         task = load_task(directory)
         problem = task.generate_problem(task.grading_cases[0], 0)

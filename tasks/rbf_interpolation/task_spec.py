@@ -18,28 +18,18 @@ os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
 os.environ.setdefault("VECLIB_MAXIMUM_THREADS", "1")
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_candidate
+from speedupmark.task import load_reference
 
 
-_candidate = load_candidate(__file__)
+_reference = load_reference(__file__)
+_need = _reference._need
+
+
 _MIN_DEGREE = {"multiquadric": 0, "linear": 0, "thin_plate_spline": 1, "cubic": 1, "quintic": 2}
 
 
 def _family(seed):
     return ("gaussian_cluster", "thin_plate", "multiquadric_query")[seed % 3]
-
-
-def _need():
-    try:
-        import numpy
-        import scipy.interpolate
-    except ImportError as exc:
-        raise ImportError(
-            "rbf_interpolation requires optional dependencies: numpy, scipy. "
-            "Install the pinned numerical extra in requirements-numerical.txt. "
-            "The smoke and extended suites do not include this task."
-        ) from exc
-    return numpy, scipy.interpolate
 
 
 def _powers(dimension, degree):
@@ -105,7 +95,7 @@ def _predict(train, values, queries, config):
 
 class RBFInterpolation:
     name = "rbf_interpolation"
-    task_version = "1.1.0"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 250
     grading_cases = (250, 500)
@@ -138,18 +128,8 @@ class RBFInterpolation:
             "rbf_config": {"kernel": kernel, "epsilon": epsilon, "smoothing": smoothing},
         }
 
-    def solve(self, problem):
-        _numpy, interpolate = _need()
-        model = interpolate.RBFInterpolator(
-            problem["x_train"], problem["y_train"],
-            kernel=problem["rbf_config"]["kernel"],
-            epsilon=problem["rbf_config"]["epsilon"],
-            smoothing=problem["rbf_config"]["smoothing"],
-        )
-        return {"y_pred": [float(value) for value in model(problem["x_test"])]}
+    solve = staticmethod(_reference.solve)
 
-    def candidate_solve(self, problem):
-        return _candidate.solve(problem, self.solve)
 
     def is_solution(self, problem, proposed):
         numpy = _need()[0]

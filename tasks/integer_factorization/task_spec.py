@@ -3,11 +3,10 @@
 import random
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_candidate
+from speedupmark.task import load_reference
 
-_candidate = load_candidate(__file__)
 
-import math
+_reference = load_reference(__file__)
 
 
 def prime(value):
@@ -71,39 +70,9 @@ def _random_prime(bits, rng):
             value += 2
 
 
-def _factor(problem):
-    """Fermat for near-square inputs, then deterministic-replay Pollard rho."""
-    value = problem["composite"]
-    if value % 2 == 0:
-        return {"p": 2, "q": value // 2}
-    root = math.isqrt(value)
-    root += root * root < value
-    for _ in range(128):
-        square = root * root - value
-        difference = math.isqrt(square)
-        if difference * difference == square and root > difference + 1:
-            p, q = root - difference, root + difference
-            if p != q:
-                return {"p": p, "q": q}
-        root += 1
-    rng = random.Random(value)
-    while True:
-        constant, x = rng.randrange(1, value), rng.randrange(2, value)
-        y = x
-        for _ in range(200000):
-            x = (x * x + constant) % value
-            y = (y * y + constant) % value
-            y = (y * y + constant) % value
-            divisor = math.gcd(abs(x - y), value)
-            if 1 < divisor < value:
-                return {"p": min(divisor, value // divisor), "q": max(divisor, value // divisor)}
-            if divisor == value:
-                break
-
-
 class Task:
     name = "integer_factorization"
-    task_version = "1.3.0"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 64
     grading_cases = (64, 80)
@@ -132,8 +101,7 @@ class Task:
             q = _random_prime(n - p.bit_length(), rng)
         return {"composite": p * q}
 
-    def solve(self, problem):
-        return _factor(problem)
+    solve = staticmethod(_reference.solve)
 
     def is_solution(self, problem, proposed):
         return (type(proposed) is dict and set(proposed) == {"p", "q"}
@@ -141,9 +109,6 @@ class Task:
                 and proposed["p"] < proposed["q"]
                 and proposed["p"] * proposed["q"] == problem["composite"]
                 and prime(proposed["p"]) and prime(proposed["q"]))
-
-    def candidate_solve(self, problem):
-        return _candidate.solve(problem, self.solve)
 
 
 TASK = Task()

@@ -29,7 +29,7 @@ class LayoutCompilerTests(unittest.TestCase):
         base = reference["placements"]["out"][0]
         for placement in ((base, 1, 8), (base + 63, -1, -8)):
             with self.subTest(placement=placement):
-                emitter = self.helpers._Emitter(workload["machine"])
+                emitter = self.helpers._reference._Emitter(workload["machine"])
                 for row in range(8):
                     for column in range(8):
                         emitter.issue(("sload", 0, 0, row * 12 + column))
@@ -121,10 +121,10 @@ class LayoutCompilerTests(unittest.TestCase):
                     self.assertEqual(len(shape), 2)
                     self.assertTrue(all(type(dimension) is int for dimension in shape))
                     self.assertIs(type(address), int)
-            # Exercise the candidate-facing entrypoint and its reference callback.
-            with mock.patch.object(self.helpers._candidate, "solve",
-                                   side_effect=lambda public, reference: reference(public)) as candidate:
-                submission = self.task.candidate_solve(problem)
+            # Compilation sees only the public problem descriptors.
+            with mock.patch.object(self.task, "solve",
+                                   wraps=self.task.solve) as candidate:
+                submission = self.task.solve(problem)
             self.assertEqual(candidate.call_args.args[0], problem)
         self.assertTrue(self.task.evaluate_solution(problem, submission).correct)
 
@@ -165,7 +165,7 @@ class LayoutCompilerTests(unittest.TestCase):
         second = {name: tuple((value,) * 8 for _ in range(8))
                   for name, value in (("x", 11), ("y", 13))}
         expected = self.helpers._evaluate(workload, first)["out"]
-        emitter = self.helpers._Emitter(workload["machine"])
+        emitter = self.helpers._reference._Emitter(workload["machine"])
         base, stride, _ = reference["placements"]["out"]
         for row in range(8):
             for column in range(8):
@@ -390,7 +390,7 @@ def _fused_chain(task, workload):
     out = workload["outputs"][0]
     out_stride = helpers._row_stride(shapes[out])
     out_base = rows * x_stride + rows * y_stride
-    emitter = helpers._Emitter(machine)
+    emitter = helpers._reference._Emitter(machine)
     emitter.issue(("vconst", 7, 0))
     for row in range(rows):
         for vector in range(2):

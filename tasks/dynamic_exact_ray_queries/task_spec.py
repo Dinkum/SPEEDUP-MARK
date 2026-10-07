@@ -14,14 +14,18 @@ from __future__ import annotations
 import random
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_candidate
+from speedupmark.task import load_reference
 
-
-_candidate = load_candidate(__file__)
 
 # Bound on |coordinate| for generated scenes, and on ray origins/directions.
 # Wide enough that difference products are inexact in float64 (a single
 # cross-product term already exceeds 2**60), narrow enough to stay readable.
+
+
+_reference = load_reference(__file__)
+_sub = _reference._sub
+
+
 COORD_LIMIT = 1 << 34
 RAY_LIMIT = 1 << 42
 # Mesh spacing per family. Deliberately odd: power-of-two coordinates would be
@@ -31,100 +35,6 @@ RAY_LIMIT = 1 << 42
 _COARSE = (1 << 29) + 11
 _MEDIUM = (1 << 28) + 3
 _FINE = (1 << 16) + 1
-
-
-def _sub(left, right):
-    return (left[0] - right[0], left[1] - right[1], left[2] - right[2])
-
-
-def _cross(left, right):
-    return (
-        left[1] * right[2] - left[2] * right[1],
-        left[2] * right[0] - left[0] * right[2],
-        left[0] * right[1] - left[1] * right[0],
-    )
-
-
-def _dot(left, right):
-    return left[0] * right[0] + left[1] * right[1] + left[2] * right[2]
-
-
-def _hit_parameter(ray, triangle):
-    """Return ``(numerator, denominator)`` for the hit distance, or ``None``.
-
-    Möller–Trumbore in integer arithmetic: the barycentric coordinates and the
-    ray parameter are exact rationals with a shared denominator, so every sign
-    test is a cross-multiplication and never a division. Boundary contacts are
-    inclusive, which makes hits on a shared vertex or edge exactly equal for
-    every triangle that touches them.
-    """
-    origin, direction = ray
-    vertex0, vertex1, vertex2 = triangle
-    edge1 = _sub(vertex1, vertex0)
-    edge2 = _sub(vertex2, vertex0)
-    pvec = _cross(direction, edge2)
-    determinant = _dot(edge1, pvec)
-    if determinant == 0:
-        # Parallel to the triangle plane: no division, no hit.
-        return None
-    tvec = _sub(origin, vertex0)
-    u_numerator = _dot(tvec, pvec)
-    qvec = _cross(tvec, edge1)
-    v_numerator = _dot(direction, qvec)
-    t_numerator = _dot(edge2, qvec)
-    if determinant > 0:
-        if t_numerator <= 0 or u_numerator < 0 or v_numerator < 0:
-            return None
-        if u_numerator + v_numerator > determinant:
-            return None
-        return t_numerator, determinant
-    if t_numerator >= 0 or u_numerator > 0 or v_numerator > 0:
-        return None
-    if u_numerator + v_numerator < determinant:
-        return None
-    # Flip both signs so every returned distance has a positive denominator.
-    return -t_numerator, -determinant
-
-
-def _nearest(triangles, ray):
-    """Smallest id among the closest hits; ``-1`` when nothing is hit."""
-    best_numerator = 0
-    best_denominator = 1
-    best_id = -1
-    for identifier, triangle in enumerate(triangles):
-        if triangle is None:
-            continue
-        hit = _hit_parameter(ray, triangle)
-        if hit is None:
-            continue
-        numerator, denominator = hit
-        if best_id < 0 or numerator * best_denominator < best_numerator * denominator:
-            best_numerator, best_denominator, best_id = numerator, denominator, identifier
-    return best_id
-
-
-def _query(problem):
-    """Brute-force reference: every live triangle, every ray, exact arithmetic."""
-    answers = []
-    for scene in problem["scenes"]:
-        triangles = list(scene["triangles"])
-        phases = []
-        for phase in scene["phases"]:
-            if "rays" in phase:
-                phases.append(tuple(_nearest(triangles, ray) for ray in phase["rays"]))
-                continue
-            for update in phase["updates"]:
-                kind = update[0]
-                if kind == "remove":
-                    triangles[update[1]] = None
-                elif kind == "move":
-                    triangles[update[1]] = update[2]
-                elif kind == "add":
-                    triangles.append(update[1])
-                else:
-                    raise ValueError(f"unsupported scene update {kind!r}")
-        answers.append(tuple(phases))
-    return tuple(answers)
 
 
 def _materialized(value):
@@ -318,7 +228,7 @@ def _verify_rays(problem):
 
 class DynamicExactRayQueriesTask:
     name = "dynamic_exact_ray_queries"
-    task_version = "1.1.1"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 192
     grading_cases = (192, 288)
@@ -436,11 +346,8 @@ class DynamicExactRayQueriesTask:
             "phases": phases,
         }
 
-    def solve(self, problem):
-        return _query(problem)
+    solve = staticmethod(_reference.solve)
 
-    def candidate_solve(self, problem):
-        return _candidate.solve(problem, self.solve)
 
     def is_solution(self, problem, proposed):
         try:

@@ -9,3 +9,7 @@ runs/
 /watcher/
 # Private benchmark design notes.
 /wiki/
+
+# Editable submissions are generated inside ignored run workspaces.
+/tasks/*/candidate.py
+/examples/*/candidate.py

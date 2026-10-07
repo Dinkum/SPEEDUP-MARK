@@ -2,40 +2,16 @@
 
 import heapq
 import random
-import sys
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import forbidden_imports, load_candidate, watch_imports
+from speedupmark.task import load_reference
 
 
-_candidate = load_candidate(__file__)
+_reference = load_reference(__file__)
+
+
 ENGINE_ROOTS = ("Bio", "edlib", "parasail", "pywfa", "wavefront",
                 "Levenshtein", "rapidfuzz", "skbio")
-
-
-def _reference_cost(left, right, mismatch, gap_open, gap_extend):
-    """Rolling-row three-state dynamic programming, with all cells scored."""
-    width = len(right)
-    infinity = (len(left) + width) * (mismatch + gap_open + gap_extend) + 1
-    matched = [infinity] * (width + 1)
-    deleted = [infinity] * (width + 1)
-    inserted = [infinity] + [gap_open + (j - 1) * gap_extend for j in range(1, width + 1)]
-    matched[0] = 0
-    for i, symbol in enumerate(left, 1):
-        next_match = [infinity] * (width + 1)
-        next_delete = [gap_open + (i - 1) * gap_extend] + [infinity] * width
-        next_insert = [infinity] * (width + 1)
-        for j, other in enumerate(right, 1):
-            next_match[j] = min(matched[j - 1], deleted[j - 1], inserted[j - 1]) + (
-                0 if symbol == other else mismatch
-            )
-            next_delete[j] = min(matched[j] + gap_open, inserted[j] + gap_open,
-                                 deleted[j] + gap_extend)
-            next_insert[j] = min(next_match[j - 1] + gap_open,
-                                 next_delete[j - 1] + gap_open,
-                                 next_insert[j - 1] + gap_extend)
-        matched, deleted, inserted = next_match, next_delete, next_insert
-    return min(matched[-1], deleted[-1], inserted[-1])
 
 
 def _checked_cost(left, right, mismatch, gap_open, gap_extend):
@@ -85,9 +61,10 @@ def _mutate(rng, data, count):
 
 
 class AffineGapSequenceAlignment:
+    forbidden_import_roots = ENGINE_ROOTS
     name = "affine_gap_sequence_alignment"
     display_name = TASK_CATALOG[name].display_name
-    task_version = "1.0.0"
+    task_version = "2.0.0"
     default_n = 256
     grading_cases = (256, 384)
 
@@ -119,20 +96,8 @@ class AffineGapSequenceAlignment:
             (unrelated, unrelated_other, rng.randrange(3, 10), rng.randrange(2, 9), rng.randrange(1, 4)),
         )}
 
-    def solve(self, problem):
-        return tuple(_reference_cost(*alignment) for alignment in problem["alignments"])
+    solve = staticmethod(_reference.solve)
 
-    def candidate_solve(self, problem):
-        self.policy_violations = ()
-        loaded = set(sys.modules)
-        with watch_imports(ENGINE_ROOTS) as imported_during:
-            result = _candidate.solve(problem, self.solve)
-        violations = forbidden_imports(_candidate, ENGINE_ROOTS, loaded, imported_during)
-        if violations:
-            self.policy_violations = violations
-            print(f"candidate uses forbidden engine imports: {', '.join(violations)}")
-            return None
-        return result
 
     def is_solution(self, problem, proposed):
         if type(proposed) not in (tuple, list) or len(proposed) != len(problem["alignments"]):

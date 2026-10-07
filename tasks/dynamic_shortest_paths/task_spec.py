@@ -7,46 +7,10 @@ import math
 import random
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_candidate, plain_containers
+from speedupmark.task import load_reference, plain_containers
 
 
-_candidate = load_candidate(__file__)
-
-
-def _distance(adjacency, source, target):
-    distances = {source: 0}
-    queue = [(0, source)]
-    while queue:
-        distance, vertex = heapq.heappop(queue)
-        if distance != distances[vertex]:
-            continue
-        if vertex == target:
-            return distance
-        for neighbor, weight in adjacency[vertex].items():
-            proposal = distance + weight
-            if neighbor not in distances or proposal < distances[neighbor]:
-                distances[neighbor] = proposal
-                heapq.heappush(queue, (proposal, neighbor))
-    return None
-
-
-def _forward_queries(problem):
-    results = []
-    for scenario in problem["scenarios"]:
-        adjacency = [{} for _ in range(scenario["node_count"])]
-        for source, target, weight in scenario["edges"]:
-            adjacency[source][target] = weight
-        answers = []
-        for operation in scenario["operations"]:
-            kind, source, target, *value = operation
-            if kind == "set":
-                adjacency[source][target] = value[0]
-            elif kind == "delete":
-                adjacency[source].pop(target, None)
-            else:
-                answers.append(_distance(adjacency, source, target))
-        results.append(tuple(answers))
-    return tuple(results)
+_reference = load_reference(__file__)
 
 
 def _bidirectional(forward, reverse, source, target):
@@ -112,7 +76,7 @@ def _checked_queries(problem):
 
 class DynamicShortestPathsTask:
     name = "dynamic_shortest_paths"
-    task_version = "1.1.0"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 400
     grading_cases = (400, 800)
@@ -200,11 +164,8 @@ class DynamicShortestPathsTask:
             })
         return {"scenarios": tuple(scenarios)}
 
-    def solve(self, problem):
-        return _forward_queries(problem)
+    solve = staticmethod(_reference.solve)
 
-    def candidate_solve(self, problem):
-        return _candidate.solve(problem, self.solve)
 
     def is_solution(self, problem, proposed):
         if not plain_containers(proposed) or type(proposed) not in (tuple, list) or len(proposed) != len(problem["scenarios"]):

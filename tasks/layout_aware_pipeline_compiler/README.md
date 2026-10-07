@@ -39,7 +39,7 @@ Storage convention: a 2-D tensor is row-major with `4` zero cells after each
 row, so a stencil tap that runs past the end of a row reads a zero. Memory
 starts zeroed, which is why the reference's pad cells stay zero.
 
-Implement `candidate.py::solve(problem, reference_solve)` and return one
+Implement `candidate.py::solve(problem)` and return one
 submission per workload: `{"program": schedule, "placements": {output:
 (base, row_stride, column_stride)}}`. Cell `(row, column)` of an output lives at
 `base + row * row_stride + column * column_stride`; output regions must be
@@ -56,7 +56,7 @@ copied into plain program data does the verifier draw runtime tensor values.
 The same unchanged program must work on three fresh sets of values per workload.
 Paired grading freezes both reference and candidate submissions before drawing
 an independent 256-bit verification seed, then checks both on the same values.
-Input values are never provided to `solve` or its `reference_solve` callback.
+Input values are never provided to `solve`.
 Pipeline constants, such as stencil coefficients, remain available to compilation.
 
 ## Instructions
@@ -144,7 +144,7 @@ The executable definition is [`task_spec.py`](task_spec.py), `generate_problem` 
 
 ## Grading
 
-Edit only `candidate.py`, preserving `solve(problem, reference_solve)`.
+Inside a managed run, edit only `candidate.py`, preserving `solve(problem)`.
 
 From the repository root:
 

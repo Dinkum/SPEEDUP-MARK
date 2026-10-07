@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import random
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_candidate
+from speedupmark.task import load_reference
 
 
-_candidate = load_candidate(__file__)
+_reference = load_reference(__file__)
 
 
 def _same_materialized(actual, expected):
@@ -18,24 +18,6 @@ def _same_materialized(actual, expected):
             and all(_same_materialized(a, e) for a, e in zip(actual, expected))
         )
     return type(actual) is type(expected) and actual == expected
-
-
-def _join(problem):
-    output = []
-    dimensions = problem["dimensions"]
-    for event_id, entity, event_time in problem["events"]:
-        best_key = None
-        best_value = None
-        for input_position, row in enumerate(dimensions):
-            row_entity, timestamp, sequence, value = row
-            if row_entity != entity or timestamp > event_time:
-                continue
-            key = (timestamp, sequence, input_position)
-            if best_key is None or key > best_key:
-                best_key = key
-                best_value = value
-        output.append((event_id, best_value if best_key is not None else None))
-    return tuple(output)
 
 
 def _verify_join(problem):
@@ -57,7 +39,7 @@ def _verify_join(problem):
 
 class TemporalAsOfJoinTask:
     name = "temporal_asof_join"
-    task_version = "1.1.2"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 700
     grading_cases = (700, 1400)
@@ -82,11 +64,8 @@ class TemporalAsOfJoinTask:
         )
         return {"dimensions": tuple(dimensions), "events": events}
 
-    def solve(self, problem):
-        return _join(problem)
+    solve = staticmethod(_reference.solve)
 
-    def candidate_solve(self, problem):
-        return _candidate.solve(problem, self.solve)
 
     def is_solution(self, problem, proposed):
         try:

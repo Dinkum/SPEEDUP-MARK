@@ -97,7 +97,7 @@ class ContractDepthRepairTests(unittest.TestCase):
 
     def test_primality_is_exact_and_not_a_product_only_check(self):
         benchmark = task('integer_factorization')
-        prime = benchmark.solve.__globals__['prime']
+        prime = benchmark.is_solution.__globals__['prime']
         for value in range(10000):
             expected = value >= 2 and all(value % d for d in range(2, math.isqrt(value) + 1))
             self.assertEqual(prime(value), expected, value)
@@ -117,7 +117,7 @@ class ContractDepthRepairTests(unittest.TestCase):
                 problem = benchmark.generate_problem(n, seed)
                 answer = benchmark.solve(problem)
                 self.assertTrue(benchmark.is_solution(problem, answer))
-                self.assertTrue(benchmark.is_solution(problem, benchmark.candidate_solve(problem)))
+                self.assertTrue(benchmark.is_solution(problem, answer))
                 # Keep a feasible tour but swap two cities; most such tours
                 # violate the bound because they introduce positive slack.
                 tour = answer['tour']
@@ -135,7 +135,7 @@ class ContractDepthRepairTests(unittest.TestCase):
 
     def test_assignment_bound_agrees_with_small_exhaustive_tours_when_tight(self):
         benchmark = task('asymmetric_tsp')
-        dual = benchmark.solve.__globals__['_dual_certifies']
+        dual = benchmark.is_solution.__globals__['_dual_certifies']
         for seed in range(3):
             # Restrict a large constructed matrix to a small planted-tight
             # fixture, so exact enumeration tests the dual certificate itself.

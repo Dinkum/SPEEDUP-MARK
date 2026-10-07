@@ -6,11 +6,11 @@ Choose each item zero or one time. Item `i` has a positive integer `profits[i]` 
 
 Each generated instance mixes items that favor different resources, so one profit-to-weight ordering does not dominate all cases. Sizes are 24 and 30 items. Capacities keep the exact state space bounded.
 
-The starter delegates to the reference so its baseline does not begin slower than the measured reference. Preprocessing and all candidate work belong inside the timed call. Inputs are read-only. The task is an independently authored SPEEDUP-MARK adaptation of the AlgoTune `multi_dim_knapsack` placeholder; this contract defines its complete input, output, and scoring semantics.
+The starter contains a copy of the reference implementation. Preprocessing and all candidate work belong inside the timed call. Inputs are read-only. The task is an independently authored SPEEDUP-MARK adaptation of the AlgoTune `multi_dim_knapsack` placeholder; this contract defines its complete input, output, and scoring semantics.
 
 ## Reference and verification
 
-The reference uses branch-and-bound with three one-resource fractional relaxations; the verifier independently computes the optimum by enumerating attainable three-dimensional resource vectors. The starter candidate delegates to the branch-and-bound reference. All code uses the Python standard library.
+The reference uses branch-and-bound with three one-resource fractional relaxations; the verifier independently computes the optimum by enumerating attainable three-dimensional resource vectors. The starter candidate contains the branch-and-bound implementation. All code uses the Python standard library.
 
 ## Workload distribution
 
@@ -23,7 +23,7 @@ The executable definition is [`task_spec.py`](task_spec.py), `generate_problem` 
 
 ## Grading
 
-Edit only `candidate.py`, preserving `solve(problem, reference_solve)`.
+Inside a managed run, edit only `candidate.py`, preserving `solve(problem)`.
 
 From the repository root:
 

@@ -16,60 +16,21 @@ os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
 os.environ.setdefault("VECLIB_MAXIMUM_THREADS", "1")
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_candidate
+from speedupmark.task import load_reference
 
 
-_candidate = load_candidate(__file__)
+_reference = load_reference(__file__)
+_integrate = _reference._integrate
+_need = _reference._need
 
 
 def _family(seed):
     return ("smooth", "steep", "two_wave")[seed % 3]
 
 
-def _need():
-    try:
-        import numpy
-        import scipy.integrate
-    except ImportError as exc:
-        raise ImportError(
-            "pde_burgers1d requires optional dependencies: numpy, scipy. "
-            "Install the pinned numerical extra in requirements-numerical.txt. "
-            "The smoke and extended suites do not include this task."
-        ) from exc
-    return numpy, scipy.integrate
-
-
-def burgers_rhs(_time, state, nu, dx):
-    """Dirichlet-zero upwind advection and central diffusion on interior nodes."""
-    numpy = _need()[0]
-    padded = numpy.pad(state, 1)
-    diffusion = (padded[2:] - 2 * padded[1:-1] + padded[:-2]) / dx**2
-    center = padded[1:-1]
-    forward = (padded[2:] - center) / dx
-    backward = (center - padded[:-2]) / dx
-    advection = numpy.where(center >= 0, center * backward, center * forward)
-    return -advection + nu * diffusion
-
-
-def _integrate(problem, method):
-    _numpy, integrate = _need()
-    params = problem["params"]
-    solution = integrate.solve_ivp(
-        lambda time, state: burgers_rhs(time, state, params["nu"], params["dx"]),
-        (problem["t0"], problem["t1"]),
-        problem["y0"],
-        method=method,
-        rtol=1e-6,
-        atol=1e-8,
-    )
-    if not solution.success:
-        raise ValueError(f"Burgers integrator failed: {solution.message}")
-    return [float(value) for value in solution.y[:, -1]]
-
-
 class Burgers1D:
     name = "pde_burgers1d"
-    task_version = "1.1.0"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 120
     grading_cases = (120, 200)
@@ -104,11 +65,8 @@ class Burgers1D:
             "x_grid": [float(value) for value in grid],
         }
 
-    def solve(self, problem):
-        return _integrate(problem, "BDF")
+    solve = staticmethod(_reference.solve)
 
-    def candidate_solve(self, problem):
-        return _candidate.solve(problem, self.solve)
 
     def is_solution(self, problem, proposed):
         numpy = _need()[0]

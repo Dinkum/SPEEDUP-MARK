@@ -9,123 +9,12 @@ import math
 import random
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_candidate, plain_containers
+from speedupmark.task import load_reference, plain_containers
 
 
-_candidate = load_candidate(__file__)
-_INF = math.inf
-
-
-def _add_label(labels, energy, time):
-    """Retain every nondominated energy/time tradeoff."""
-    if any(used <= energy and elapsed <= time for used, elapsed in labels):
-        return False
-    labels[:] = [(used, elapsed) for used, elapsed in labels
-                 if not (energy <= used and time <= elapsed)]
-    labels.append((energy, time))
-    return True
-
-
-def _forward_profiles(adjacency, source, budget, targets):
-    """Positive energy makes the exact-energy state graph a DAG."""
-    size = len(adjacency)
-    distance = [[_INF] * size for _ in range(budget + 1)]
-    distance[0][source] = 0
-    for used in range(budget + 1):
-        row = distance[used]
-        for vertex, elapsed in enumerate(row):
-            if elapsed == _INF:
-                continue
-            for neighbor, travel_time, energy in adjacency[vertex].values():
-                next_energy = used + energy
-                if next_energy <= budget:
-                    proposal = elapsed + travel_time
-                    if proposal < distance[next_energy][neighbor]:
-                        distance[next_energy][neighbor] = proposal
-    result = {}
-    for target in targets:
-        labels = []
-        best_time = _INF
-        for used, row in enumerate(distance):
-            elapsed = row[target]
-            if elapsed < best_time:
-                labels.append((used, elapsed))
-                best_time = elapsed
-        result[target] = tuple(labels)
-    return result
-
-
-def _reference_route_options(vehicle, jobs, profiles):
-    origin, capacity, skills, budget = vehicle
-    eligible = [index for index, (_, required, _) in enumerate(jobs)
-                if skills & required]
-    options = {0: 0}
-    states = {}
-    for index in eligible:
-        mask = 1 << index
-        labels = [(energy, elapsed) for energy, elapsed
-                  in profiles[origin][jobs[index][0]] if energy <= budget]
-        if labels:
-            states[mask, index] = labels
-
-    for depth in range(1, min(capacity, len(eligible)) + 1):
-        next_states = {}
-        for (mask, last), labels in states.items():
-            return_labels = profiles[jobs[last][0]][origin]
-            for used, elapsed in labels:
-                for energy, travel_time in return_labels:
-                    if used + energy <= budget:
-                        options[mask] = min(options.get(mask, _INF),
-                                            elapsed + travel_time)
-            if depth == capacity:
-                continue
-            for index in eligible:
-                bit = 1 << index
-                if mask & bit:
-                    continue
-                leg = profiles[jobs[last][0]][jobs[index][0]]
-                target = next_states.setdefault((mask | bit, index), [])
-                for used, elapsed in labels:
-                    for energy, travel_time in leg:
-                        if used + energy <= budget:
-                            _add_label(target, used + energy,
-                                       elapsed + travel_time)
-        states = next_states
-    return options
-
-
-def _forward_allocation(options_by_vehicle, jobs):
-    penalties = [job[2] for job in jobs]
-    saved = [0] * (1 << len(jobs))
-    for mask in range(1, len(saved)):
-        bit = mask & -mask
-        saved[mask] = saved[mask ^ bit] + penalties[bit.bit_length() - 1]
-    # The state stores tour time minus penalties of served jobs.
-    states = {0: 0}
-    for options in options_by_vehicle:
-        next_states = states.copy()
-        for covered, previous_cost in states.items():
-            for tour_mask, tour_time in options.items():
-                if tour_mask and not covered & tour_mask:
-                    combined = covered | tour_mask
-                    proposal = previous_cost + tour_time - saved[tour_mask]
-                    if proposal < next_states.get(combined, _INF):
-                        next_states[combined] = proposal
-        states = next_states
-    return saved[-1] + min(states.values())
-
-
-def _reference_dispatch(adjacency, vehicles, jobs):
-    if not jobs:
-        return 0
-    budget = max((vehicle[3] for vehicle in vehicles), default=0)
-    waypoints = {location for location, _, _, _ in vehicles}
-    waypoints.update(job[0] for job in jobs)
-    profiles = {source: _forward_profiles(adjacency, source, budget, waypoints)
-                for source in waypoints}
-    options = [_reference_route_options(vehicle, jobs, profiles)
-               for vehicle in vehicles]
-    return _forward_allocation(options, jobs)
+_reference = load_reference(__file__)
+_INF = _reference._INF
+_add_label = _reference._add_label
 
 
 def _reverse_labels(adjacency, destination, budget):
@@ -223,18 +112,6 @@ def _checked_dispatch(reverse, vehicles, jobs):
     return _checked_allocation(options, jobs)
 
 
-def _visible_vehicles(events, cutoff, identifiers):
-    vehicles = []
-    for identifier in identifiers:
-        current = None
-        for event in events.get(identifier, ()):
-            if event[0] <= cutoff and (current is None or event[:2] > current[:2]):
-                current = event
-        if current is not None:
-            vehicles.append(current[2:])
-    return tuple(vehicles)
-
-
 def _checked_visible_vehicles(events, cutoff, identifiers):
     vehicles = []
     for identifier in identifiers:
@@ -245,47 +122,41 @@ def _checked_visible_vehicles(events, cutoff, identifiers):
     return tuple(vehicles)
 
 
-def _process(problem, check=False):
+def _checked_trace(problem):
     answers = []
-    for scenario in problem["scenarios"]:
-        size = scenario["node_count"]
+    for scenario in problem['scenarios']:
+        size = scenario['node_count']
         forward = [{} for _ in range(size)]
-        reverse = [{} for _ in range(size)] if check else None
-        for start, end, travel_time, energy in scenario["edges"]:
+        reverse = [{} for _ in range(size)]
+        for start, end, travel_time, energy in scenario['edges']:
             forward[start][end] = (end, travel_time, energy)
-            if check:
-                reverse[end][start] = (start, travel_time, energy)
+            reverse[end][start] = (start, travel_time, energy)
         rounds = []
         events = {}
-        for sequence, operation in enumerate(scenario["operations"]):
+        for sequence, operation in enumerate(scenario['operations']):
             kind = operation[0]
-            if kind == "set":
+            if kind == 'set':
                 _, start, end, travel_time, energy = operation
                 forward[start][end] = (end, travel_time, energy)
-                if check:
-                    reverse[end][start] = (start, travel_time, energy)
-            elif kind == "delete":
+                reverse[end][start] = (start, travel_time, energy)
+            elif kind == 'delete':
                 _, start, end = operation
                 forward[start].pop(end, None)
-                if check:
-                    reverse[end].pop(start, None)
-            elif kind == "telemetry":
+                reverse[end].pop(start, None)
+            elif kind == 'telemetry':
                 _, identifier, timestamp, location, capacity, skills, battery = operation
-                events.setdefault(identifier, []).append(
-                    (timestamp, sequence, location, capacity, skills, battery))
+                events.setdefault(identifier, []).append((timestamp, sequence, location, capacity, skills, battery))
             else:
                 _, cutoff, identifiers, jobs = operation
-                vehicles = (_checked_visible_vehicles(events, cutoff, identifiers) if check
-                            else _visible_vehicles(events, cutoff, identifiers))
-                rounds.append((_checked_dispatch(reverse, vehicles, jobs) if check
-                               else _reference_dispatch(forward, vehicles, jobs)))
+                vehicles = _checked_visible_vehicles(events, cutoff, identifiers)
+                rounds.append(_checked_dispatch(reverse, vehicles, jobs))
         answers.append(tuple(rounds))
     return tuple(answers)
 
 
 class LiveFleetDispatchTask:
     name = "live_fleet_dispatch"
-    task_version = "1.2.0"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 60
     grading_cases = (60, 96)
@@ -407,11 +278,8 @@ class LiveFleetDispatchTask:
                               "edges": initial, "operations": tuple(operations)})
         return {"scenarios": tuple(scenarios)}
 
-    def solve(self, problem):
-        return _process(problem)
+    solve = staticmethod(_reference.solve)
 
-    def candidate_solve(self, problem):
-        return _candidate.solve(problem, self.solve)
 
     def is_solution(self, problem, proposed):
         if (not plain_containers(proposed) or type(proposed) not in (tuple, list)
@@ -421,7 +289,7 @@ class LiveFleetDispatchTask:
                or any(type(cost) is not int for cost in rounds)
                for rounds in proposed):
             return False
-        return tuple(tuple(rounds) for rounds in proposed) == _process(problem, check=True)
+        return tuple(tuple(rounds) for rounds in proposed) == _checked_trace(problem)
 
 
 TASK = LiveFleetDispatchTask()

@@ -3,23 +3,16 @@
 import random
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_candidate
+from speedupmark.task import load_reference
 
-_candidate = load_candidate(__file__)
 
-def residual(problem, flow):
-    arcs = []
-    for i, (u, v, capacity, cost) in enumerate(problem["edges"]):
-        if flow[i] < capacity:
-            arcs.append((u, v, capacity - flow[i], cost, i, 1))
-        if flow[i]:
-            arcs.append((v, u, flow[i], -cost, i, -1))
-    return arcs
+_reference = load_reference(__file__)
+residual = _reference.residual
 
 
 class Task:
     name = "min_cost_max_flow"
-    task_version = "1.1.0"
+    task_version = "2.0.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 100
     grading_cases = (100, 180)
@@ -39,32 +32,7 @@ class Task:
         rng.shuffle(edges)
         return {"num_nodes": n, "source": 0, "sink": n - 1, "edges": edges}
 
-    def solve(self, problem):
-        n, source, sink = problem["num_nodes"], problem["source"], problem["sink"]
-        flow = [0] * len(problem["edges"])
-        while True:
-            arcs = residual(problem, flow)
-            distance, previous = [float("inf")] * n, [None] * n
-            distance[source] = 0
-            for _ in range(n - 1):
-                changed = False
-                for arc in arcs:
-                    u, v, capacity, cost, i, sign = arc
-                    if distance[u] + cost < distance[v]:
-                        distance[v], previous[v] = distance[u] + cost, arc
-                        changed = True
-                if not changed:
-                    break
-            if previous[sink] is None:
-                return {"flow": flow}
-            path, at = [], sink
-            while at != source:
-                arc = previous[at]
-                path.append(arc)
-                at = arc[0]
-            amount = min(arc[2] for arc in path)
-            for _, _, _, _, i, sign in path:
-                flow[i] += amount * sign
+    solve = staticmethod(_reference.solve)
 
     def is_solution(self, problem, proposed):
         if type(proposed) is not dict or set(proposed) != {"flow"}:
@@ -105,9 +73,6 @@ class Task:
             if not changed:
                 return True
         return False
-
-    def candidate_solve(self, problem):
-        return _candidate.solve(problem, self.solve)
 
 
 TASK = Task()

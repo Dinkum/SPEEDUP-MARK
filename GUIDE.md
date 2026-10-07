@@ -30,7 +30,10 @@ The neutral factor is a reporting rule; it does not mean the task was solved.
 
 ## Submission rules
 
-Implement `candidate.py::solve(problem, reference_solve)` and return completed
+Each managed run starts with an exact copy of the task's `reference.py`.
+Grading requires `candidate.py` to exist and its SHA-256 to differ from the reference.
+An unchanged copy reports `INFO` and receives no measurements or score.
+Optimize `candidate.py::solve(problem)` and return completed
 data in the types specified by the task. Containers must be built-in types;
 numerical tasks may also accept exact real numeric NumPy arrays. Custom objects,
 subclasses, iterators, object arrays, and cycles are invalid. The grader copies
@@ -73,7 +76,7 @@ python3 -m speedupmark run create temporal_asof_join \
   --harness my-agent --model exact-model-id --effort medium
 ```
 
-The printed path contains a fresh reference-delegating candidate, task README,
+The printed path contains a fresh copy of the reference implementation, task README,
 shared prompt, and `grade.py`. Give the workspace to your chosen runner on the
 same machine. It edits only `candidate.py` and runs `python3 grade.py` inside that
 workspace to record candidate snapshots and measurements. Temporary work belongs
@@ -209,8 +212,8 @@ Prepare a reviewed archive without publishing it:
 python3 scripts/prepare_public.py runs/speedupmark-public.zip
 ```
 
-The builder includes an explicit source inventory and fresh reference-delegating
-candidates. It excludes private notes, local harnesses, runs, monitoring, caches,
+The builder includes task references and specifications from an explicit source
+inventory, with no candidate submissions. It excludes private notes, local harnesses, runs, monitoring, caches,
 and Git metadata, and records file hashes in `PUBLIC_MANIFEST.json`. It refuses to
 overwrite an archive. Validate the extracted artifact before distributing it.
 The archive contains the root MIT license and `THIRD_PARTY.json` source inventory.
