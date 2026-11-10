@@ -14,7 +14,7 @@ Verification enforces both size and bounded exact decompression. Defaults are 10
 
 ## Workload distribution
 
-- **Size:** n is plaintext byte count.
+- **Size:** n is plaintext byte count. Each graded sample sums 40 independent problems of one family, because a single reference call is too short to time.
 - **Selection:** seed % 4 selects random bytes, skewed words, repeated motif, or mixed log/binary.
 - **Randomized:** Uniform bytes; 100 lowercase words of lengths 3–15 sampled with cubic rank skew; a 4096-byte motif over values 0–15; or random 512-byte blocks.
 - **Fixed structure:** Mixed mode alternates a fixed log line block with binary blocks. Small n may contain only the fixed prefix. Three samples do not cover all four modes.

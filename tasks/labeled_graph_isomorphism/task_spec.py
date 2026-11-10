@@ -31,10 +31,12 @@ def _valid_mapping(problem, mapping):
 
 class LabeledGraphIsomorphismTask:
     name = "labeled_graph_isomorphism"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
-    default_n = 10
-    grading_cases = (10, 20)
+    default_n = 32
+    grading_cases = (32, 40)
+    timing_batch = 24
+    family_period = 3
 
     def generate_problem(self, n=10, random_seed=0):
         if type(n) is not int or n < 1:

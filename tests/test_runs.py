@@ -4,6 +4,7 @@ import ast
 import contextlib
 import io
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -12,7 +13,7 @@ import unittest
 from unittest.mock import patch
 
 from speedupmark import run_manager
-from speedupmark.revision import task_revision
+from speedupmark.revision import SHARED_FILES, task_revision
 
 
 REFERENCE = 'def solve(problem): return sum(problem)\n'
@@ -128,9 +129,7 @@ class RunFlowTests(unittest.TestCase):
     def test_revision_links_task_grader_and_prompt_bytes(self):
         package = self.root / 'speedupmark'
         package.mkdir()
-        for name in ('__init__.py', '__main__.py', 'catalog.py', 'harness.py', 'revision.py',
-                     'run_manager.py',
-                     'run_prompt.txt', 'suites.py', 'task.py'):
+        for name in SHARED_FILES:
             (package / name).write_bytes((run_manager.ROOT / 'speedupmark' / name).read_bytes())
         original, files = task_revision(self.source, package)
         self.assertIn('tasks/fixture/task_spec.py', files)
@@ -139,7 +138,7 @@ class RunFlowTests(unittest.TestCase):
         (self.source / 'candidate.py').write_text('changed candidate')
         self.assertEqual(task_revision(self.source, package)[0], original)
         for path in (self.source / 'task_spec.py', self.source / 'reference.py', package / 'harness.py',
-                     package / 'run_manager.py',
+                     package / 'run_manager.py', package / 'dependencies.py',
                      package / 'run_prompt.txt'):
             before = path.read_bytes()
             path.write_bytes(before + b'\n')
@@ -170,6 +169,33 @@ class RunFlowTests(unittest.TestCase):
         self.assertIsNone(final['best_development'])
         self.assertFalse(final['final']['correct'])
         self.assertIn('unchanged_candidate', json.dumps(final['final']))
+
+    def test_dependency_failure_is_consistent_and_agent_can_recover(self):
+        packages = self.root / 'agent-packages'
+        packages.mkdir()
+        (packages / 'numpy.py').write_text('raise AssertionError("package must not execute")\n')
+        for repair in (False, True):
+            with self.subTest(repair=repair):
+                run = self.create()
+                candidate = run / 'workspace/tasks/fixture/candidate.py'
+                candidate.write_text('import numpy\ndef solve(problem): return sum(problem)\n')
+                completed = subprocess.run([sys.executable, 'grade.py'], cwd=run / 'workspace',
+                                           env=dict(os.environ, PYTHONPATH=str(packages)),
+                                           capture_output=True, text=True)
+                self.assertEqual(completed.returncode, 1, completed.stderr)
+                development = run_manager.history(run)[0]
+                self.assertFalse(development['correct'])
+                for report in development['reports']:
+                    self.assertEqual(report['errors'][0]['code'], 'dependency_violation')
+                if repair:
+                    candidate.write_text('def solve(problem): return sum(reversed(problem))\n')
+                    self.assertTrue(run_manager.evaluate_run(run)['correct'])
+                final = run_manager.finish_run(run)
+                self.assertEqual(final['final']['correct'], repair)
+                self.assertEqual(final['final']['integrity'], 'passed')
+                if not repair:
+                    for report in final['final']['reports']:
+                        self.assertEqual(report['errors'][0]['code'], 'dependency_violation')
 
     def test_shared_grading_command_logs_snapshot_and_result(self):
         run = self.create()
@@ -542,7 +568,15 @@ class GradingCaseContractTests(unittest.TestCase):
             (task / 'task_spec.py').write_text(
                 'raise RuntimeError("must not import")\n' + FIXTURE)
             (task / 'candidate.py').write_text('while True: pass\n')
-            self.assertEqual(run_manager._grading_sizes(root, 'fixture', None), (4, 8))
+            self.assertEqual(run_manager._grading_plan(root, 'fixture', None, 1), ((4, 8), 1))
+            # The next size starts after every seed the worker draws: samples
+            # rounded up to the family period, times the timing batch.
+            (task / 'task_spec.py').write_text(
+                'raise RuntimeError("must not import")\n'
+                + FIXTURE.replace('grading_cases = (4, 8)',
+                                  'grading_cases = (4, 8)\n    family_period = 4\n    timing_batch = 5'))
+            self.assertEqual(run_manager._grading_plan(root, 'fixture', None, 3), ((4, 8), 20))
+            self.assertEqual(run_manager._grading_plan(root, 'fixture', 6, 5), ((6,), 40))
 
     def test_task_versions_require_canonical_semver(self):
         from speedupmark.task import declared_task_version

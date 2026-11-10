@@ -16,7 +16,7 @@ Large instances have a planted assignment-tight tour among many tight edges. Can
 
 ## Workload distribution
 
-- **Size:** n is city count, 2–256; managed cases are 12, 48, and 96.
+- **Size:** n is city count, 2–256; managed cases are 12, 48, and 96. Each graded sample sums 4 independent problems of one family, because a single reference call is too short to time.
 - **Selection:** n<=16 uses asymmetric regional costs. At larger n, seed % 3 selects sparse tight arcs, clustered tight arcs, or dense tight arcs.
 - **Randomized:** Small cases use regional edge costs and depot increments. Large cases draw row/column potentials 1–59, positive slacks 1–99, extra zero-slack arcs with probabilities 0.18 or 0.42 (clustered: 0.50 within groups, 0.16 across groups), and a shuffled planted zero-slack cycle.
 - **Fixed structure:** Small-case regions use city index modulo three. Large-case costs are row potential + column potential + nonnegative slack, and the planted cycle attains the assignment bound. The depot is fixed; all off-diagonal arcs exist. Neither potentials nor the planted tour appear in the input.

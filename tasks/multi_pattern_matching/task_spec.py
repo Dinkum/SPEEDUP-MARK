@@ -166,7 +166,7 @@ def _seam_boundaries(rng, data, patterns):
 class CompiledStreamingPatternMatchingTask:
     forbidden_import_roots = ENGINE_ROOTS
     name = "multi_pattern_matching"
-    task_version = "3.0.0"
+    task_version = "3.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 2048
     grading_cases = (2048, 3072)

@@ -12,10 +12,11 @@ _convolve = _reference._convolve
 
 class ConvolutionTask:
     name = "exact_integer_convolution"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
-    default_n = 420
-    grading_cases = (420, 840)
+    default_n = 840
+    grading_cases = (840, 1260)
+    family_period = 15
 
     def generate_problem(self, n=420, random_seed=0):
         if n < 1:

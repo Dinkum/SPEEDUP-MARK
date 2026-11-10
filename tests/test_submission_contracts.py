@@ -2,12 +2,14 @@
 
 import pathlib
 import shutil
+import sys
 import tempfile
 import types
 import unittest
 
 from speedupmark.harness import load_task
 from speedupmark.task import forbidden_imports
+from speedupmark.dependencies import DependencyViolation
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -193,6 +195,10 @@ class SubmissionContractTests(unittest.TestCase):
                     "def unused():\n"
                     f"    import {root}\n"
                 )
+                if root not in sys.stdlib_module_names:
+                    with self.assertRaises(DependencyViolation):
+                        load_task(task_dir)
+                    continue
                 task = load_task(task_dir)
                 problem = task.generate_problem(32, 0)
                 self.assertIsNone(task.candidate_solve(problem))

@@ -228,7 +228,7 @@ def _verify_rays(problem):
 
 class DynamicExactRayQueriesTask:
     name = "dynamic_exact_ray_queries"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 192
     grading_cases = (192, 288)

@@ -23,10 +23,12 @@ def _family(seed):
 
 class GraphColoringAssign:
     name = "graph_coloring"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
-    default_n = 14
-    grading_cases = (14, 20)
+    default_n = 24
+    grading_cases = (24, 32)
+    timing_batch = 64
+    family_period = 4
 
     def workload_family(self, n, random_seed=0):
         return _family(random_seed)

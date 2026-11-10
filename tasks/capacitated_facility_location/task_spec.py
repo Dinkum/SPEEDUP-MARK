@@ -56,10 +56,11 @@ def _no_cheaper_assignment(problem, target):
 
 class CapacitatedFacilityLocation:
     name = "capacitated_facility_location"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
-    default_n = 8
-    grading_cases = (8, 11)
+    default_n = 10
+    grading_cases = (10, 11)
+    family_period = 3
 
     def workload_family(self, n, random_seed=0):
         return _family(random_seed)

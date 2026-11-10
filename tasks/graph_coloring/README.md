@@ -16,7 +16,7 @@ The reference is a maximum-clique lower bound, a largest-first greedy coloring, 
 
 ## Workload distribution
 
-- **Size:** n is vertex count.
+- **Size:** n is vertex count. Each graded sample sums 64 independent problems of one family, because a single reference call is too short to time.
 - **Selection:** seed % 4 selects sparse, dense, symmetric, or planted.
 - **Randomized:** Sparse/dense edges use probabilities 0.18/0.45; planted edges use probability 0.75 across three groups (two below n=6). Symmetric graphs draw a base graph with density uniform in [0.25,0.7], then replace base vertices by shuffled, variable-size false-twin classes.
 - **Fixed structure:** Symmetric base size is min(n,max(3,n//2)); both base adjacency and twin multiplicities vary, so the coloring optimum is not fixed. Planted group membership is structural; its edges vary.

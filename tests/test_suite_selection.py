@@ -26,7 +26,7 @@ class SuiteSelectionTests(unittest.TestCase):
         self.assertEqual(len(set(EXTENDED_TASKS)), 25)
         self.assertTrue(set(SMOKE_TASKS) <= set(EXTENDED_TASKS) <= implemented)
         self.assertTrue(set(EXTENDED_TASKS) <= implemented)
-        self.assertEqual(len(implemented), 50)
+        self.assertEqual(len(implemented), 52)
         self.assertTrue({
             "job_shop_scheduling", "multi_dim_knapsack", "pagerank", "asymmetric_tsp", "affine_gap_sequence_alignment"
         } <= implemented)

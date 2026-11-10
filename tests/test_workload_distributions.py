@@ -56,9 +56,12 @@ class WorkloadDistributionTests(unittest.TestCase):
                 self.assertTrue(task.is_solution(problem, answer))
                 families.add(task.workload_family(size, seed))
                 if seed % 4 == 1:
-                    self.assertLess(answer['q'] - answer['p'], 1500)
+                    # Close, yet beyond the first Fermat step.
+                    self.assertEqual(answer['p'].bit_length(), answer['q'].bit_length())
+                    self.assertLess(answer['q'] - answer['p'], answer['p'] >> 2)
+                    self.assertGreater(answer['q'] - answer['p'], 2)
                 if seed % 4 == 3:
-                    self.assertLessEqual(answer['p'].bit_length(), 20)
+                    self.assertLessEqual(answer['p'].bit_length(), min(28, 3 * size // 8))
             self.assertEqual(families, {'balanced', 'close', 'smooth_factor', 'unbalanced'})
         for family in range(4):
             values = [task.generate_problem(64, seed)['composite']

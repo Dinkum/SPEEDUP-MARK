@@ -22,7 +22,7 @@ def _same_materialized(actual, expected):
 
 class SQLiteAnalyticsReportsTask:
     name = "grouped_analytics_reports"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     uses_reference_output = True
     default_n = 5000

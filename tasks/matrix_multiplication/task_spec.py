@@ -11,10 +11,11 @@ _reference = load_reference(__file__)
 
 class Task:
     name = "matrix_multiplication"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
-    default_n = 45
-    grading_cases = (45, 75)
+    default_n = 75
+    grading_cases = (75, 110)
+    family_period = 12
 
     def generate_problem(self, n=45, random_seed=0):
         if n < 1:

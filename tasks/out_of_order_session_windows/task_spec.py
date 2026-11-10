@@ -60,7 +60,7 @@ def _verify_sessions(problem):
 
 class OutOfOrderSessionWindowsTask:
     name = "out_of_order_session_windows"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 2400
     grading_cases = (2400, 4800)

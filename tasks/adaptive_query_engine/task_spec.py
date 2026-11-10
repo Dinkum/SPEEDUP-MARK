@@ -260,7 +260,7 @@ def _events(rng, rows, customers, regions):
 class AdaptiveQueryEngineTask:
     forbidden_import_roots = ENGINE_ROOTS
     name = "adaptive_query_engine"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 2400
     grading_cases = (2400, 3600)

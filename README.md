@@ -12,7 +12,7 @@ Speedup is reference cost divided by candidate cost: **2.000x means twice as fas
 
 - **Smoke**: 10 core tasks to quickly test agent setups.
 - **Extended**: 25 tasks.
-- **All**: 50 tasks.
+- **All**: 52 tasks.
 
 ![GPT-6 Luna medium with Hermes: verified speedup over time on the layout aware pipeline compiler](diagrams/luna-hermes-progress.png)
 
@@ -69,7 +69,7 @@ Reports include progress measurements and final scores. Final grading selects th
 
 | Command | Purpose |
 | --- | --- |
-| `python3 -m speedupmark all --list` | List all 50 tasks |
+| `python3 -m speedupmark all --list` | List all 52 tasks |
 | `python3 grade.py` | Submit the candidate and record progress from inside a run workspace |
 | `python3 -m speedupmark run evaluate runs/<id>` | Submit the workspace candidate from the repository root |
 | `python3 -m speedupmark run finish runs/<id>` | Finish a manually handed off run and grade its best verified candidate |
@@ -83,7 +83,7 @@ Grading uses three samples and fresh seeds by default. Use `--seed` to replay a 
 
 ## Task List
 
-`smoke` contains 10 tasks. `extended` includes those 10 plus 15 more. `all` includes all 50 benchmark tasks below. Each task links to its full contract; use its directory name to run it individually.
+`smoke` contains 10 tasks. `extended` includes those 10 plus 15 more. `all` includes all 52 benchmark tasks below. Each task links to its full contract; use its directory name to run it individually.
 
 | Task | Workload | Included in |
 | --- | --- | --- |
@@ -113,6 +113,8 @@ Grading uses three samples and fresh seeds by default. Use `--seed` to replay a 
 | [Queens With Obstacles](tasks/queens_with_obstacles/README.md) | Maximum independent set on queen attack graphs: find the largest nonattacking placement with obstacle blocked attacks | extended, all |
 | [Multi-Pattern Matching](tasks/multi_pattern_matching/README.md) | Automaton compilation versus scanning: choose shared states, literal filters, and representations for exact matches across byte chunks | extended, all |
 | [Exact Near-Duplicate Document Clustering](tasks/near_duplicate_document_clustering/README.md) | Exact set similarity joins: prune document pairs without missing Jaccard threshold edges, then compute connected components | extended, all |
+| [Register VM Program Execution](tasks/register_vm_execution/README.md) | Interpreter and translator design: balance dispatch cost against compile time across hot loops, branching, calls, and run once programs | all |
+| [Sparse Life Generations](tasks/sparse_life_generations/README.md) | Cellular automaton stepping: choose between sparse sets, packed bit rows, isolated components, and cycle skipping for differing patterns | all |
 | [Capacitated Facility Location](tasks/capacitated_facility_location/README.md) | Coupled facility opening and assignment: minimize fixed and service costs while fitting indivisible customers into shared capacities | all |
 | [Delaunay Triangulation](tasks/delaunay/README.md) | Robust geometric construction: balance point location, local triangulation updates, and exact orientation and incircle checks | all |
 | [Prime-Field Discrete Logarithm](tasks/discrete_log/README.md) | Finite group exponent recovery: exploit subgroup orders and balance modular search time against lookup table memory | all |

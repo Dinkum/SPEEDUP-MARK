@@ -11,10 +11,11 @@ _reference = load_reference(__file__)
 
 class Task:
     name = "exact_k_nearest_neighbors"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 700
     grading_cases = (700, 1400)
+    family_period = 6
 
     def generate_problem(self, n=700, random_seed=0):
         if n < 1:

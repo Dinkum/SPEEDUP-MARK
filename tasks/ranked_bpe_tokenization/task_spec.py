@@ -53,10 +53,11 @@ def _verify_encoding(problem):
 class RankedBPETokenizationTask:
     forbidden_import_roots = TOKENIZER_ROOTS
     name = "ranked_bpe_tokenization"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 3000
     grading_cases = (3000, 6000)
+    family_period = 3
 
     def generate_problem(self, n=3000, random_seed=0):
         if n < 0:

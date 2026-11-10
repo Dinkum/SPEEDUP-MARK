@@ -12,7 +12,7 @@ The reference uses constrained backtracking. Candidates can improve refinement, 
 
 ## Workload distribution
 
-- **Size:** n is the actual vertex count; declared cases have 10 and 20 vertices.
+- **Size:** n is the actual vertex count; declared cases have 32 and 40 vertices. Each graded sample sums 24 independent problems of one family, because a single reference call is too short to time.
 - **Selection:** seed % 3 selects labeled positive, uniform-label positive, or connected negative (negative only for n>=6).
 - **Randomized:** All graphs begin with a cycle (an edge at n=2). Labeled positives add chords with a sampled density 0.15–0.35 and up to three labels. Other cases add a random matching to the cycle. Both sides are independently permuted. Negatives apply degree-preserving edge switches and retain connected, exactly certified non-isomorphic pairs.
 - **Fixed structure:** Both sides have equal label and degree histograms and are connected. Negative generation is rejection-conditioned: at most 32 base graphs, each with 32 attempted switches, then a clear generation failure. The exact baseline orders vertices by adjacency to already selected vertices; there is no size clamp.

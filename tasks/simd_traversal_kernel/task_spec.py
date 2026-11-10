@@ -303,7 +303,7 @@ def _evaluate_submissions(problem, outputs, *, replay=None, record=None):
 
 class SIMDTraversalKernelTask:
     name = "simd_traversal_kernel"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 64
     grading_cases = (32, 128)

@@ -8,13 +8,13 @@ Only Python standard-library dependencies are required. All output containers mu
 
 ## Reference and verification
 
-The reference tries 128 Fermat steps for nearby factors, then uses replayable Pollard rho with Floyd cycle detection. Verification checks the exact product and each factor with deterministic 64-bit Miller–Rabin; it never reruns factorization. Families reward different choices: close factors favor Fermat, smooth p-1 favors order-based methods, and balanced or unbalanced factors change rho costs. Brent cycle detection, batched GCDs, and algorithm selection remain available. These bounded families do not establish performance on arbitrary balanced 120-bit semiprimes or an ECM/quadratic-sieve ladder.
+The reference tries 4,096 Fermat steps for nearby factors, then uses replayable Pollard rho with Floyd cycle detection. Verification checks the exact product and each factor with deterministic 64-bit Miller–Rabin; it never reruns factorization. Families reward different choices: close factors favor Fermat, smooth p-1 favors order-based methods, and balanced or unbalanced factors change rho costs. Brent cycle detection, batched GCDs, and algorithm selection remain available. These bounded families do not establish performance on arbitrary balanced 120-bit semiprimes or an ECM/quadratic-sieve ladder.
 
 ## Workload distribution
 
-- **Size:** n is a composite bit budget, 24–80; managed cases are 64 and 80.
+- **Size:** n is a composite bit budget, 24–80; managed cases are 64 and 80. Each graded sample sums 24 independent problems of one family, because a single reference call is too short to time.
 - **Selection:** seed % 4 selects balanced, close, smooth_factor, or unbalanced. Four consecutive seeds cover all four.
-- **Randomized:** Prime starts, smooth-order products, and close-factor gaps vary. Balanced and smooth_factor use a smaller-factor bit length min(32,n//2); unbalanced uses min(20,n//3). The other factor uses the remaining bit budget. Close uses two n//2-bit factors separated by a random even start gap 2–1024, advanced to a prime.
+- **Randomized:** Prime starts, smooth-order products, and close-factor gaps vary. Balanced and smooth_factor use a smaller-factor bit length min(32,n//2); unbalanced uses min(28,3*n//8). The other factor uses the remaining bit budget. Close uses two n//2-bit factors, the smaller drawn from the lower half of that range, separated by a random even gap near 2**(n//4+6) and advanced to a prime; that gap needs hundreds to thousands of Fermat steps, not one.
 - **Fixed structure:** Distinct-prime semiprimes; the smaller generic factor is capped at 32 bits. Smooth-factor orders use small odd primes and a power of two. Prime advancement and primality conditioning do not sample primes uniformly. No factor or family label is supplied in the problem.
 
 The executable definition is [`task_spec.py`](task_spec.py), `generate_problem` and its helpers. See [sampling and coverage](../../GUIDE.md#sampling) for how the grader chooses and records seeds.

@@ -8,7 +8,7 @@ Only Python standard-library dependencies are required. All output containers mu
 
 ## Reference and verification
 
-The baseline is heap Prim; an independent union-find Kruskal verifier checks optimal weight and explicitly rejects cyclic witnesses. Defaults: 500 and 1,000 nodes; seeded families vary graph density and include repeated and negative weights. Unlike upstream, witnesses reference input edges and all arithmetic is exact integer arithmetic.
+The baseline is heap Prim; an independent union-find Kruskal verifier checks optimal weight and explicitly rejects cyclic witnesses. Defaults: 2,000 and 4,000 nodes; seeded families vary graph density and include repeated and negative weights. Unlike upstream, witnesses reference input edges and all arithmetic is exact integer arithmetic.
 
 ## Workload distribution
 

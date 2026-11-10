@@ -64,10 +64,12 @@ def _smooth_prime(bits, rng, large_bits=0):
 
 class DiscreteLogTask:
     name = "discrete_log"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 50
     grading_cases = (50, 60)
+    timing_batch = 48
+    family_period = 3
 
     def workload_family(self, n, random_seed=0):
         return ("smooth", "medium_subgroup", "large_subgroup")[random_seed % 3]

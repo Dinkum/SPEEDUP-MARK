@@ -11,11 +11,12 @@ _reference = load_reference(__file__)
 
 class Task:
     name = "articulation_points"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     uses_reference_output = True
     default_n = 300
     grading_cases = (300, 600)
+    family_period = 4
 
     def generate_problem(self, n=300, random_seed=0):
         if n < 1:

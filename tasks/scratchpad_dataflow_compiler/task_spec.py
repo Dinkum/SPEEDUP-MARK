@@ -135,7 +135,7 @@ def _simulate(workload, schedule):
 
 class ScratchpadDataflowCompilerTask:
     name = "scratchpad_dataflow_compiler"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 240
     grading_cases = (240, 480)

@@ -7,6 +7,8 @@ plan whose cost matches the optimum. Unequal supports, sparse mass, and tied
 costs are intentional. See README.md.
 """
 
+ALLOWED_EXTERNAL_IMPORTS = ('numpy', 'scipy')
+
 import os
 
 os.environ.setdefault("OMP_NUM_THREADS", "1")
@@ -68,10 +70,11 @@ def _transport_dual_bound(source, target, cost):
 
 class EarthMoversDistance:
     name = "earth_movers_distance"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 48
     grading_cases = (48, 90)
+    family_period = 3
 
     def workload_family(self, n, random_seed=0):
         return _family(random_seed)

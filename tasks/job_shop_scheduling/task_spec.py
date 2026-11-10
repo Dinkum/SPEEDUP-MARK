@@ -46,10 +46,11 @@ def _optimal_makespan(problem):
 
 class Task:
     name = "job_shop_scheduling"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 4
     grading_cases = (3, 4)
+    timing_batch = 48
 
     def generate_problem(self, n=4, random_seed=0):
         if type(n) is not int or not 2 <= n <= 4:

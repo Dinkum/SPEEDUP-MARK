@@ -8,7 +8,7 @@ Only Python standard-library dependencies are required. All output containers mu
 
 ## Reference and verification
 
-The baseline repeatedly augments shortest residual paths using Bellman-Ford. Verification independently checks capacities/conservation, absence of an augmenting path, and absence of any negative residual cycle. Defaults: 100 and 180 vertices; seeds vary topology, density, capacities, and cost ties. Unlike upstream's dense matrices, this adaptation uses explicit edge lists and exact integer arithmetic.
+The baseline repeatedly augments shortest residual paths using Bellman-Ford. Verification independently checks capacities/conservation, absence of an augmenting path, and absence of any negative residual cycle. Defaults: 240 and 360 vertices; seeds vary topology, density, capacities, and cost ties. Unlike upstream's dense matrices, this adaptation uses explicit edge lists and exact integer arithmetic.
 
 ## Workload distribution
 

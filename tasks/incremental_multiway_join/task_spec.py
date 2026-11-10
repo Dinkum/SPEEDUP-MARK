@@ -48,7 +48,7 @@ def _recompute_join(problem):
 class IncrementalMultiwayJoinTask:
     forbidden_import_roots = ENGINE_ROOTS
     name = "incremental_multiway_join"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 1200
     grading_cases = (1200, 2400)

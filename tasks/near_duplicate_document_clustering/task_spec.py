@@ -54,10 +54,11 @@ def _checked_clusters(problem):
 
 class NearDuplicateDocumentClusteringTask:
     name = "near_duplicate_document_clustering"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 360
     grading_cases = (360, 720)
+    family_period = 3
 
     def generate_problem(self, n=360, random_seed=0):
         if n < 0:

@@ -12,10 +12,11 @@ residual = _reference.residual
 
 class Task:
     name = "min_cost_max_flow"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
-    default_n = 100
-    grading_cases = (100, 180)
+    default_n = 240
+    grading_cases = (240, 360)
+    family_period = 10
 
     def generate_problem(self, n=100, random_seed=0):
         if n < 1:

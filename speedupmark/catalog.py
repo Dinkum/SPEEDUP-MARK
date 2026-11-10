@@ -118,6 +118,14 @@ TASK_CATALOG = {
         'Exact Near-Duplicate Document Clustering',
         'Exact set similarity joins: prune document pairs without missing Jaccard threshold edges, then compute connected components',
     ),
+    'register_vm_execution': TaskMetadata(
+        'Register VM Program Execution',
+        'Interpreter and translator design: balance dispatch cost against compile time across hot loops, branching, calls, and run once programs',
+    ),
+    'sparse_life_generations': TaskMetadata(
+        'Sparse Life Generations',
+        'Cellular automaton stepping: choose between sparse sets, packed bit rows, isolated components, and cycle skipping for differing patterns',
+    ),
     'capacitated_facility_location': TaskMetadata(
         'Capacitated Facility Location',
         'Coupled facility opening and assignment: minimize fixed and service costs while fitting indivisible customers into shared capacities',

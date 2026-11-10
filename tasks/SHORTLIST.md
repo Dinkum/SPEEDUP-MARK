@@ -6,9 +6,9 @@ The selectors are shared by direct grading and managed launches:
 | --- | --- |
 | default invocation, `default`, `smoke` | 10 tasks selected for varied optimization decisions and local practicality |
 | `extended` | 25 tasks including the entire smoke set |
-| `all` | All 50 implemented runnable task directories |
+| `all` | All 52 implemented runnable task directories |
 
-`speedupmark/suites.py` owns the ordered selections. `--list` lists the direct-grading selection without importing candidates. The `all` selector includes the selected 25 and 25 additional benchmark tasks.
+`speedupmark/suites.py` owns the ordered selections. `--list` lists the direct-grading selection without importing candidates. The `all` selector includes the selected 25 and 27 additional benchmark tasks.
 
 ## Smoke ten
 
@@ -49,7 +49,7 @@ These 15 tasks complete the extended set of 25:
 | `multi_pattern_matching` | Representation choice per pattern family; literal scanning, shared automata and a compile-versus-scan budget |
 | `near_duplicate_document_clustering` | Exact set-similarity search and component closure under size variation, common shingles, and threshold-adjacent overlaps |
 
-As-of join and literal replacement remain useful controls even though their first large improvements often come from familiar algorithms. Queens has data-dependent exact-search cost, so its 10/12 board sizes are intentionally bounded. Dispatch measures whether improvements to paths, tours, and allocation survive their integration into one timed pipeline.
+As-of join and literal replacement remain useful controls even though their first large improvements often come from familiar algorithms. Queens has data-dependent exact-search cost, so its 10/11 board sizes are intentionally bounded. Dispatch measures whether improvements to paths, tours, and allocation survive their integration into one timed pipeline.
 
 The catalog adaptations are independently authored standard-library tasks with bounded generators. Each README defines its SPEEDUP-MARK-specific representation, oracle, metric, and provenance.
 

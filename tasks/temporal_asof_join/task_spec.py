@@ -39,7 +39,7 @@ def _verify_join(problem):
 
 class TemporalAsOfJoinTask:
     name = "temporal_asof_join"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 700
     grading_cases = (700, 1400)

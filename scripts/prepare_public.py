@@ -19,7 +19,7 @@ ROOT_FILES = (".gitignore", "LICENSE", "README.md", "GUIDE.md", "version.json",
               "diagrams/smoke-codex-luna-hermes-deepseek-high-20261002.png",
               "diagrams/smoke-codex-luna-hermes-deepseek-high-20261002.svg",
               "diagrams/smoke-codex-luna-hermes-deepseek-high-20261002.json")
-PACKAGE_FILES = ("__init__.py", "__main__.py", "catalog.py", "harness.py", "revision.py",
+PACKAGE_FILES = ("__init__.py", "__main__.py", "catalog.py", "dependencies.py", "harness.py", "revision.py",
                  "run_manager.py", "run_prompt.txt", "suites.py", "task.py")
 TASK_FILES = ("README.md", "reference.py", "task_spec.py", "VALIDATION.md")
 

@@ -44,7 +44,7 @@ def _verify_sheet(problem):
 
 class IncrementalSpreadsheetRecalculationTask:
     name = "incremental_spreadsheet_recalculation"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 650
     grading_cases = (650, 1300)

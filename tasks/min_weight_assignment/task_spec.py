@@ -11,10 +11,11 @@ _reference = load_reference(__file__)
 
 class Task:
     name = "min_weight_assignment"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
-    default_n = 70
-    grading_cases = (70, 110)
+    default_n = 110
+    grading_cases = (110, 160)
+    family_period = 3
 
     def generate_problem(self, n=70, random_seed=0):
         if n < 1:

@@ -56,10 +56,12 @@ def _dual_certifies(distances, cost):
 
 class Task:
     name = "asymmetric_tsp"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 48
     grading_cases = (12, 48, 96)
+    timing_batch = 4
+    family_period = 3
 
     def generate_problem(self, n=48, random_seed=0):
         if type(n) is not int or not 2 <= n <= 256:

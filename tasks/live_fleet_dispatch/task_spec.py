@@ -156,7 +156,7 @@ def _checked_trace(problem):
 
 class LiveFleetDispatchTask:
     name = "live_fleet_dispatch"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 60
     grading_cases = (60, 96)

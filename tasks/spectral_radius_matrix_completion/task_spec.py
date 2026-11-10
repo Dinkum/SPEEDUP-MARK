@@ -7,6 +7,8 @@ iteration on the Perron derivative. At a minimizer, B_ij u_i v_j is constant
 on every free entry. See README.md.
 """
 
+ALLOWED_EXTERNAL_IMPORTS = ('numpy',)
+
 import os
 
 os.environ.setdefault("OMP_NUM_THREADS", "1")
@@ -31,10 +33,11 @@ def _family(seed):
 
 class MatrixCompletion:
     name = "spectral_radius_matrix_completion"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 24
     grading_cases = (24, 48)
+    family_period = 3
 
     def workload_family(self, n, random_seed=0):
         return _family(random_seed)

@@ -12,7 +12,7 @@ The baseline reduces compatibility to exact maximum clique with greedy-color bra
 
 ## Workload distribution
 
-- **Size:** n is board height; width is max(1,n - seed % 2).
+- **Size:** n is board height; width is max(1,n - seed % 2). Each graded sample sums 24 independent problems of one family, because a single reference call is too short to time.
 - **Selection:** seed % 4 selects obstacle probability 0.15, 0.30, 0.45, or 0.60, coupled to board width.
 - **Randomized:** Each square independently becomes an obstacle with the selected probability.
 - **Fixed structure:** Board aspect ratios and obstacle-density choices follow the four-seed cycle.

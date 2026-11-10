@@ -6,6 +6,7 @@ import argparse
 import ast
 import contextlib
 import copy
+import gc
 import hashlib
 import importlib.util
 import json
@@ -20,9 +21,12 @@ import time
 from dataclasses import asdict, dataclass, field
 
 from speedupmark.catalog import TASK_CATALOG
+from speedupmark.dependencies import (DependencyViolation, GradingEnvironmentError,
+                                     grading_command)
 from speedupmark.suites import selected_tasks
-from speedupmark.task import (SolutionEvaluation, declared_task_version, forbidden_imports,
-                             freeze_output, load_candidate, watch_imports)
+from speedupmark.task import (SolutionEvaluation, _root_of, covering_samples,
+                             declared_task_version, forbidden_imports, freeze_output,
+                             load_candidate, timing_batch, watch_imports)
 from speedupmark.revision import task_revision
 
 
@@ -102,15 +106,28 @@ def load_task(task_dir: pathlib.Path, *, with_candidate: bool = True):
     candidate_path = task_dir / "candidate.py"
     has_candidate = with_candidate and candidate_path.is_file()
     if has_candidate:
+        known = set(sys.modules)
         candidate = load_candidate(str(task_dir / "task_spec.py"))
         roots = getattr(mod.TASK, "forbidden_import_roots", ())
         if roots:
+            # Bound names and import instructions are fixed once the module is
+            # loaded. Scan them here: disassembling the submission inside each
+            # call would be timed as candidate work the reference never pays.
+            static = forbidden_imports(candidate, roots, known)
+
             def solve_candidate(problem):
+                nonlocal known
                 mod.TASK.policy_violations = ()
-                loaded = set(sys.modules)
+                if len(sys.modules) != len(known):
+                    known = set(sys.modules)
                 with watch_imports(roots) as imported_during:
                     result = candidate.solve(problem)
-                violations = forbidden_imports(candidate, roots, loaded, imported_during)
+                violations = static
+                # Only an import executed during the call can add evidence.
+                if imported_during or len(sys.modules) != len(known):
+                    arrived = (_root_of(name, roots) for name in set(sys.modules) - known)
+                    violations = tuple(sorted(
+                        set(static) | imported_during | {root for root in arrived if root}))
                 mod.TASK.policy_violations = violations
                 # Reject only the submission; the unchanged reference is graded
                 # independently even when a candidate violates its library rules.
@@ -170,9 +187,12 @@ def run_task(
 ) -> RunResult:
     """Measure calls and output freezing; verification/input copying are untimed.
 
-    Each sample uses a different seed and alternating solver order. Solvers get
-    detached input copies and the verifier sees pristine data. This prevents
-    ordinary accidental state sharing; it is not a sandbox against hostile code.
+    Each sample uses a different seed. The sample count is rounded up to cover
+    every seed-selected workload family, and a task declaring ``timing_batch``
+    sums that many distinct same-family problems per sample. Solver order
+    alternates per problem. Solvers get detached input copies and the verifier
+    sees pristine data. This prevents ordinary accidental state sharing; it is
+    not a sandbox against hostile code.
     """
     if samples < 1 or (n is not None and n < 1):
         raise ValueError("samples and problem size must be positive")
@@ -181,8 +201,6 @@ def run_task(
     seed = resolve_seed(seed)
     revision = task_revision(task_dir, pathlib.Path(__file__).resolve().parent)[0]
     if verification_replay is not None:
-        if len(verification_replay) != samples:
-            raise ValueError("verification replay must contain one record per sample")
         # Bind private-data replay to the original source before candidate import.
         for index, receipt in enumerate(verification_replay):
             if (receipt.get("task_revision") != revision
@@ -190,37 +208,60 @@ def run_task(
                     or receipt.get("seed") != seed + index):
                 raise ValueError("verification replay source revision, candidate, or seed changed")
     task = load_task(task_dir)
+    samples = covering_samples(task, samples)
+    batch = timing_batch(task)
+    if verification_replay is not None and len(verification_replay) != samples:
+        raise ValueError("verification replay must contain one record per sample")
     problem_size = n if n is not None else getattr(task, "default_n", 1000)
     candidate = task.candidate_solve
     evaluate = getattr(task, "evaluate_solution", None)
     evaluate_pair = getattr(task, "evaluate_pair", None)
+    if batch > 1 and (evaluate or evaluate_pair):
+        raise ValueError(f"{task.name}: timing_batch applies only to wall-clock tasks")
     uses_reference_output = getattr(task, "uses_reference_output", False)
     metric_unit = getattr(task, "metric_unit", "score") if evaluate else "ms"
     measurements = []
     grading_functions = _grading_functions(task)
+    solvers = {"reference": task.solve, "candidate": candidate}
 
     for index in range(samples):
         case_seed = seed + index
-        problem = task.generate_problem(problem_size, case_seed)
-        solvers = {"reference": task.solve, "candidate": candidate}
+        # Batch members step by the sample count, a multiple of the family
+        # period: they share this sample's family and no two samples share a seed.
+        problems = [task.generate_problem(problem_size, case_seed + member * samples)
+                    for member in range(batch)]
         # Copy both before either solver runs: mutation cannot affect its peer.
-        inputs = {role: copy.deepcopy(problem) for role in solvers}
-        outputs = {}
-        scores = {}
-        order = (
-            ("reference", "candidate")
-            if index % 2 == 0
-            else ("candidate", "reference")
-        )
-        for role in order:
-            _check_grading_functions(task, grading_functions)
-            start = time.perf_counter_ns()
-            try:
-                outputs[role] = freeze_output(solvers[role](inputs[role]))
-            except ValueError as exc:
-                raise ValueError(f"{task.name}: {role} output: {exc}") from None
-            scores[role] = (time.perf_counter_ns() - start) / 1_000_000
-            _check_grading_functions(task, grading_functions)
+        batch_inputs = [{role: copy.deepcopy(item) for role in solvers} for item in problems]
+        batch_outputs = [{} for _ in problems]
+        scores = dict.fromkeys(solvers, 0.0)
+        for member, inputs in enumerate(batch_inputs):
+            order = (
+                ("reference", "candidate")
+                if (index + member) % 2 == 0
+                else ("candidate", "reference")
+            )
+            for role in order:
+                _check_grading_functions(task, grading_functions)
+                # Cyclic collection cost scales with every live object, and the
+                # peer's input copy and earlier output are alive, so whichever
+                # solver runs second would pay more. Start both from a clean
+                # heap and keep collection out of the timed call.
+                gc.collect()
+                gc.disable()
+                try:
+                    start = time.perf_counter_ns()
+                    try:
+                        batch_outputs[member][role] = freeze_output(solvers[role](inputs[role]))
+                    except DependencyViolation:
+                        raise
+                    except ValueError as exc:
+                        raise ValueError(f"{task.name}: {role} output: {exc}") from None
+                    scores[role] += (time.perf_counter_ns() - start) / 1_000_000
+                finally:
+                    gc.enable()
+                _check_grading_functions(task, grading_functions)
+        # Deterministic-metric tasks never batch, so these are the whole sample.
+        problem, outputs = problems[0], batch_outputs[0]
 
         verification = None
         paired = None
@@ -256,10 +297,12 @@ def run_task(
             else:
                 # Canonical-output tasks reuse the measured answer, outside
                 # timing, instead of supplying another solution algorithm.
-                verification_kwargs = ({"reference_output": copy.deepcopy(outputs["reference"])}
-                                       if uses_reference_output else {})
-                correctness[role] = bool(
-                    task.is_solution(copy.deepcopy(problem), outputs[role], **verification_kwargs)
+                correctness[role] = all(
+                    task.is_solution(
+                        copy.deepcopy(item), answers[role],
+                        **({"reference_output": copy.deepcopy(answers["reference"])}
+                           if uses_reference_output else {}))
+                    for item, answers in zip(problems, batch_outputs)
                 )
         if not correctness["reference"] or not _positive_score(scores["reference"]):
             raise ValueError(
@@ -337,10 +380,10 @@ def _run_isolated(
 ) -> RunResult:
     """One fresh interpreter per task, sequentially to avoid CPU contention."""
     candidate_sha256(task_dir)
-    command = [
-        sys.executable, "-m", "speedupmark", str(task_dir.resolve()),
+    command = grading_command([
+        str(task_dir.resolve()),
         "--_worker", "--seed", str(seed), "--samples", str(samples),
-    ]
+    ], TASK_ROOT.parent)
     if n is not None:
         command.extend(["--n", str(n)])
     if verification_log is not None:
@@ -350,6 +393,14 @@ def _run_isolated(
     )
     if completed.returncode != 0:
         detail = completed.stderr.strip() or completed.stdout.strip()
+        try:
+            failure = json.loads(completed.stdout)
+        except (ValueError, TypeError):
+            failure = {}
+        if failure.get("code") == "dependency_violation":
+            raise DependencyViolation(task_dir.name, failure["module"])
+        if failure.get("code") == "environment_error":
+            raise GradingEnvironmentError(failure["error"])
         raise RuntimeError(detail[-2000:] or f"worker exited {completed.returncode}")
     payload = json.loads(completed.stdout)
     payload["samples"] = [SampleResult(**sample) for sample in payload["samples"]]
@@ -393,13 +444,20 @@ def main() -> None:
         if len(paths) != 1:
             parser.error("worker requires one task")
         # Task print statements must not corrupt the worker's result protocol.
-        with contextlib.redirect_stdout(sys.stderr):
-            def record(receipt):
-                if args.verification_log is not None:
-                    with args.verification_log.open("a") as stream:
-                        stream.write(json.dumps(receipt, allow_nan=False) + "\n")
-            result = run_task(paths[0], n=args.n, seed=args.seed, samples=args.samples,
-                              verification_record=record)
+        try:
+            with contextlib.redirect_stdout(sys.stderr):
+                def record(receipt):
+                    if args.verification_log is not None:
+                        with args.verification_log.open("a") as stream:
+                            stream.write(json.dumps(receipt, allow_nan=False) + "\n")
+                result = run_task(paths[0], n=args.n, seed=args.seed, samples=args.samples,
+                                  verification_record=record)
+        except (DependencyViolation, GradingEnvironmentError) as exc:
+            failure = {"code": exc.code, "error": str(exc)}
+            if isinstance(exc, DependencyViolation):
+                failure["module"] = exc.module
+            print(json.dumps(failure))
+            raise SystemExit(1)
         print(json.dumps(asdict(result), allow_nan=False))
         return
 
@@ -415,7 +473,7 @@ def main() -> None:
             if not args.json:
                 marker = "PASS" if result.correct else "FAIL"
                 print(f"{marker} {result.task}@{result.task_version}+{result.task_revision[:12]}: {result.speedup:.3f}x | reference {result.reference_score:.3f}, candidate {result.candidate_score:.3f} {result.metric_unit}", flush=True)
-        except CandidateNotReady as exc:
+        except (CandidateNotReady, DependencyViolation, GradingEnvironmentError) as exc:
             errors.append({"task": path.name, "error": str(exc), "code": exc.code})
             if not args.json:
                 marker = "INFO" if exc.code == "unchanged_candidate" else "ERROR"

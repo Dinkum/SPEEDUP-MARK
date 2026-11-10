@@ -52,7 +52,7 @@ def _verify_recovery(problem):
 
 class DurableLogRecoveryTask:
     name = "durable_log_recovery"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 12000
     grading_cases = (12000, 24000)

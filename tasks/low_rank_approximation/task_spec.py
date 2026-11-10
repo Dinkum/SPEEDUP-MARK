@@ -7,6 +7,8 @@ factorization whose Frobenius error is at most ``quality`` times the optimal
 rank-k tail. Rapid, slow, and clustered spectra are intentional. See README.md.
 """
 
+ALLOWED_EXTERNAL_IMPORTS = ('numpy',)
+
 import os
 
 os.environ.setdefault("OMP_NUM_THREADS", "1")
@@ -35,10 +37,11 @@ def _tail(matrix, rank):
 
 class RandomizedSVD:
     name = "low_rank_approximation"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 384
     grading_cases = (384, 768)
+    family_period = 3
 
     def workload_family(self, n, random_seed=0):
         return _family(random_seed)

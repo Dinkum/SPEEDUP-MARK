@@ -14,9 +14,16 @@ mean of its sample ratios; printed reference/candidate costs are separate median
 and their ratio may differ from that mean.
 
 Most tasks measure host milliseconds. Candidate preparation and copying the
-completed output are inside the timer. Generation, input copying, imports, and
-verification are outside the timer but inside the worker timeout. Both solvers
-follow the same timing rule.
+completed output are inside the timer. Generation, input copying, imports,
+import-policy checks, and verification are outside the timer but inside the
+worker timeout. Both solvers follow the same timing rule, starting from a freshly
+collected heap with cyclic garbage collection paused for the timed call.
+
+A task whose reference call lasts well under a few milliseconds declares
+`timing_batch`: each sample then sums that many distinct problems of one
+workload family for both solvers, and the sample ratio is the ratio of those
+sums. Every sample of every wall-clock task is sized so its reference time
+clears a floor that `tests/test_reference_floor.py` enforces.
 
 `layout_aware_pipeline_compiler`, `simd_traversal_kernel`, and
 `scratchpad_dataflow_compiler` measure simulated cycles. Host compilation time is
@@ -41,21 +48,39 @@ the completed output before verification; for wall-clock tasks this copy is time
 
 Keep inputs read-only and put input-dependent preparation inside `solve`. Edit
 only `candidate.py` in a managed run. Each task lists its available dependencies
-and any forbidden engine imports. Import checks enforce those library rules;
-they do not isolate candidate code from the grading process.
+and any forbidden engine imports. Candidates may import the standard library
+and only the external module roots declared in the task spec's literal
+`ALLOWED_EXTERNAL_IMPORTS` tuple; an absent declaration permits no external
+packages. Undeclared imports fail with `dependency_violation`, even if installed.
+The same checks cover candidate loading and execution during direct, development,
+and final grading. A missing declared package reports `environment_error`.
+Grading workers ignore harness Python paths and user site packages. Import checks
+enforce submission policy; they are not a security sandbox.
+
+A submission runs in one process and one thread, in Python. Threads, worker
+processes, child processes, and native code loaded at run time are not allowed:
+imports of `threading`, `multiprocessing`, `concurrent`, `subprocess`, and
+`ctypes` fail with `dependency_violation`, and equivalent routes such as
+`os.fork` are excluded by this rule even though they are not detected. A speedup
+must come from the algorithm and its implementation, not from the host's core
+count or a compiled helper.
 
 ## Sampling
 
 Without `--seed`, grading draws a fresh nonnegative 63-bit base seed. Samples use
-consecutive seeds beginning at that base; three samples are the default. Direct
-suites share the base across tasks. Managed grading advances by the sample count
-between sizes. Each task README describes its generated workload support.
+consecutive seeds beginning at that base; three samples are the requested default.
+Direct suites share the base across tasks. Managed grading starts each size after
+every seed the preceding size drew. Each task README describes its generated
+workload support.
 
-Some tasks select families with `seed % k`; k consecutive seeds cover that family
-cycle. Three samples do not cover four-family tasks or every combination in longer
-cycles. Other tasks include all their families in every problem. The default
-sample count makes iteration practical; it is not a precision guarantee. Fresh
-inputs do not establish equal difficulty or stable rankings.
+Some tasks select families with `seed % k`. Such a task declares `family_period`,
+the length of its full family cycle, and the grader rounds the sample count up to
+a multiple of it: a four-family task takes four samples, a task with a joint cycle
+of twelve takes twelve. Every family is therefore measured equally often at every
+size, whatever base seed is drawn. Other tasks include all their families in every
+problem and take the requested count. The default makes iteration practical; it is
+not a precision guarantee. Fresh inputs do not establish equal difficulty or
+stable rankings.
 
 `--seed` fixes the batch for replay. In managed runs it fixes development and final
 grading to the same seeds; omit it when final grading should draw fresh inputs.
@@ -155,7 +180,7 @@ model ranking or guaranteed months of optimization runway.
 | --- | --- | --- |
 | [Adaptive Query Engine](tasks/adaptive_query_engine/README.md#workload-distribution) | 2400, 3600 | ms |
 | [Articulation Points](tasks/articulation_points/README.md#workload-distribution) | 300, 600 | ms |
-| [Capacitated Facility Location](tasks/capacitated_facility_location/README.md#workload-distribution) | 8, 11 | ms |
+| [Capacitated Facility Location](tasks/capacitated_facility_location/README.md#workload-distribution) | 10, 11 | ms |
 | [Multi-Pattern Matching](tasks/multi_pattern_matching/README.md#workload-distribution) | 2048, 3072 | ms |
 | [Delaunay Triangulation](tasks/delaunay/README.md#workload-distribution) | 128, 256 | ms |
 | [Prime-Field Discrete Logarithm](tasks/discrete_log/README.md#workload-distribution) | 50, 60 | ms |
@@ -165,8 +190,8 @@ model ranking or guaranteed months of optimization runway.
 | [Dynamic Shortest-Path Query Engine](tasks/dynamic_shortest_paths/README.md#workload-distribution) | 400, 800 | ms |
 | [Earth Mover's Distance](tasks/earth_movers_distance/README.md#workload-distribution) | 48, 90 | ms |
 | [Exact Affine Gap Sequence Alignment](tasks/affine_gap_sequence_alignment/README.md#workload-distribution) | 256, 384 | ms |
-| [Exact Integer Convolution](tasks/exact_integer_convolution/README.md#workload-distribution) | 420, 840 | ms |
-| [Graph Coloring](tasks/graph_coloring/README.md#workload-distribution) | 14, 20 | ms |
+| [Exact Integer Convolution](tasks/exact_integer_convolution/README.md#workload-distribution) | 840, 1260 | ms |
+| [Graph Coloring](tasks/graph_coloring/README.md#workload-distribution) | 24, 32 | ms |
 | [Logistic Group Lasso](tasks/group_lasso/README.md#workload-distribution) | 24, 40 | ms |
 | [Gzip Compression](tasks/gzip_compression/README.md#workload-distribution) | 100000, 250000 | ms |
 | [Incremental Weighted Multiway Join](tasks/incremental_multiway_join/README.md#workload-distribution) | 1200, 2400 | ms |
@@ -174,35 +199,37 @@ model ranking or guaranteed months of optimization runway.
 | [Integer Factorization](tasks/integer_factorization/README.md#workload-distribution) | 64, 80 | ms |
 | [Fixed-Route Job-Shop Makespan](tasks/job_shop_scheduling/README.md#workload-distribution) | 3, 4 | ms |
 | [Exact k-Nearest Neighbors](tasks/exact_k_nearest_neighbors/README.md#workload-distribution) | 700, 1400 | ms |
-| [Vertex-Labeled Graph Isomorphism](tasks/labeled_graph_isomorphism/README.md#workload-distribution) | 10, 20 | ms |
+| [Vertex-Labeled Graph Isomorphism](tasks/labeled_graph_isomorphism/README.md#workload-distribution) | 32, 40 | ms |
 | [Layout-Aware Pipeline Compiler](tasks/layout_aware_pipeline_compiler/README.md#workload-distribution) | 32, 48 | cycles |
 | [Battery-Limited Fleet Tours](tasks/live_fleet_dispatch/README.md#workload-distribution) | 60, 96 | ms |
 | [Spectral-Radius Matrix Completion](tasks/spectral_radius_matrix_completion/README.md#workload-distribution) | 24, 48 | ms |
-| [Exact Integer Matrix Multiplication](tasks/matrix_multiplication/README.md#workload-distribution) | 45, 75 | ms |
-| [Exact Minimum Cost Maximum Flow](tasks/min_cost_max_flow/README.md#workload-distribution) | 100, 180 | ms |
-| [Exact Minimum Weight Assignment](tasks/min_weight_assignment/README.md#workload-distribution) | 70, 110 | ms |
-| [Minimum Spanning Tree](tasks/minimum_spanning_tree/README.md#workload-distribution) | 500, 1000 | ms |
+| [Exact Integer Matrix Multiplication](tasks/matrix_multiplication/README.md#workload-distribution) | 75, 110 | ms |
+| [Exact Minimum Cost Maximum Flow](tasks/min_cost_max_flow/README.md#workload-distribution) | 240, 360 | ms |
+| [Exact Minimum Weight Assignment](tasks/min_weight_assignment/README.md#workload-distribution) | 110, 160 | ms |
+| [Minimum Spanning Tree](tasks/minimum_spanning_tree/README.md#workload-distribution) | 2000, 4000 | ms |
 | [Three-Resource 0/1 Knapsack](tasks/multi_dim_knapsack/README.md#workload-distribution) | 24, 30 | ms |
 | [Exact Near-Duplicate Document Clustering](tasks/near_duplicate_document_clustering/README.md#workload-distribution) | 360, 720 | ms |
 | [Robertson Chemical Kinetics](tasks/ode_stiff_robertson/README.md#workload-distribution) | 4, 10 | ms |
 | [Out-of-Order Session Window Trace](tasks/out_of_order_session_windows/README.md#workload-distribution) | 2400, 4800 | ms |
 | [Sparse Weighted PageRank](tasks/pagerank/README.md#workload-distribution) | 256, 384 | ms |
 | [1D Viscous Burgers Equation](tasks/pde_burgers1d/README.md#workload-distribution) | 120, 200 | ms |
-| [Queens With Obstacles](tasks/queens_with_obstacles/README.md#workload-distribution) | 10, 12 | ms |
+| [Queens With Obstacles](tasks/queens_with_obstacles/README.md#workload-distribution) | 10, 11 | ms |
 | [Low-Rank Matrix Approximation](tasks/low_rank_approximation/README.md#workload-distribution) | 384, 768 | ms |
 | [Ranked Byte-Pair Tokenization](tasks/ranked_bpe_tokenization/README.md#workload-distribution) | 3000, 6000 | ms |
 | [RBF Interpolation](tasks/rbf_interpolation/README.md#workload-distribution) | 250, 500 | ms |
+| [Register VM Program Execution](tasks/register_vm_execution/README.md#workload-distribution) | 1500, 3000 | ms |
 | [Robust State Estimation](tasks/robust_kalman_filter/README.md#workload-distribution) | 16, 30 | ms |
 | [Minimum Fuel Rocket Landing](tasks/rocket_landing_optimization/README.md#workload-distribution) | 30, 60 | ms |
 | [Scratchpad Dataflow Compiler](tasks/scratchpad_dataflow_compiler/README.md#workload-distribution) | 240, 480 | cycles |
 | [SIMD Traversal Kernel](tasks/simd_traversal_kernel/README.md#workload-distribution) | 32, 128 | cycles |
 | [Entropy-Regularized Transport](tasks/sinkhorn/README.md#workload-distribution) | 128, 384 | ms |
 | [Smallest Eigenvalues of Sparse SPD Matrices](tasks/smallest_eigenvalues_sparse_spd/README.md#workload-distribution) | 512, 1536 | ms |
+| [Sparse Life Generations](tasks/sparse_life_generations/README.md#workload-distribution) | 8, 16 | ms |
 | [Grouped Analytics Reports](tasks/grouped_analytics_reports/README.md#workload-distribution) | 5000, 10000 | ms |
 | [Multi-Literal Replacement](tasks/multi_literal_replacement/README.md#workload-distribution) | 8000, 16000 | ms |
 | [Temporal Per-Entity As-Of Join](tasks/temporal_asof_join/README.md#workload-distribution) | 700, 1400 | ms |
 | [Asymmetric Traveling Salesperson](tasks/asymmetric_tsp/README.md#workload-distribution) | 12, 48, 96 | ms |
-| [Vehicle Routing](tasks/vehicle_routing/README.md#workload-distribution) | 8, 11 | ms |
+| [Vehicle Routing](tasks/vehicle_routing/README.md#workload-distribution) | 10, 11 | ms |
 
 ## Source distributions
 

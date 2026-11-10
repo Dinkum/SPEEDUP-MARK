@@ -14,7 +14,7 @@ The reference factors p-1, uses Pohlig–Hellman prime-power lifting, solves eac
 
 ## Workload distribution
 
-- **Size:** n is modulus bit length, 12–62; managed cases are 50 and 60.
+- **Size:** n is modulus bit length, 12–62; managed cases are 50 and 60. Each graded sample sums 48 independent problems of one family, because a single reference call is too short to time.
 - **Selection:** seed % 3 selects smooth, medium_subgroup, or large_subgroup.
 - **Randomized:** Odd group-order factors, the optional larger prime factor, the primitive root, and an exponent uniformly drawn from [0,p-1). Primes are selected by bounded rejection sampling.
 - **Fixed structure:** The smooth order uses odd primes 3–31 and a power of two. Medium and large orders also include a prime of min(17,n-6) or min(29,n-6) bits, respectively. The power of two fills the modulus bit budget. These are structured prime fields, not arbitrary composite moduli or generic large-prime-order groups.

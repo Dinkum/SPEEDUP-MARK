@@ -7,13 +7,13 @@ import math
 
 
 def _factor(problem):
-    """Fermat for near-square inputs, then deterministic-replay Pollard rho."""
+    """A bounded Fermat search for close factors, then deterministic-replay Pollard rho."""
     value = problem["composite"]
     if value % 2 == 0:
         return {"p": 2, "q": value // 2}
     root = math.isqrt(value)
     root += root * root < value
-    for _ in range(128):
+    for _ in range(4096):
         square = root * root - value
         difference = math.isqrt(square)
         if difference * difference == square and root > difference + 1:

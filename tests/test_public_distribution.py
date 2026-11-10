@@ -27,7 +27,7 @@ class PublicDistributionTests(unittest.TestCase):
             self.assertNotIn('__pycache__', name)
             self.assertNotIn(name, ('AGENTS.md', 'ROADMAP.MD'))
         references = [name for name in files if name.startswith('tasks/') and name.endswith('/reference.py')]
-        self.assertEqual(len(references), 50)
+        self.assertEqual(len(references), 52)
         self.assertFalse(any(name.endswith('/candidate.py') for name in files))
         self.assertIn('examples/example_gzip/README.md', files)
         self.assertEqual(files['examples/example_gzip/reference.py'],

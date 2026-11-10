@@ -72,10 +72,12 @@ def _random_prime(bits, rng):
 
 class Task:
     name = "integer_factorization"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 64
     grading_cases = (64, 80)
+    timing_batch = 24
+    family_period = 4
 
     def workload_family(self, n, random_seed=0):
         return ("balanced", "close", "smooth_factor", "unbalanced")[random_seed % 4]
@@ -85,10 +87,19 @@ class Task:
             raise ValueError("n must be a composite bit budget from 24 through 80")
         rng = random.Random(random_seed)
         family = random_seed % 4
-        small_bits = min(32, n // 2) if family != 3 else min(20, n // 3)
+        small_bits = min(32, n // 2) if family != 3 else min(28, 3 * n // 8)
         if family == 1:
-            p = _random_prime(n // 2, rng)
-            q = p + 2 * rng.randrange(1, 513)
+            # Close factors, but not adjacent ones: a gap near 2**(n/4 + 7)
+            # needs hundreds to thousands of Fermat steps. Adjacent primes fall
+            # to the first step in microseconds, which no timer can grade. The
+            # smaller factor comes from the lower half of its range so that the
+            # larger one keeps the same bit length.
+            half = n // 2
+            gap_bits = min(n // 4 + 7, half - 3)
+            p = rng.randrange(1 << (half - 1), 3 << (half - 2)) | 1
+            while not prime(p):
+                p += 2
+            q = p + 2 * rng.randrange(1 << (gap_bits - 2), 1 << (gap_bits - 1))
             while not prime(q):
                 q += 2
         elif family == 2:

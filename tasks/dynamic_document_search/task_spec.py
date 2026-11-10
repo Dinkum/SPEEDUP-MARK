@@ -43,7 +43,7 @@ def _verify_search(problem):
 class DynamicDocumentSearchTask:
     forbidden_import_roots = ENGINE_ROOTS
     name = "dynamic_document_search"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 800
     grading_cases = (800, 1600)

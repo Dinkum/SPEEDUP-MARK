@@ -66,10 +66,12 @@ def has_larger_placement(board, count):
 
 class Task:
     name = "queens_with_obstacles"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 10
-    grading_cases = (10, 12)
+    grading_cases = (10, 11)
+    timing_batch = 24
+    family_period = 4
 
     def generate_problem(self, n=10, random_seed=0):
         if n < 1:

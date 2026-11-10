@@ -14,6 +14,8 @@ from dataclasses import dataclass
 from types import CodeType, ModuleType
 from typing import Any, Protocol
 
+from speedupmark.dependencies import checked_candidate
+
 
 _TASK_VERSION_PATTERN = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\Z")
 
@@ -53,7 +55,7 @@ def load_reference(task_file: str) -> ModuleType:
 
 def load_candidate(task_file: str) -> ModuleType:
     """Load the submission supplied to the grader for this task."""
-    return _load_solver(task_file, "candidate.py")
+    return checked_candidate(task_file, lambda: _load_solver(task_file, "candidate.py"))
 
 
 @dataclass(frozen=True)
@@ -83,6 +85,11 @@ class SpeedupMarkTask(Protocol):
     harness supplies the already-measured, frozen reference answer as a detached
     copy after both timers stop. Reference correctness is independently tested;
     this comparison does not independently solve each graded input.
+
+    A generator selecting workload families from the seed declares
+    ``family_period``; the harness rounds the sample count up to a multiple of
+    it. A task whose reference call is too short to time once declares
+    ``timing_batch``, the number of same-family problems summed per sample.
 
     Managed development and final grading both measure ``grading_cases``.
     That attribute is a non-empty sequence of positive problem sizes. The run
@@ -116,6 +123,44 @@ def grading_cases(task: Any) -> tuple[int, ...]:
     if any(type(size) is not int or size < 1 for size in sizes):
         raise ValueError(f"{name}: grading_cases must be a non-empty sequence of positive integers")
     return sizes
+
+
+def _positive_count(task: Any, attribute: str) -> int:
+    value = getattr(task, attribute, 1)
+    if type(value) is not int or value < 1:
+        raise ValueError(f"{getattr(task, 'name', task)}: {attribute} must be a positive integer")
+    return value
+
+
+def family_period(task: Any) -> int:
+    """Consecutive seeds after which a generator's seed-selected families repeat.
+
+    Generators that pick a workload family from ``seed % k`` declare the least
+    common multiple of every such ``k``. A spec that puts every family into
+    every problem declares nothing and has period one.
+    """
+    return _positive_count(task, "family_period")
+
+
+def timing_batch(task: Any) -> int:
+    """Independent problems measured together as one sample of a wall-clock task.
+
+    A reference call lasting microseconds cannot be timed once: the ratio is
+    then timer noise and fixed call overhead. Such a task declares how many
+    distinct same-family problems one sample sums, instead of repeating one
+    problem, which a candidate could answer from a cache.
+    """
+    return _positive_count(task, "timing_batch")
+
+
+def covering_samples(task: Any, requested: int) -> int:
+    """Round a requested sample count up so every seed-selected family is graded.
+
+    Samples use consecutive seeds, so a whole number of periods measures each
+    family equally often; fewer would drop a family chosen by the random base.
+    """
+    period = family_period(task)
+    return -(-requested // period) * period
 
 
 def plain_containers(value: Any) -> bool:
@@ -265,7 +310,7 @@ def forbidden_imports(module: ModuleType, roots: tuple[str, ...],
             root = _root_of(name, roots)
             if root is not None:
                 found.add(root)
-        code = getattr(value, "__code__", None)
+        code = getattr(getattr(value, "__wrapped__", value), "__code__", None)
         if code is not None:
             _code_imports(code, roots, found)
     if imported_during is not None:

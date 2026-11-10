@@ -15,10 +15,12 @@ compress = _reference.compress
 
 class Task:
     name = "gzip_compression"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 100000
     grading_cases = (100000, 250000)
+    timing_batch = 40
+    family_period = 4
 
     def generate_problem(self, n=100000, random_seed=0):
         if n < 1:

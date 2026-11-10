@@ -7,6 +7,8 @@ treated as proof of accuracy. Transient, near-equilibrium, and rescaled-rate
 families are intentional. See README.md.
 """
 
+ALLOWED_EXTERNAL_IMPORTS = ('numpy', 'scipy')
+
 import os
 
 os.environ.setdefault("OMP_NUM_THREADS", "1")
@@ -30,10 +32,11 @@ def _family(seed):
 
 class Robertson:
     name = "ode_stiff_robertson"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 4
     grading_cases = (4, 10)
+    family_period = 3
 
     def workload_family(self, n, random_seed=0):
         return _family(random_seed)

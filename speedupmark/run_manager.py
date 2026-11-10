@@ -30,7 +30,8 @@ from types import SimpleNamespace
 from .harness import TASK_ROOT, discover_tasks, load_task, resolve_seed
 from .revision import task_revision
 from .suites import selected_tasks
-from .task import declared_task_version, grading_cases
+from .task import covering_samples, declared_task_version, grading_cases, timing_batch
+from .dependencies import grading_command
 
 
 ROOT = TASK_ROOT.parent
@@ -260,8 +261,8 @@ def create_run(task, *, harness=None, model=None, effort=None, runtime_notes=Non
     # measurement runner stay outside it; this is not a permissions boundary.
     (workspace / "grade.py").write_text(
         "import subprocess\nimport sys\n\n"
-        f"raise SystemExit(subprocess.call([{sys.executable!r}, '-m', 'speedupmark', "
-        f"'run', 'evaluate', {str(run)!r}], cwd={str(ROOT)!r}))\n"
+        f"raise SystemExit(subprocess.call({grading_command(['run', 'evaluate', str(run)], ROOT)!r}, "
+        f"cwd={str(ROOT)!r}))\n"
     )
     # Freeze the benchmark directly from controller-owned source rather than
     # deriving it from agent-visible files.
@@ -299,14 +300,18 @@ def create_run(task, *, harness=None, model=None, effort=None, runtime_notes=Non
     return run
 
 
-def _grading_sizes(snapshot, task_name, override):
-    """Sizes for one evaluation. An explicit ``n`` replaces the spec's cases."""
-    if override is not None:
-        return (override,)
+def _grading_plan(snapshot, task_name, override, samples):
+    """Sizes for one evaluation and the seeds each size consumes.
+
+    An explicit ``n`` replaces the spec's cases. The worker rounds samples up to
+    the task's family period and draws ``timing_batch`` problems per sample, so
+    the next size's base seed must start after all of them.
+    """
     # Metadata must not execute candidate imports in the controller. All task
     # execution belongs to the isolated worker, after the seed plan is saved.
     source = snapshot / "tasks" / task_name / "task_spec.py"
     tree = ast.parse(source.read_text(), filename=str(source))
+    literal = ("name", "grading_cases", "family_period", "timing_batch")
     for node in tree.body:
         if not isinstance(node, ast.ClassDef):
             continue
@@ -314,12 +319,12 @@ def _grading_sizes(snapshot, task_name, override):
         for statement in node.body:
             if isinstance(statement, ast.Assign):
                 for target in statement.targets:
-                    if isinstance(target, ast.Name) and target.id in ("name", "grading_cases"):
+                    if isinstance(target, ast.Name) and target.id in literal:
                         attributes[target.id] = ast.literal_eval(statement.value)
         if attributes.get("name") == task_name:
-            return grading_cases(SimpleNamespace(name=task_name, **{
-                "grading_cases": attributes.get("grading_cases")
-            }))
+            spec = SimpleNamespace(**{"grading_cases": None, **attributes})
+            sizes = (override,) if override is not None else grading_cases(spec)
+            return sizes, covering_samples(spec, samples) * timing_batch(spec)
     raise ValueError(f"{task_name}: task spec must declare literal grading_cases")
 
 
@@ -359,10 +364,11 @@ def _evaluate_locked(run, manifest, phase):
         snapshot_files = _inventory(snapshot)
     else:
         snapshot.mkdir(parents=True)
-    sizes = []
+    sizes, stride = [], manifest["samples"]
     if not errors:
         try:
-            sizes = list(_grading_sizes(snapshot, task, manifest["n"]))
+            sizes, stride = _grading_plan(snapshot, task, manifest["n"], manifest["samples"])
+            sizes = list(sizes)
         except Exception as exc:
             # A spec that cannot be imported or does not declare cases fails
             # this evaluation. It must not fall back to a controller-chosen size.
@@ -374,7 +380,7 @@ def _evaluate_locked(run, manifest, phase):
     seed_plan = {
         "seed": seed_base, "seed_source": seed_source,
         "samples": manifest["samples"],
-        "cases": [{"n": size, "seed": seed_base + case * manifest["samples"]}
+        "cases": [{"n": size, "seed": seed_base + case * stride}
                   for case, size in enumerate(sizes)],
     }
     # Persist before candidate execution so timeouts and crashes can be replayed.
@@ -384,14 +390,14 @@ def _evaluate_locked(run, manifest, phase):
     _write_json(plan_path, seed_plan)
     verification_logs = []
     for case, size in enumerate(sizes):
-        seed = seed_base + case * manifest["samples"]
+        seed = seed_base + case * stride
         verification_log = plans / f"{index:04d}-{phase}-{case}-verification.jsonl"
         verification_logs.append(str(verification_log.relative_to(run)))
-        command = [sys.executable, "-B", "-m", "speedupmark", task, "--json",
+        command = grading_command([task, "--json",
                    "--seed", str(seed), "--samples", str(manifest["samples"]),
                    "--timeout", str(manifest["grade_timeout_seconds"]),
                    "--verification-log", str(verification_log.resolve()),
-                   "--n", str(size)]
+                   "--n", str(size)], snapshot)
         try:
             # The inner task timeout includes validation. The outer grace also
             # bounds a broken command, while leaving time to serialize its result.

@@ -7,6 +7,8 @@ independent assembly of the same saddle-point system. Kernels, smoothing,
 dimension, clustering, and query counts vary on purpose. See README.md.
 """
 
+ALLOWED_EXTERNAL_IMPORTS = ('numpy', 'scipy')
+
 import math
 import os
 from itertools import combinations_with_replacement
@@ -95,10 +97,11 @@ def _predict(train, values, queries, config):
 
 class RBFInterpolation:
     name = "rbf_interpolation"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 250
     grading_cases = (250, 500)
+    family_period = 3
 
     def workload_family(self, n, random_seed=0):
         return _family(random_seed)

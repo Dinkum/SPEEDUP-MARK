@@ -2,7 +2,7 @@
 
 ## Input and submission
 
-Given `{"A": [[int,...],...], "B": [[int,...],...]}` with compatible nonempty rectangular shapes, return the complete matrix product as nested lists of exact integers. No modulo reduction or floating tolerance is permitted. Defaults are size parameters 45 and 75; seeds choose square, wide-inner and wide-output shapes plus dense/sparse signed coefficients.
+Given `{"A": [[int,...],...], "B": [[int,...],...]}` with compatible nonempty rectangular shapes, return the complete matrix product as nested lists of exact integers. No modulo reduction or floating tolerance is permitted. Defaults are size parameters 75 and 110; seeds choose square, wide-inner and wide-output shapes plus dense/sparse signed coefficients.
 
 Only Python standard-library dependencies are required. All output containers must be materialized built-in types; integers must be exact `int`, never `bool`. All construction and preprocessing belongs inside the timed solve call. Inputs are read-only.
 

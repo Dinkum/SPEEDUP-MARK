@@ -37,7 +37,7 @@ def _verify_replacement(problem):
 
 class StreamingLiteralReplacementTask:
     name = "multi_literal_replacement"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 8000
     grading_cases = (8000, 16000)

@@ -7,6 +7,8 @@ independent stiff integrator. Smooth, steep, and two-wave families are
 intentional. See README.md.
 """
 
+ALLOWED_EXTERNAL_IMPORTS = ('numpy', 'scipy')
+
 import os
 
 os.environ.setdefault("OMP_NUM_THREADS", "1")
@@ -30,10 +32,11 @@ def _family(seed):
 
 class Burgers1D:
     name = "pde_burgers1d"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 120
     grading_cases = (120, 200)
+    family_period = 3
 
     def workload_family(self, n, random_seed=0):
         return _family(random_seed)

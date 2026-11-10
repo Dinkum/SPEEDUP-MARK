@@ -30,7 +30,7 @@ def _step(problem, scores):
 
 class Task:
     name = "pagerank"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 256
     grading_cases = (256, 384)

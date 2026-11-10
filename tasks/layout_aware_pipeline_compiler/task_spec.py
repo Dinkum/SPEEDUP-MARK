@@ -466,7 +466,7 @@ def _evaluate_submissions(problem, outputs, *, replay=None, record=None):
 
 class LayoutAwarePipelineCompilerTask:
     name = "layout_aware_pipeline_compiler"
-    task_version = "3.0.0"
+    task_version = "3.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 32
     grading_cases = (32, 48)

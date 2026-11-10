@@ -64,7 +64,7 @@ class AffineGapSequenceAlignment:
     forbidden_import_roots = ENGINE_ROOTS
     name = "affine_gap_sequence_alignment"
     display_name = TASK_CATALOG[name].display_name
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     default_n = 256
     grading_cases = (256, 384)
 

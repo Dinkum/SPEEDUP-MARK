@@ -14,7 +14,7 @@ The reference searches machine operation orders and prunes partial orders with c
 
 ## Workload distribution
 
-- **Size:** n is job count, from 2 through 4; each job visits three machines.
+- **Size:** n is job count, from 2 through 4; each job visits three machines. Each graded sample sums 48 independent problems of one family, because a single reference call is too short to time.
 - **Selection:** One randomized routing distribution; (machine + seed) % n assigns each machine's bottleneck job.
 - **Randomized:** Independent shuffled machine routes; bottleneck durations 8–13, other durations 2–7.
 - **Fixed structure:** Each job has exactly three operations; the bottleneck assignment has period n.

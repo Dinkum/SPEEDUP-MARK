@@ -76,7 +76,7 @@ def _checked_queries(problem):
 
 class DynamicShortestPathsTask:
     name = "dynamic_shortest_paths"
-    task_version = "2.0.0"
+    task_version = "2.1.0"
     display_name = TASK_CATALOG[name].display_name
     default_n = 400
     grading_cases = (400, 800)

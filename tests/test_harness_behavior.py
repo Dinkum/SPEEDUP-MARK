@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 from speedupmark.harness import CandidateNotReady, _run_isolated, discover_tasks, load_task, resolve_seed, run_task
 from speedupmark.suites import SMOKE_TASKS
-from speedupmark.task import freeze_output, load_candidate
+from speedupmark.task import covering_samples, freeze_output, load_candidate
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -141,8 +141,11 @@ class MeasurementTests(unittest.TestCase):
                     result = run_task(path, n=12, seed=123, samples=3)
                 self.assertTrue(result.correct)
                 self.assertEqual(result.metric_unit, "ms")
-                self.assertEqual(reference.call_count, 3)
-                self.assertEqual([sample.seed for sample in result.samples], [123, 124, 125])
+                # Three requested samples round up to the task's family period.
+                samples = covering_samples(benchmark, 3)
+                self.assertEqual(reference.call_count, samples)
+                self.assertEqual([sample.seed for sample in result.samples],
+                                 list(range(123, 123 + samples)))
 
     def test_runtime_grading_function_replacements_abort(self):
         mutations = {
