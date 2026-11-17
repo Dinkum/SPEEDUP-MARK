@@ -26,10 +26,12 @@ class SuiteSelectionTests(unittest.TestCase):
         self.assertEqual(len(set(EXTENDED_TASKS)), 25)
         self.assertTrue(set(SMOKE_TASKS) <= set(EXTENDED_TASKS) <= implemented)
         self.assertTrue(set(EXTENDED_TASKS) <= implemented)
-        self.assertEqual(len(implemented), 52)
+        self.assertEqual(len(implemented), 53)
         self.assertTrue({
             "job_shop_scheduling", "multi_dim_knapsack", "pagerank", "asymmetric_tsp", "affine_gap_sequence_alignment"
         } <= implemented)
+        self.assertIn("circuit_fault_simulation", implemented)
+        self.assertNotIn("circuit_fault_simulation", EXTENDED_TASKS)
         self.assertNotIn("example_gzip", implemented)
         self.assertIn("labeled_graph_isomorphism", implemented)
         self.assertNotIn("labeled_graph_isomorphism", EXTENDED_TASKS)

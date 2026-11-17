@@ -6,9 +6,9 @@ The selectors are shared by direct grading and managed launches:
 | --- | --- |
 | default invocation, `default`, `smoke` | 10 tasks selected for varied optimization decisions and local practicality |
 | `extended` | 25 tasks including the entire smoke set |
-| `all` | All 52 implemented runnable task directories |
+| `all` | All 53 implemented runnable task directories |
 
-`speedupmark/suites.py` owns the ordered selections. `--list` lists the direct-grading selection without importing candidates. The `all` selector includes the selected 25 and 27 additional benchmark tasks.
+`speedupmark/suites.py` owns the ordered selections. `--list` lists the direct-grading selection without importing candidates. The `all` selector includes the selected 25 and 28 additional benchmark tasks.
 
 ## Smoke ten
 

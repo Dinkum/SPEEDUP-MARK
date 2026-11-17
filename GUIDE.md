@@ -182,6 +182,7 @@ model ranking or guaranteed months of optimization runway.
 | [Articulation Points](tasks/articulation_points/README.md#workload-distribution) | 300, 600 | ms |
 | [Capacitated Facility Location](tasks/capacitated_facility_location/README.md#workload-distribution) | 10, 11 | ms |
 | [Multi-Pattern Matching](tasks/multi_pattern_matching/README.md#workload-distribution) | 2048, 3072 | ms |
+| [Exact Circuit Fault Simulation](tasks/circuit_fault_simulation/README.md#workload-distribution) | 2400, 4200 | ms |
 | [Delaunay Triangulation](tasks/delaunay/README.md#workload-distribution) | 128, 256 | ms |
 | [Prime-Field Discrete Logarithm](tasks/discrete_log/README.md#workload-distribution) | 50, 60 | ms |
 | [Checksummed Durable Log Recovery](tasks/durable_log_recovery/README.md#workload-distribution) | 12000, 24000 | ms |

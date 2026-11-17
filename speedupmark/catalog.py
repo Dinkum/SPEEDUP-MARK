@@ -118,6 +118,10 @@ TASK_CATALOG = {
         'Exact Near-Duplicate Document Clustering',
         'Exact set similarity joins: prune document pairs without missing Jaccard threshold edges, then compute connected components',
     ),
+    'circuit_fault_simulation': TaskMetadata(
+        'Exact Circuit Fault Simulation',
+        'Find which input patterns expose each stuck-at gate fault in a mixed logic circuit',
+    ),
     'register_vm_execution': TaskMetadata(
         'Register VM Program Execution',
         'Interpreter and translator design: balance dispatch cost against compile time across hot loops, branching, calls, and run once programs',
