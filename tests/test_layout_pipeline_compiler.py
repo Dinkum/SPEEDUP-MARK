@@ -214,7 +214,7 @@ class LayoutCompilerTests(unittest.TestCase):
         self.assertEqual(receipt["program_sha256"]["reference"],
                          receipt["program_sha256"]["candidate"])
         replayed = []
-        with mock.patch.object(self.helpers.secrets, "token_hex",
+        with mock.patch("speedupmark.task.secrets.token_hex",
                                side_effect=AssertionError("replay requested fresh entropy")):
             repeated = self.task.evaluate_pair(problem, outputs, replay=receipt,
                                                record=replayed.append)
@@ -231,7 +231,7 @@ class LayoutCompilerTests(unittest.TestCase):
                 output[0]["program"] = ()
             return "01" * 32
 
-        with mock.patch.object(self.helpers.secrets, "token_hex", side_effect=entropy):
+        with mock.patch("speedupmark.task.secrets.token_hex", side_effect=entropy):
             evaluations = self.task.evaluate_pair(problem, outputs)
         self.assertTrue(all(value.correct for value in evaluations.values()))
 
@@ -324,6 +324,17 @@ class LayoutCompilerTests(unittest.TestCase):
         self.assertFalse(self.score(workload, {"program": (), "placements": reference["placements"]}).correct)
         self.assertFalse(self.task.evaluate_solution(problem, [(None, None)] * len(problem["workloads"])).correct)
         self.assertFalse(self.task.is_solution(problem, "not a submission"))
+
+    def test_negative_destination_cannot_alias_a_valid_scratch_slot(self):
+        workload = self.task.generate_problem(32, 412)["workloads"][0]
+        reference = self.task.solve({"workloads": (workload,)})[0]
+        self.assertTrue(self.score(workload, reference).correct)
+        program = [list(packet) for packet in reference["program"]]
+        packet, index = next((packet, i) for packet in program for i, op in enumerate(packet)
+                             if op[0] == "vload")
+        opcode, slot, address = packet[index]
+        packet[index] = (opcode, slot - workload["machine"]["scratch"], address)
+        self.assertFalse(self.score(workload, {**reference, "program": program}).correct)
 
     def test_slot_hazards_and_capacity_limits_are_enforced(self):
         problem = self.task.generate_problem(self.task.default_n, 0)

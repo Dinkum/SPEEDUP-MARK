@@ -48,61 +48,70 @@ def _recompute_join(problem):
 class IncrementalMultiwayJoinTask:
     forbidden_import_roots = ENGINE_ROOTS
     name = "incremental_multiway_join"
-    task_version = "2.1.0"
+    task_version = "2.2.0"
     display_name = TASK_CATALOG[name].display_name
-    default_n = 1200
-    grading_cases = (1200, 2400)
+    default_n = 4000
+    grading_cases = (4000, 8000)
+    uses_reference_output = True
 
-    def generate_problem(self, n=1200, random_seed=0):
+    def correctness_problem(self, seed):
+        return self.generate_problem(32, seed)
+
+    def generate_problem(self, n=4000, random_seed=0):
         if type(n) is not int or n < 0:
             raise ValueError("n must be a non-negative integer")
         rng = random.Random(random_seed)
-        side = max(8, math.isqrt(n) * 2)
+        side = max(8, math.isqrt(n) * 8)
         scenarios = []
+        names = ("R", "S", "T")
+        targets = dict(zip(names, ("S", "T", "R")))
         for family in ("uniform", "hub_skew", "dense_bursts"):
-            def endpoints():
-                if family == "hub_skew" and rng.random() < 0.8:
-                    return rng.randrange(max(2, side // 12)), rng.randrange(side)
-                return rng.randrange(side), rng.randrange(side)
+            updated = rng.choice(names)
+            forward = targets[updated]
+            domains = {name: rng.sample(range(side), side) for name in names}
+            hubs = max(2, math.isqrt(side) // 2)
+            hot_edges = tuple(
+                (a, b) for a in domains[updated][:hubs] for b in domains[forward][:hubs]
+            )
 
-            edge_count = side * 7 if family != "dense_bursts" else side * side // 3
-            initial = {}
-            live = {}
-            for name in ("R", "S", "T"):
-                rows = {}
-                for _ in range(edge_count):
-                    pair = endpoints()
-                    rows[pair] = rng.choice((-9, -3, -1, 1, 2, 5, 11))
-                initial[name] = tuple((a, b, weight) for (a, b), weight in sorted(rows.items()))
-                live[name] = dict(rows)
+            def endpoints(name):
+                return rng.choice(domains[name]), rng.choice(domains[targets[name]])
+
+            initial, starting_pairs = {}, {}
+            for name in names:
+                pairs = {endpoints(name) for _ in range(side * 5)}
+                if family != "uniform" and name != updated:
+                    broad = domains[targets[name] if name == forward else name]
+                    for vertex in domains[forward if name == forward else updated][:hubs]:
+                        neighbors = rng.sample(broad, side * (4 if family == "dense_bursts" else 3) // 5)
+                        pairs.update((vertex, neighbor) if name == forward else (neighbor, vertex)
+                                     for neighbor in neighbors)
+                rows = {pair: rng.choice((-9, -3, -1, 1, 2, 5, 11)) for pair in sorted(pairs)}
+                initial[name] = tuple((a, b, weight) for (a, b), weight in rows.items())
+                starting_pairs[name] = tuple(rows)
             operations = [("query",)]
             for index in range(n):
-                # Family-specific phases put different pressure on eager delta
-                # maintenance, deferred batches, and materialized intermediates.
-                phase = (index // max(1, n // 4)) % 4
-                interval = 9 if family == "uniform" else 23
-                if family == "dense_bursts":
-                    interval = 3 if phase in (1, 3) else 97
-                if index % interval == interval - 1:
+                block_offset = index % 113
+                if family == "dense_bursts" and block_offset == 0:
+                    burst_edges = rng.sample(hot_edges, min(6, len(hot_edges)))
+                phase = index * 4 // n
+                interval = (9 if family == "uniform" else 11 if family == "hub_skew"
+                            else 3 if phase % 2 else 113)
+                if (index + 1) % interval == 0:
                     operations.append(("query",))
                     continue
-                name = ("R", "S", "T")[rng.randrange(3)]
-                if family == "dense_bursts" and phase == 2:
-                    name = "R"
-                if live[name] and rng.random() < 0.65:
-                    source, target = rng.choice(tuple(live[name]))
+                if (family == "hub_skew" and rng.random() < 0.95
+                        or family == "dense_bursts" and block_offset >= 2):
+                    name = updated
+                    source, target = rng.choice(hot_edges if family == "hub_skew" else burst_edges)
                 else:
-                    source, target = endpoints()
-                if rng.random() < 0.23:
+                    name = rng.choice((forward, targets[forward]) if family == "dense_bursts" else names)
+                    source, target = (rng.choice(starting_pairs[name]) if rng.random() < 0.65
+                                      else endpoints(name))
+                if rng.random() < 0.20:
                     operations.append(("delete", name, source, target))
-                    live[name].pop((source, target), None)
                 else:
-                    weight = rng.randrange(-15, 16)
-                    operations.append(("set", name, source, target, weight))
-                    if weight:
-                        live[name][source, target] = weight
-                    else:
-                        live[name].pop((source, target), None)
+                    operations.append(("set", name, source, target, rng.randrange(-15, 16)))
             operations.append(("query",))
             scenarios.append({"family": family, "relations": initial, "operations": tuple(operations)})
         return {"scenarios": tuple(scenarios)}
@@ -110,7 +119,7 @@ class IncrementalMultiwayJoinTask:
     solve = staticmethod(_reference.solve)
 
 
-    def is_solution(self, problem, proposed):
+    def is_solution(self, problem, proposed, *, reference_output=None):
         if not plain_containers(proposed) or type(proposed) not in (tuple, list) or len(proposed) != len(problem["scenarios"]):
             return False
         if any(
@@ -118,7 +127,8 @@ class IncrementalMultiwayJoinTask:
             for answers in proposed
         ):
             return False
-        return tuple(tuple(answers) for answers in proposed) == _recompute_join(problem)
+        expected = _recompute_join(problem) if reference_output is None else reference_output
+        return tuple(tuple(answers) for answers in proposed) == expected
 
 
 TASK = IncrementalMultiwayJoinTask()

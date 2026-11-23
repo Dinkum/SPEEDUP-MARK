@@ -16,7 +16,7 @@ The task combines resource-constrained path search, multi-stop routing, and flee
 
 ## Reference and verification
 
-The reference computes exact-energy road profiles, retains nondominated time/energy options, plans bounded tours by subset and endpoint, and allocates disjoint tours by dynamic programming. Verification uses reverse sparse Pareto-label searches, enumerates ordered tours, and solves the fleet choice with a separate recursive exact-cover search. Both calculate the optimum exactly.
+The reference computes exact-energy road profiles, retains nondominated time/energy options, plans bounded tours by subset and endpoint, and allocates disjoint tours by dynamic programming. Timed results must match the reference. An independent checker evaluates a small seeded network from each family using reverse sparse Pareto-label searches, ordered tour enumeration, and a recursive exact-cover search.
 
 ## Workload distribution
 

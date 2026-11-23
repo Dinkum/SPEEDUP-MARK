@@ -148,7 +148,13 @@ class WorkloadDepthTests(unittest.TestCase):
             operations = problem['operations']
             self.assertEqual(len(operations), 800)
             self.assertEqual(problem, benchmark.generate_problem(800, seed))
-            phases = [operations[100 + 175*i:100 + 175*(i+1)] for i in range(4)]
+            warmup, phase_size = 500, 75
+            self.assertTrue(all(op[0] == 'add' for op in operations[:warmup]))
+            self.assertEqual(len({op[1] for op in operations[:warmup]}), warmup)
+            self.assertGreater(len({term for op in operations[:warmup]
+                                    for term in op[2].split()}), 1500)
+            phases = [operations[warmup + phase_size*i:warmup + phase_size*(i+1)]
+                      for i in range(4)]
             queries = [sum(op[0] == 'query' for op in phase) for phase in phases]
             self.assertGreater(queries[0], 2 * queries[1])
             self.assertGreater(queries[2], 1.4 * queries[3])

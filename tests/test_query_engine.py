@@ -4,11 +4,10 @@ import copy
 import pathlib
 import shutil
 import tempfile
-import types
 import unittest
 
 from speedupmark.harness import load_task
-from speedupmark.task import forbidden_imports
+from speedupmark.dependencies import DependencyViolation
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -80,30 +79,6 @@ class QueryEngineTests(unittest.TestCase):
             mutated[0][0] = list(mutated[0][0]) + [(0,)]
         self.assertFalse(self.task.is_solution(problem, mutated))
 
-    def test_embedded_engine_imports_are_detected(self):
-        module = types.ModuleType("candidate")
-        module.sqlite3 = types.ModuleType("sqlite3")
-        module.helper = lambda: None
-        self.assertEqual(forbidden_imports(module, ("sqlite3", "duckdb")), ("sqlite3",))
-        # `from sqlite3 import connect` binds a C-extension function, so the name
-        # scan alone misses it. The runtime signal has to do the work: a module
-        # that appears after the snapshot is a violation even if nothing is bound.
-        from sqlite3 import connect
-        import sys
-
-        bound = types.ModuleType("candidate")
-        bound.connect = connect
-        self.assertEqual(forbidden_imports(bound, ("sqlite3",)), ())
-        before = set(sys.modules)
-        sys.modules["duckdb"] = types.ModuleType("duckdb")
-        try:
-            self.assertEqual(forbidden_imports(bound, ("sqlite3", "duckdb"), before),
-                             ("duckdb",))
-            clean = types.ModuleType("candidate")
-            clean.helper = lambda: None
-            self.assertEqual(forbidden_imports(clean, ("sqlalchemy",), before), ())
-        finally:
-            del sys.modules["duckdb"]
 
 
 class QueryEnginePolicyTests(unittest.TestCase):
@@ -113,8 +88,8 @@ class QueryEnginePolicyTests(unittest.TestCase):
 
 
 def solve(problem):
-    import sqlite3
-    _ = sqlite3.connect
+    engine = __import__("sqlite3")
+    _ = engine.connect
     return ()
 '''
 
@@ -136,12 +111,11 @@ def solve(problem):
         (directory / "candidate.py").write_text(source)
         task = load_task(directory)
         problem = task.generate_problem(task.grading_cases[0], 0)
-        task.candidate_solve(problem)
-        return task.policy_violations
+        return task.candidate_solve(problem)
 
     def test_function_local_engine_import_is_reported(self):
-        violations = self.grade(self.HOSTILE)
-        self.assertIn("sqlite3", violations)
+        with self.assertRaisesRegex(DependencyViolation, "sqlite3"):
+            self.grade(self.HOSTILE)
 
     def test_an_honest_candidate_reports_nothing(self):
         self.assertEqual(self.grade(self.CLEAN), ())

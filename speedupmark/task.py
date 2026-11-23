@@ -5,19 +5,73 @@ deterministic metric. The sibling ``reference.py`` supplies the baseline and
 submission starter. This module contains the shared protocol and helpers.
 """
 
-import dis
+import ast
+import hashlib
 import importlib.util
+import json
 import pathlib
 import re
+import secrets
 import sys
 from dataclasses import dataclass
-from types import CodeType, ModuleType
+from types import ModuleType
 from typing import Any, Protocol
 
-from speedupmark.dependencies import checked_candidate
-
-
 _TASK_VERSION_PATTERN = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\Z")
+
+
+@dataclass(frozen=True)
+class TaskSpecMetadata:
+    name: str | None = None
+    task_version: str | None = None
+    grading_cases: tuple[int, ...] | list[int] | None = None
+    family_period: int = 1
+    timing_batch: int = 1
+    port_todo: bool = False
+    external_imports: tuple[str, ...] = ()
+
+
+def _assignments(statements):
+    for statement in statements:
+        if isinstance(statement, ast.Assign):
+            for target in statement.targets:
+                if isinstance(target, ast.Name):
+                    yield target.id, statement.value
+
+
+def read_task_metadata(task_file) -> TaskSpecMetadata:
+    """Read literal spec metadata without importing the task or its dependencies."""
+    path = pathlib.Path(task_file)
+    tree = ast.parse(path.read_text(), filename=str(path))
+    module_fields = list(_assignments(tree.body))
+    dependencies = [value for name, value in module_fields if name == "ALLOWED_EXTERNAL_IMPORTS"]
+    if len(dependencies) > 1:
+        raise ValueError(f"{path.parent.name}: duplicate ALLOWED_EXTERNAL_IMPORTS")
+
+    def literal(name, value):
+        try:
+            return ast.literal_eval(value)
+        except (ValueError, TypeError, SyntaxError):
+            raise ValueError(f"{path.parent.name}: {name} must be literal") from None
+
+    roots = literal("ALLOWED_EXTERNAL_IMPORTS", dependencies[0]) if dependencies else ()
+    if (type(roots) is not tuple
+            or any(type(root) is not str or not root.isidentifier() for root in roots)
+            or len(set(roots)) != len(roots)):
+        raise ValueError(f"{path.parent.name}: ALLOWED_EXTERNAL_IMPORTS must contain distinct module roots")
+
+    port_todo = False
+    attributes = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant) and node.value.value is True:
+            port_todo |= any(name == "PORT_TODO" for name, _ in _assignments((node,)))
+        if isinstance(node, ast.ClassDef) and not attributes:
+            fields = dict(_assignments(node.body))
+            if "name" in fields or "task_version" in fields:
+                attributes = {name: literal(name, fields[name])
+                              for name in ("name", "task_version", "grading_cases",
+                                           "family_period", "timing_batch") if name in fields}
+    return TaskSpecMetadata(**attributes, port_todo=port_todo, external_imports=roots)
 
 
 def declared_task_version(task: Any) -> str:
@@ -53,9 +107,12 @@ def load_reference(task_file: str) -> ModuleType:
     return _load_solver(task_file, "reference.py")
 
 
-def load_candidate(task_file: str) -> ModuleType:
+def load_candidate(task_file: str, *, forbidden_roots=()) -> ModuleType:
     """Load the submission supplied to the grader for this task."""
-    return checked_candidate(task_file, lambda: _load_solver(task_file, "candidate.py"))
+    from speedupmark.dependencies import checked_candidate
+
+    return checked_candidate(task_file, lambda: _load_solver(task_file, "candidate.py"),
+                             forbidden_roots)
 
 
 @dataclass(frozen=True)
@@ -64,6 +121,42 @@ class SolutionEvaluation:
 
     score: float
     correct: bool
+
+
+def verification_challenge(problem, programs, *, generator, trials, runtime_input,
+                           digest_key, hash_missing_programs=False, replay=None, record=None):
+    """Share one private challenge across programs that have already been frozen."""
+    def digest(value):
+        encoded = json.dumps(value, sort_keys=True, separators=(",", ":"),
+                             ensure_ascii=True, allow_nan=False).encode("ascii")
+        return hashlib.sha256(encoded).hexdigest()
+
+    receipt = {
+        "generator_version": generator,
+        "problem_sha256": digest(problem),
+        "program_sha256": {role: digest(program) if program is not None or hash_missing_programs else None
+                           for role, program in programs.items()},
+    }
+    if replay is None:
+        seed = secrets.token_hex(32)
+    else:
+        if type(replay) is not dict or set(replay) != set(receipt) | {"seed", digest_key}:
+            raise ValueError("invalid verification receipt")
+        if any(replay[key] != value for key, value in receipt.items()):
+            raise ValueError("replay requires the same problem, frozen programs and generator")
+        seed = replay["seed"]
+        if (type(seed) is not str or len(seed) != 64 or
+                any(character not in "0123456789abcdef" for character in seed)):
+            raise ValueError("verification seed must be 256-bit lowercase hexadecimal")
+    inputs = tuple(tuple(runtime_input(workload, seed, index, trial) for trial in range(trials))
+                   for index, workload in enumerate(problem["workloads"]))
+    receipt["seed"], receipt[digest_key] = seed, digest(inputs)
+    if replay is not None and replay[digest_key] != receipt[digest_key]:
+        raise ValueError("replay runtime input digest does not match")
+    # Keep the challenge available even if later simulation rejects a program.
+    if record is not None:
+        record(receipt)
+    return inputs
 
 
 class SpeedupMarkTask(Protocol):
@@ -94,6 +187,10 @@ class SpeedupMarkTask(Protocol):
     Managed development and final grading both measure ``grading_cases``.
     That attribute is a non-empty sequence of positive problem sizes. The run
     controller does not add sizes of its own.
+
+    A task can supply ``correctness_problem(seed)`` for a small legal input that
+    its ``is_solution`` verifies independently. Each sample also has to pass this
+    check. It runs before the timed problems and can warm both solvers.
 
     Outputs must be completed data accepted by ``freeze_output``. Both solvers'
     outputs are detached before the timer stops and before verification begins.
@@ -173,6 +270,17 @@ def plain_containers(value: Any) -> bool:
     return True
 
 
+def same_plain_structure(actual: Any, expected: Any) -> bool:
+    """Compare exact integer or None leaves in plain sequence trees."""
+    expected_type, actual_type = type(expected), type(actual)
+    if expected_type is tuple or expected_type is list:
+        return ((actual_type is tuple or actual_type is list) and len(actual) == len(expected)
+                and all(same_plain_structure(item, value)
+                        for item, value in zip(actual, expected)))
+    return (actual is None and expected is None
+            or (actual_type is int and expected_type is int and actual == expected))
+
+
 def plain_numeric(value: Any) -> bool:
     """Check completed real numeric data before NumPy coercion can call hooks.
 
@@ -250,115 +358,3 @@ def freeze_output(value: Any) -> Any:
         return freeze(value)
     except RecursionError:
         raise ValueError("output is too deeply nested") from None
-
-
-def _code_imports(code, roots, found):
-    """Find actual import instructions, including in unused nested functions.
-
-    A function-local ``import re`` binds nothing at module level, so neither the
-    namespace scan nor a ``sys.modules`` delta sees it when the module is already
-    imported at interpreter start (``re`` always is). Inspect IMPORT_NAME rather
-    than arbitrary names or string literals, which also occur in innocent code.
-    """
-    for instruction in dis.get_instructions(code):
-        if instruction.opname == "IMPORT_NAME":
-            root = _root_of(instruction.argval, roots)
-            if root is not None:
-                found.add(root)
-    for constant in code.co_consts:
-        if isinstance(constant, CodeType):
-            _code_imports(constant, roots, found)
-
-
-def _root_of(name: str, roots: tuple[str, ...]):
-    for root in roots:
-        if name == root or name.startswith(f"{root}."):
-            return root
-    return None
-
-
-def forbidden_imports(module: ModuleType, roots: tuple[str, ...],
-                      imported_since=None, imported_during=None) -> tuple[str, ...]:
-    """Forbidden module roots reachable from a candidate module.
-
-    Some tasks ask the candidate to build the engine the task is about, so
-    handing the whole job to a library that has that engine inside it (an
-    embedded SQL engine, a regex engine) is a contract violation rather than an
-    optimization.
-
-    Four signals are combined, because each one alone has a hole:
-
-    * the module attributes the candidate bound at import time;
-    * import instructions inside the candidate's code objects, which catch a
-      function-local import of a module that is already loaded;
-    * ``imported_during``, the roots ``watch_imports`` observed being imported
-      while the candidate ran;
-    * ``imported_since``, the ``sys.modules`` delta since a snapshot: ``from
-      sqlite3 import connect`` binds a function whose ``__module__`` is the C
-      extension ``_sqlite3``, so a name scan alone would miss it.
-
-    This is a good-faith policy check for broadly honest submissions, not a
-    sandbox: a candidate that smuggles an engine in through ``ctypes`` or a
-    vendored copy of one is out of scope for it.
-    """
-    found = set()
-    for value in vars(module).values():
-        name = getattr(value, "__module__", None)
-        if not isinstance(name, str):
-            name = getattr(value, "__name__", None)
-        if isinstance(name, str):
-            root = _root_of(name, roots)
-            if root is not None:
-                found.add(root)
-        code = getattr(getattr(value, "__wrapped__", value), "__code__", None)
-        if code is not None:
-            _code_imports(code, roots, found)
-    if imported_during is not None:
-        for name in imported_during:
-            root = _root_of(name, roots)
-            if root is not None:
-                found.add(root)
-    if imported_since is not None:
-        for name in set(sys.modules) - set(imported_since):
-            root = _root_of(name, roots)
-            if root is not None:
-                found.add(root)
-    return tuple(sorted(found))
-
-
-class watch_imports:
-    """Record which forbidden roots a block imports, even preloaded ones.
-
-    The ``sys.modules`` delta cannot see ``import re`` inside a candidate
-    function, because ``re`` is already imported before the interpreter starts
-    running the task. Wrapping ``builtins.__import__`` for the duration of the
-    candidate call sees every import statement the candidate executes.
-    """
-
-    def __init__(self, roots: tuple[str, ...]) -> None:
-        self.roots = tuple(roots)
-        self.used: set[str] = set()
-        self._original = None
-
-    def __enter__(self):
-        import builtins
-
-        self._original = builtins.__import__
-        watched_roots, used = self.roots, self.used
-        original = self._original
-
-        def watched(name, *args, **kwargs):
-            root = _root_of(name, watched_roots)
-            if root is not None:
-                used.add(root)
-            return original(name, *args, **kwargs)
-
-        builtins.__import__ = watched
-        return self.used
-
-    def __exit__(self, *_exc):
-        import builtins
-
-        if self._original is not None:
-            builtins.__import__ = self._original
-        return False

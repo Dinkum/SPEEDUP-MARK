@@ -2,13 +2,10 @@
 
 import pathlib
 import shutil
-import sys
 import tempfile
-import types
 import unittest
 
 from speedupmark.harness import load_task
-from speedupmark.task import forbidden_imports
 from speedupmark.dependencies import DependencyViolation
 
 
@@ -95,28 +92,6 @@ class SubmissionContractTests(unittest.TestCase):
         self.assertTrue(task.is_solution(problem, mapping))
         self.assertTrue(task.is_solution(problem, list(mapping)))
 
-    def test_import_policy_ignores_literals_variables_and_attribute_names(self):
-        module = types.ModuleType("candidate")
-        exec('def solve(problem):\n'
-             '    label = "re"\n'
-             '    re = "sqlite3"\n'
-             '    return problem.re, label, re\n', module.__dict__)
-        self.assertEqual(forbidden_imports(module, ("re", "sqlite3")), ())
-
-    def test_import_policy_finds_aliased_dotted_and_nested_unused_imports(self):
-        sources = (
-            "def unused():\n    import re as matcher\n",
-            "def unused():\n    from re import compile as matcher\n",
-            "def unused():\n    import sqlite3.dbapi2 as database\n",
-            "def outer():\n    def unused():\n        import re\n    return unused\n",
-        )
-        for source in sources:
-            with self.subTest(source=source):
-                module = types.ModuleType("candidate")
-                exec(source, module.__dict__)
-                expected = ("sqlite3",) if "sqlite3" in source else ("re",)
-                self.assertEqual(forbidden_imports(module, ("re", "sqlite3")), expected)
-
     def test_temporal_join_rejects_forged_results_and_rows_before_callbacks(self):
         task = load_task(TASK_ROOT / "temporal_asof_join")
         problem = {
@@ -195,14 +170,8 @@ class SubmissionContractTests(unittest.TestCase):
                     "def unused():\n"
                     f"    import {root}\n"
                 )
-                if root not in sys.stdlib_module_names:
-                    with self.assertRaises(DependencyViolation):
-                        load_task(task_dir)
-                    continue
-                task = load_task(task_dir)
-                problem = task.generate_problem(32, 0)
-                self.assertIsNone(task.candidate_solve(problem))
-                self.assertIn(root, task.policy_violations)
+                with self.assertRaisesRegex(DependencyViolation, root):
+                    load_task(task_dir)
 
     def test_clean_reference_copy_remains_valid(self):
         for name in ("dynamic_document_search", "incremental_multiway_join",
@@ -211,7 +180,6 @@ class SubmissionContractTests(unittest.TestCase):
                 task = load_task(TASK_ROOT / name)
                 problem = task.generate_problem(32, 0)
                 self.assertTrue(task.is_solution(problem, task.solve(problem)))
-                self.assertEqual(task.policy_violations, ())
 
 
 if __name__ == "__main__":

@@ -41,9 +41,7 @@ and `itertools` are allowed.
 
 ## Scoring and verification
 
-The harness times `solve` and `candidate_solve` in host milliseconds and verifies
-with a separate sort/merge relational interpreter. It uses merge joins and sorted group reduction rather than the reference hash joins and incremental accumulators. Every part of a candidate's work — planning, index construction,
-materializing intermediates — is inside the timed call.
+The harness measures solver time in milliseconds and compares timed outputs with the reference. A separate sort/merge interpreter checks a small seeded plan batch using merge joins and sorted group reduction. The timer includes planning, index construction, and materializing intermediates.
 
 ## Reference and verification
 

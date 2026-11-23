@@ -156,10 +156,14 @@ def _checked_trace(problem):
 
 class LiveFleetDispatchTask:
     name = "live_fleet_dispatch"
-    task_version = "2.1.0"
+    task_version = "2.1.1"
     display_name = TASK_CATALOG[name].display_name
     default_n = 60
     grading_cases = (60, 96)
+    uses_reference_output = True
+
+    def correctness_problem(self, seed):
+        return self.generate_problem(20, seed)
 
     def generate_problem(self, n=60, random_seed=0):
         if type(n) is not int or n < 1:
@@ -281,7 +285,7 @@ class LiveFleetDispatchTask:
     solve = staticmethod(_reference.solve)
 
 
-    def is_solution(self, problem, proposed):
+    def is_solution(self, problem, proposed, *, reference_output=None):
         if (not plain_containers(proposed) or type(proposed) not in (tuple, list)
                 or len(proposed) != len(problem["scenarios"])):
             return False
@@ -289,7 +293,8 @@ class LiveFleetDispatchTask:
                or any(type(cost) is not int for cost in rounds)
                for rounds in proposed):
             return False
-        return tuple(tuple(rounds) for rounds in proposed) == _checked_trace(problem)
+        expected = _checked_trace(problem) if reference_output is None else reference_output
+        return tuple(tuple(rounds) for rounds in proposed) == expected
 
 
 TASK = LiveFleetDispatchTask()

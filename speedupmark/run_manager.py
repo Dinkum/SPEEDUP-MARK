@@ -8,7 +8,6 @@ through environment paths, and optionally through explicit argv placeholders.
 from __future__ import annotations
 
 import argparse
-import ast
 import contextlib
 import datetime
 import fcntl
@@ -25,12 +24,11 @@ import subprocess
 import sys
 import time
 import uuid
-from types import SimpleNamespace
 
 from .harness import TASK_ROOT, discover_tasks, load_task, resolve_seed
 from .revision import task_revision
 from .suites import selected_tasks
-from .task import covering_samples, declared_task_version, grading_cases, timing_batch
+from .task import covering_samples, declared_task_version, grading_cases, read_task_metadata, timing_batch
 from .dependencies import grading_command
 
 
@@ -167,26 +165,10 @@ def _task_versions(tasks):
         source = TASK_ROOT / name / "task_spec.py"
         if not source.is_file():
             continue
-        tree = ast.parse(source.read_text(), filename=str(source))
-        for node in ast.walk(tree):
-            if not isinstance(node, ast.ClassDef):
-                continue
-            attributes = {}
-            for statement in node.body:
-                if isinstance(statement, ast.Assign) and isinstance(statement.value, ast.Constant):
-                    for target in statement.targets:
-                        if isinstance(target, ast.Name):
-                            attributes[target.id] = statement.value.value
-            if "name" not in attributes and "task_version" not in attributes:
-                continue
-            if attributes.get("name") != name:
-                raise ValueError(f"{name}: task name must match its directory identifier")
-            versions[name] = declared_task_version(SimpleNamespace(
-                name=name, task_version=attributes.get("task_version")
-            ))
-            break
-        if name not in versions:
-            raise ValueError(f"{name}: task spec does not declare a versioned task")
+        metadata = read_task_metadata(source)
+        if metadata.name != name:
+            raise ValueError(f"{name}: task name must match its directory identifier")
+        versions[name] = declared_task_version(metadata)
     return versions
 
 
@@ -310,22 +292,11 @@ def _grading_plan(snapshot, task_name, override, samples):
     # Metadata must not execute candidate imports in the controller. All task
     # execution belongs to the isolated worker, after the seed plan is saved.
     source = snapshot / "tasks" / task_name / "task_spec.py"
-    tree = ast.parse(source.read_text(), filename=str(source))
-    literal = ("name", "grading_cases", "family_period", "timing_batch")
-    for node in tree.body:
-        if not isinstance(node, ast.ClassDef):
-            continue
-        attributes = {}
-        for statement in node.body:
-            if isinstance(statement, ast.Assign):
-                for target in statement.targets:
-                    if isinstance(target, ast.Name) and target.id in literal:
-                        attributes[target.id] = ast.literal_eval(statement.value)
-        if attributes.get("name") == task_name:
-            spec = SimpleNamespace(**{"grading_cases": None, **attributes})
-            sizes = (override,) if override is not None else grading_cases(spec)
-            return sizes, covering_samples(spec, samples) * timing_batch(spec)
-    raise ValueError(f"{task_name}: task spec must declare literal grading_cases")
+    spec = read_task_metadata(source)
+    if spec.name != task_name:
+        raise ValueError(f"{task_name}: task name must match its directory identifier")
+    sizes = (override,) if override is not None else grading_cases(spec)
+    return sizes, covering_samples(spec, samples) * timing_batch(spec)
 
 
 def _evaluate_locked(run, manifest, phase):
@@ -393,17 +364,15 @@ def _evaluate_locked(run, manifest, phase):
         seed = seed_base + case * stride
         verification_log = plans / f"{index:04d}-{phase}-{case}-verification.jsonl"
         verification_logs.append(str(verification_log.relative_to(run)))
-        command = grading_command([task, "--json",
+        command = grading_command([f"tasks/{task}", "--_worker", "--json",
                    "--seed", str(seed), "--samples", str(manifest["samples"]),
                    "--timeout", str(manifest["grade_timeout_seconds"]),
                    "--verification-log", str(verification_log.resolve()),
                    "--n", str(size)], snapshot)
         try:
-            # The inner task timeout includes validation. The outer grace also
-            # bounds a broken command, while leaving time to serialize its result.
             completed = subprocess.run(
                 command, cwd=snapshot, capture_output=True, text=True,
-                timeout=manifest["grade_timeout_seconds"] + 5,
+                timeout=manifest["grade_timeout_seconds"],
             )
             if completed.stderr:
                 (snapshot / f"grader-{case}.stderr.txt").write_text(completed.stderr)
@@ -429,7 +398,12 @@ def _evaluate_locked(run, manifest, phase):
             ):
                 raise ValueError("grader returned an invalid report")
             reports.append(report)
-        except (OSError, ValueError, subprocess.TimeoutExpired) as exc:
+        except subprocess.TimeoutExpired as exc:
+            if exc.stderr:
+                (snapshot / f"grader-{case}.stderr.txt").write_bytes(exc.stderr)
+            errors.append(f"exceeded {manifest['grade_timeout_seconds']:g}s task timeout")
+            break
+        except (OSError, ValueError) as exc:
             errors.append(str(exc))
             break
     # Check again after execution: candidate code can write files too. Persist

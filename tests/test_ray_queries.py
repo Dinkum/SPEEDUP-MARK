@@ -2,6 +2,7 @@
 
 import copy
 import pathlib
+import random
 import unittest
 from fractions import Fraction
 
@@ -172,6 +173,28 @@ class RayQueryTests(unittest.TestCase):
             answers = self.task.solve(problem)
             self.assertEqual(problem, pristine)
             self.assertTrue(self.task.is_solution(problem, answers))
+
+    def test_seeded_inclinations_preserve_hits_through_all_updates(self):
+        builders = (self.task._static_coherent, self.task._moving_bursts,
+                    self.task._mixed_sizes, self.task._incoherent)
+        normals = set()
+        for seed in range(5):
+            rng = random.Random(seed)
+            original = {"scenes": tuple(build(48, rng) for build in builders)}
+            generated = self.task.generate_problem(48, seed)
+            self.assertEqual(self.task.solve(original), self.task.solve(generated))
+            self.assertEqual(original["scenes"][0], generated["scenes"][0])
+            for scene in generated["scenes"][1:]:
+                a, b, c = scene["triangles"][0]
+                u = tuple(b[i] - a[i] for i in range(3))
+                v = tuple(c[i] - a[i] for i in range(3))
+                normal = (u[1] * v[2] - u[2] * v[1],
+                          u[2] * v[0] - u[0] * v[2],
+                          u[0] * v[1] - u[1] * v[0])
+                self.assertGreaterEqual(sum(value != 0 for value in normal),
+                                        2 if scene["family"] == "incoherent" else 3)
+                normals.add(tuple((value > 0) - (value < 0) for value in normal))
+        self.assertGreater(len(normals), 3)
 
     def test_lazy_containers_are_rejected(self):
         """A sequence subclass could do its work during untimed verification."""

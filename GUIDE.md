@@ -13,17 +13,20 @@ The speedup is reference cost divided by candidate cost. A correct result below
 mean of its sample ratios; printed reference/candidate costs are separate medians
 and their ratio may differ from that mean.
 
-Most tasks measure host milliseconds. Candidate preparation and copying the
-completed output are inside the timer. Generation, input copying, imports,
-import-policy checks, and verification are outside the timer but inside the
-worker timeout. Both solvers follow the same timing rule, starting from a freshly
+Most tasks measure host milliseconds. The timer includes candidate preparation
+and copying completed outputs. The worker timeout also covers input generation,
+input copying, module loading, and verification. The grader installs and removes
+runtime import hooks outside the timer. Both solvers start from a freshly
 collected heap with cyclic garbage collection paused for the timed call.
 
-A task whose reference call lasts well under a few milliseconds declares
-`timing_batch`: each sample then sums that many distinct problems of one
-workload family for both solvers, and the sample ratio is the ratio of those
-sums. Every sample of every wall-clock task is sized so its reference time
-clears a floor that `tests/test_reference_floor.py` enforces.
+Tasks can declare `timing_batch` to reduce timing noise. Each sample sums costs
+over that many distinct problems of one family and divides the two sums.
+`tests/test_reference_floor.py` checks that every wall-clock task clears a
+minimum reference time at its grading sizes.
+
+The eight wall-clock smoke tasks compare timed outputs with the measured
+reference answer. Before timing, each sample also runs both solvers on a small
+seeded input and checks their answers using an independent oracle.
 
 `layout_aware_pipeline_compiler`, `simd_traversal_kernel`, and
 `scratchpad_dataflow_compiler` measure simulated cycles. Host compilation time is
@@ -195,8 +198,8 @@ model ranking or guaranteed months of optimization runway.
 | [Graph Coloring](tasks/graph_coloring/README.md#workload-distribution) | 24, 32 | ms |
 | [Logistic Group Lasso](tasks/group_lasso/README.md#workload-distribution) | 24, 40 | ms |
 | [Gzip Compression](tasks/gzip_compression/README.md#workload-distribution) | 100000, 250000 | ms |
-| [Incremental Weighted Multiway Join](tasks/incremental_multiway_join/README.md#workload-distribution) | 1200, 2400 | ms |
-| [Incremental Spreadsheet Recalculation](tasks/incremental_spreadsheet_recalculation/README.md#workload-distribution) | 650, 1300 | ms |
+| [Incremental Weighted Multiway Join](tasks/incremental_multiway_join/README.md#workload-distribution) | 4000, 8000 | ms |
+| [Incremental Spreadsheet Recalculation](tasks/incremental_spreadsheet_recalculation/README.md#workload-distribution) | 2400, 4800 | ms |
 | [Integer Factorization](tasks/integer_factorization/README.md#workload-distribution) | 64, 80 | ms |
 | [Fixed-Route Job-Shop Makespan](tasks/job_shop_scheduling/README.md#workload-distribution) | 3, 4 | ms |
 | [Exact k-Nearest Neighbors](tasks/exact_k_nearest_neighbors/README.md#workload-distribution) | 700, 1400 | ms |
@@ -216,7 +219,7 @@ model ranking or guaranteed months of optimization runway.
 | [1D Viscous Burgers Equation](tasks/pde_burgers1d/README.md#workload-distribution) | 120, 200 | ms |
 | [Queens With Obstacles](tasks/queens_with_obstacles/README.md#workload-distribution) | 10, 11 | ms |
 | [Low-Rank Matrix Approximation](tasks/low_rank_approximation/README.md#workload-distribution) | 384, 768 | ms |
-| [Ranked Byte-Pair Tokenization](tasks/ranked_bpe_tokenization/README.md#workload-distribution) | 3000, 6000 | ms |
+| [Ranked Byte-Pair Tokenization](tasks/ranked_bpe_tokenization/README.md#workload-distribution) | 6000, 12000 | ms |
 | [RBF Interpolation](tasks/rbf_interpolation/README.md#workload-distribution) | 250, 500 | ms |
 | [Register VM Program Execution](tasks/register_vm_execution/README.md#workload-distribution) | 1500, 3000 | ms |
 | [Robust State Estimation](tasks/robust_kalman_filter/README.md#workload-distribution) | 16, 30 | ms |

@@ -10,6 +10,7 @@ import textwrap
 import unittest
 from unittest.mock import patch
 
+from speedupmark.dependencies import CandidateImports
 from speedupmark.harness import CandidateNotReady, _run_isolated, discover_tasks, load_task, resolve_seed, run_task
 from speedupmark.suites import SMOKE_TASKS
 from speedupmark.task import covering_samples, freeze_output, load_candidate
@@ -116,6 +117,42 @@ class MeasurementTests(unittest.TestCase):
         self.assertFalse(result.correct)
         self.assertEqual(result.speedup, 0)
 
+    def test_untimed_cases_gate_scores_for_sparse_ids_and_large_distances(self):
+        for name in ("dynamic_document_search", "dynamic_shortest_paths"):
+            with self.subTest(task=name):
+                path = self.submission(ROOT / "tasks" / name)
+                task = load_task(path)
+                extra = task.correctness_problem(412)
+                self.assertNotEqual(extra, task.correctness_problem(413))
+                if name == "dynamic_document_search":
+                    high, low = (op[1] for op in extra["operations"][:2])
+                    self.assertGreater(low, 100)
+                    expected = (((low, 1), (high, 1)), ((high, 3),), ())
+                else:
+                    weight = extra["scenarios"][-1]["edges"][0][2]
+                    self.assertGreaterEqual(2 * weight, 2**63)
+                    expected = (*task.solve({"scenarios": extra["scenarios"][:-1]}),
+                                (2 * weight, None))
+                self.assertTrue(task.is_solution(extra, expected))
+
+                def fail_extra(problem):
+                    return () if problem == extra else task.solve(problem)
+
+                oracle_name = "_verify_search" if name == "dynamic_document_search" else "_checked_queries"
+                module = sys.modules[task.is_solution.__module__]
+                for solve, correct in ((task.solve, True), (fail_extra, False)):
+                    with patch.object(module, oracle_name, wraps=getattr(module, oracle_name)) as oracle, \
+                            patch.object(task, "candidate_solve", side_effect=solve), \
+                            patch("speedupmark.harness.load_task", return_value=task), \
+                            patch("speedupmark.harness.time.perf_counter_ns",
+                                  side_effect=(0, 4_000_000, 4_000_000, 6_000_000)):
+                        result = run_task(path, n=16, seed=412, samples=1)
+                        oracle.assert_called_once_with(extra)
+                    self.assertEqual(result.correct, correct)
+                    self.assertEqual(result.samples[0].correct, correct)
+                    self.assertEqual((result.reference_score, result.candidate_score), (4, 2))
+                    self.assertEqual(result.speedup, 2 if correct else 0)
+
     def test_mutation_is_isolated_from_peer_and_verifier(self):
         path = self.task('''
             class Task:
@@ -183,7 +220,7 @@ class MeasurementTests(unittest.TestCase):
                     with self.assertRaisesRegex(RuntimeError, f"grading function changed: {name}"):
                         _run_isolated(path, 1, 8, 2, 5)
 
-    def test_output_freezing_is_inside_both_timers(self):
+    def test_output_freezing_is_timed_and_import_hook_setup_is_untimed(self):
         path = self.task('''
             class Task:
                 name = "freeze_timing"
@@ -197,6 +234,8 @@ class MeasurementTests(unittest.TestCase):
         from speedupmark.harness import _check_grading_functions
 
         events = []
+        task = load_task(path)
+        enter, exit = CandidateImports.__enter__, CandidateImports.__exit__
 
         def check(task, expected):
             events.append("guard")
@@ -210,14 +249,40 @@ class MeasurementTests(unittest.TestCase):
             events.append("freeze")
             return freeze_output(value)
 
-        with patch("speedupmark.harness.time.perf_counter_ns", side_effect=clock), \
+        def enter_imports(policy):
+            events.append("enter imports")
+            return enter(policy)
+
+        def exit_imports(policy, *exc):
+            events.append("exit imports")
+            return exit(policy, *exc)
+
+        with patch("speedupmark.harness.load_task", return_value=task), \
+                patch.object(CandidateImports, "__enter__", enter_imports), \
+                patch.object(CandidateImports, "__exit__", exit_imports), \
+                patch("speedupmark.harness.time.perf_counter_ns", side_effect=clock), \
                 patch("speedupmark.harness.freeze_output", side_effect=freeze), \
                 patch("speedupmark.harness._check_grading_functions", side_effect=check):
             result = run_task(path, samples=1)
-        self.assertEqual(events, ["guard", "clock", "freeze", "clock", "guard"] * 2)
+        self.assertEqual(events, ["guard", "clock", "freeze", "clock", "guard",
+                                  "guard", "enter imports", "clock", "freeze",
+                                  "clock", "exit imports", "guard"])
         self.assertEqual(result.reference_score, 2)
         self.assertEqual(result.candidate_score, 2)
         self.assertTrue(result.correct)
+
+    def test_solver_value_error_is_distinct_from_output_freezing_failure(self):
+        path = self.task('''
+            class Task:
+                name = "solver_error"
+                task_version = "1.0.0"
+                def generate_problem(self, n, random_seed): return 1
+                def solve(self, problem): return problem
+                def candidate_solve(self, problem): raise ValueError("solver rejected input")
+            TASK = Task()
+        ''')
+        with self.assertRaisesRegex(ValueError, "^solver rejected input$"):
+            run_task(path, samples=1)
 
     def test_outputs_are_detached_before_peer_calls_and_verification(self):
         path = self.task('''
@@ -369,6 +434,24 @@ class MeasurementTests(unittest.TestCase):
                 self.assertFalse(result.correct)
                 self.assertEqual(result.speedup, 0)
                 self.assertEqual(result.candidate_score, 0)
+
+    def test_pair_only_evaluator_uses_declared_metric(self):
+        path = self.task('''
+            from speedupmark.task import SolutionEvaluation
+            class Task:
+                name = "pair_only"
+                task_version = "1.0.0"
+                metric_unit = "cycles"
+                def generate_problem(self, n, random_seed): return 1
+                def solve(self, problem): return 6
+                def candidate_solve(self, problem): return 3
+                def evaluate_pair(self, problem, outputs, *, replay, record):
+                    return {role: SolutionEvaluation(value, True) for role, value in outputs.items()}
+            TASK = Task()
+        ''')
+        result = run_task(path, samples=1)
+        self.assertEqual(result.metric_unit, "cycles")
+        self.assertEqual(result.speedup, 2)
 
     def test_discovery_does_not_execute_task_code(self):
         path = self.task('raise RuntimeError("must never import during listing")')

@@ -160,7 +160,7 @@ class SIMDTraversalKernelTests(unittest.TestCase):
         def entropy(_):
             outputs["candidate"][0][0][0] = "broken_after_freeze"
             return "12" * 32
-        with mock.patch.object(self.spec.secrets, "token_hex", side_effect=entropy):
+        with mock.patch("speedupmark.task.secrets.token_hex", side_effect=entropy):
             result = self.task.evaluate_pair(problem, outputs, record=receipts.append)
         self.assertTrue(all(e.correct for e in result.values()))
         self.assertEqual(result["reference"].score, result["candidate"].score)
@@ -181,7 +181,7 @@ class SIMDTraversalKernelTests(unittest.TestCase):
         for name, values in zip(("out_positions", "out_values"), expected):
             for offset, value in enumerate(values):
                 program.extend((("const", 1, 0, value), ("store", 1, 0, workload[name] + offset)))
-        with mock.patch.object(self.spec.secrets, "token_hex", return_value="ff" * 32):
+        with mock.patch("speedupmark.task.secrets.token_hex", return_value="ff" * 32):
             self.assertFalse(self.task.evaluate_solution({"workloads": (workload,)}, (program,)).correct)
         program = list(self.task.solve({"workloads": (workload,)})[0])
         program.extend((("const", 1, 0, 0xffffffff), ("store", 1, 0, workload["out_positions"])))

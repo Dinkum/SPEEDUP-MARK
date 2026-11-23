@@ -11,8 +11,16 @@ def _recalculate(problem, inputs):
             values[cell] = values[left] + values[right]
         elif operation == "sub":
             values[cell] = values[left] - values[right]
-        else:
+        elif operation == "scale":
             values[cell] = values[left] * right
+        elif operation == "min":
+            values[cell] = min(values[left], values[right])
+        elif operation == "max":
+            values[cell] = max(values[left], values[right])
+        elif operation == "mul":
+            values[cell] = values[left] * values[right]
+        else:
+            raise ValueError(operation)
     return values
 
 

@@ -14,7 +14,7 @@ from __future__ import annotations
 import random
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_reference
+from speedupmark.task import load_reference, same_plain_structure
 
 
 # Bound on |coordinate| for generated scenes, and on ray origins/directions.
@@ -35,30 +35,6 @@ RAY_LIMIT = 1 << 42
 _COARSE = (1 << 29) + 11
 _MEDIUM = (1 << 28) + 3
 _FINE = (1 << 16) + 1
-
-
-def _materialized(value):
-    """Plain containers only: reject subclasses that defer work until verification.
-
-    A sequence subclass can compute its elements lazily, so a submission could
-    return almost instantly and let the untimed verifier do the work. Requiring
-    exact ``tuple``/``list`` types and exact ``int`` leaves closes that hole.
-    """
-    if type(value) is int:
-        return True
-    if type(value) in (tuple, list):
-        return all(_materialized(item) for item in value)
-    return False
-
-
-def _same_materialized(actual, expected):
-    if isinstance(expected, tuple):
-        return (
-            isinstance(actual, (tuple, list))
-            and len(actual) == len(expected)
-            and all(_same_materialized(a, e) for a, e in zip(actual, expected))
-        )
-    return type(actual) is type(expected) and actual == expected
 
 
 def _mesh(rng, cells_x, cells_y, spacing, origin, tilt):
@@ -148,21 +124,54 @@ def _jitter(rng, triangle, delta):
     )
 
 
+def _incline_scene(scene, rng):
+    slope = rng.choice((-1, 1))
+    # The incoherent family's deliberate misses have very long y directions.
+    # Leave that component out of the shear to keep them within the ray bound.
+    y_slope = 0 if scene["family"] == "incoherent" else -slope
+    axes = rng.sample(range(3), 3)
+
+    def vector(point):
+        x, y, z = point
+        tilted = (x, y, z + slope * x + y_slope * y)
+        return tuple(tilted[axis] for axis in axes)
+
+    def triangle(vertices):
+        return tuple(map(vector, vertices))
+
+    # One invertible linear map preserves ray parameters, shared edges and ties.
+    phases = []
+    for phase in scene["phases"]:
+        if "rays" in phase:
+            phases.append({"rays": tuple((vector(origin), vector(direction))
+                                         for origin, direction in phase["rays"])})
+        else:
+            phases.append({"updates": tuple(
+                update if update[0] == "remove" else (*update[:-1], triangle(update[-1]))
+                for update in phase["updates"])})
+    return {**scene, "triangles": tuple(map(triangle, scene["triangles"])), "phases": tuple(phases)}
+
+
 def _check_scenes(scenes):
     """Fail loudly if generation ever leaves the documented coordinate contract."""
-    limit = RAY_LIMIT
+    def check_triangle(triangle):
+        for vertex in triangle:
+            if any(type(value) is not int or abs(value) > COORD_LIMIT for value in vertex):
+                raise ValueError("generated vertex outside the coordinate bound")
+
     for scene in scenes:
         for triangle in scene["triangles"]:
-            for vertex in triangle:
-                if any(type(value) is not int or abs(value) > COORD_LIMIT for value in vertex):
-                    raise ValueError("generated vertex outside the coordinate bound")
+            check_triangle(triangle)
         for phase in scene["phases"]:
+            for update in phase.get("updates", ()):
+                if update[0] != "remove":
+                    check_triangle(update[-1])
             for ray in phase.get("rays", ()):
                 origin, direction = ray
                 if direction == (0, 0, 0):
                     raise ValueError("generated ray with a zero direction")
                 for value in origin + direction:
-                    if type(value) is not int or abs(value) > limit:
+                    if type(value) is not int or abs(value) > RAY_LIMIT:
                         raise ValueError("generated ray outside the coordinate bound")
 
 
@@ -228,21 +237,26 @@ def _verify_rays(problem):
 
 class DynamicExactRayQueriesTask:
     name = "dynamic_exact_ray_queries"
-    task_version = "2.1.0"
+    task_version = "2.2.1"
     display_name = TASK_CATALOG[name].display_name
     default_n = 192
     grading_cases = (192, 288)
+    uses_reference_output = True
+
+    def correctness_problem(self, seed):
+        return self.generate_problem(16, seed)
 
     def generate_problem(self, n=192, random_seed=0):
         if n < 8:
             raise ValueError("n must be at least 8")
         rng = random.Random(random_seed)
-        scenes = (
-            self._static_coherent(n, rng),
+        horizontal = self._static_coherent(n, rng)
+        inclined = (
             self._moving_bursts(n, rng),
             self._mixed_sizes(n, rng),
             self._incoherent(n, rng),
         )
+        scenes = (horizontal, *(_incline_scene(scene, rng) for scene in inclined))
         _check_scenes(scenes)
         return {"scenes": scenes}
 
@@ -349,11 +363,10 @@ class DynamicExactRayQueriesTask:
     solve = staticmethod(_reference.solve)
 
 
-    def is_solution(self, problem, proposed):
+    def is_solution(self, problem, proposed, *, reference_output=None):
         try:
-            if not _materialized(proposed):
-                return False
-            return _same_materialized(proposed, _verify_rays(problem))
+            expected = _verify_rays(problem) if reference_output is None else reference_output
+            return same_plain_structure(proposed, expected)
         except (KeyError, TypeError, ValueError, IndexError):
             return False
 

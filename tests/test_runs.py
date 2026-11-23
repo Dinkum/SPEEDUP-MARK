@@ -232,7 +232,12 @@ class RunFlowTests(unittest.TestCase):
 
     def test_explicit_seed_replays_declared_cases_in_both_phases(self):
         run = self.create(seed=41)
-        development = run_manager.evaluate_run(run)
+        with patch.object(run_manager.subprocess, 'run', wraps=subprocess.run) as workers:
+            development = run_manager.evaluate_run(run)
+        self.assertEqual(workers.call_count, 2)
+        for call in workers.call_args_list:
+            self.assertEqual(call.args[0][1:3], ['-I', '-B'])
+            self.assertIn('--_worker', call.args[0])
         summary = run_manager.finish_run(run, usage={'output_tokens': 123, 'cost_usd': 0.02})
         final = summary['final']
         self.assertTrue(development['correct'])

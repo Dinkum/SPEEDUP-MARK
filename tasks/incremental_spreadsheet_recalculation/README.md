@@ -2,15 +2,15 @@
 
 ## Input and submission
 
-The first `input_count` cells are mutable integers. Every later cell is an acyclic formula over earlier cells: integer addition, subtraction, or multiplication by a small integer constant. Apply the ordered `set` and `query` stream and return each queried value. Sets target input cells only. Python's exact integer arithmetic defines overflow behavior.
+The first `input_count` cells are mutable integers. Every later cell is a formula over earlier cells. Apply the ordered `set` and `query` stream and return each queried value. Sets target input cells only. All arithmetic uses exact Python integers.
 
-The problem's `initial_inputs` field supplies the input-cell values. The first `input_count` entries in `formulas` are `None`; subsequent entries are `("add", left, right)`, `("sub", left, right)`, or `("scale", left, constant)`. Cell operands are integer indexes, while the third field of `scale` is the multiplier itself. Operations are `("set", input_cell, value)` and `("query", cell)`; queries may target input or formula cells. Return a list or tuple containing one exact Python `int` per query, in order. Booleans are rejected.
+The problem's `initial_inputs` field supplies the input-cell values. The first `input_count` entries in `formulas` are `None`. Subsequent entries are `(op, left, right)`, where `op` is `add`, `sub`, `mul`, `min`, or `max`, and both operands are cell indexes. A `("scale", left, constant)` formula multiplies a cell by the given integer constant. Operations are `("set", input_cell, value)` and `("query", cell)`. Queries may target input or formula cells. Return one exact Python `int` per query, in order. Booleans are rejected.
 
-Return a built-in list or tuple. Direct grading uses 650 cells; managed grading uses both 650 and 1300 cells. Scores are reference time divided by candidate time in host milliseconds. Problem generation and verification are outside the timer; all candidate preparation is inside it.
+Return a built-in list or tuple. Direct grading uses 2,400 cells. Managed grading uses 2,400 and 4,800 cells. Scores compare reference and candidate times in host milliseconds. Candidate preparation is timed.
 
 ## Reference and verification
 
-The verifier independently evaluates queried ancestors with an explicit DFS stack; it does not reuse the full-sheet reference pass. The executable checker is `_verify_sheet` in `task_spec.py`.
+The grader compares timed outputs with the reference. `_verify_sheet` independently checks a small seeded sheet with nonlinear formulas by evaluating queried ancestors with a DFS stack.
 
 The reference deliberately recalculates the entire sheet for every query. Candidates can build reverse dependencies, mark dirty cells, evaluate only queried ancestors, cache clean values, or batch invalidation. All edit handling and recalculation is timed. Some generated dependencies reach back to early input cells; scale factors stay small so values remain practical.
 
@@ -18,8 +18,8 @@ The reference deliberately recalculates the entire sheet for every query. Candid
 
 - **Size:** n is total cell count; max(1,n//6) cells are inputs.
 - **Selection:** One formula-DAG distribution combining local dependencies, input fan-out, and repeated updates.
-- **Randomized:** Initial/input values -100..100, earlier-cell dependencies, add/subtract/scale formulas, query cells; scale factors are -2..2.
-- **Fixed structure:** There are max(40,n) operations: every third is an update, and every ninth is deliberately a no-op update. Formula-selection rules also depend on cell index.
+- **Randomized:** Initial and edited input values range from -100 to 100. Formulas combine nearby cells and scattered earlier dependencies. Scale factors range from -2 to 2. Generated `mul` formulas use one input-cell factor to keep chained values practical.
+- **Fixed structure:** The `max(40, n)` operations span four phases with update probabilities 0.10, 0.88, 0.20, and 0.65. Some phases reuse a small set of query cells or edited inputs. Twenty percent of edits deliberately repeat the current value.
 
 The executable definition is [`task_spec.py`](task_spec.py), `generate_problem` and its helpers. See [sampling and coverage](../../GUIDE.md#sampling) for how the grader chooses and records seeds.
 

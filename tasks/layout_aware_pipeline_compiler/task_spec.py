@@ -19,13 +19,11 @@ runtime tensor values are drawn after the submitted program is fixed.
 from __future__ import annotations
 
 import hashlib
-import json
 import random
-import secrets
 import struct
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import SolutionEvaluation, load_reference
+from speedupmark.task import SolutionEvaluation, load_reference, verification_challenge
 
 
 _reference = load_reference(__file__)
@@ -194,7 +192,8 @@ class _Simulator:
         completion = cycle + LATENCY[opcode]
         destination = WRITES.get(opcode)
         if destination is not None:
-            slot = instruction[WRITES[opcode]]
+            slot = instruction[destination]
+            self._check_slot(slot)
             if slot in written:
                 raise ValueError("two instructions write one slot in a packet")
             if self.busy[slot] > cycle:
@@ -213,9 +212,12 @@ class _Simulator:
                 ("memory", instruction[3], 0, value[instruction[2]]))
         return completion
 
-    def _readable(self, slot, cycle):
+    def _check_slot(self, slot):
         if type(slot) is not int or not 0 <= slot < self.slots:
             raise ValueError("scratch slot out of range")
+
+    def _readable(self, slot, cycle):
+        self._check_slot(slot)
         if self.busy[slot] > cycle:
             raise ValueError("slot read before its producer completed")
         return self.registers[slot]
@@ -379,13 +381,6 @@ VERIFICATION_GENERATOR = "shake256-uint32be-v1"
 VERIFICATION_TRIALS = 3
 
 
-def _digest(value):
-    """Hash canonical plain program/problem data, including output placements."""
-    encoded = json.dumps(value, sort_keys=True, separators=(",", ":"),
-                         ensure_ascii=True, allow_nan=False).encode("ascii")
-    return hashlib.sha256(encoded).hexdigest()
-
-
 def _runtime_inputs(workload, seed, workload_index, trial):
     """Expand a private 256-bit seed into a portable, versioned uint32 stream."""
     cells = sum(rows * columns for _, (rows, columns), _ in workload["inputs"])
@@ -431,42 +426,16 @@ def _evaluate_submissions(problem, outputs, *, replay=None, record=None):
     # grading a malformed candidate must still leave reference verification intact.
     if not any(output is not None for output in frozen.values()) and replay is None and record is None:
         return {role: SolutionEvaluation(0.0, False) for role in frozen}
-    receipt = {
-        "generator_version": VERIFICATION_GENERATOR,
-        "problem_sha256": _digest(problem),
-        "program_sha256": {role: _digest(output) if output is not None else None
-                           for role, output in frozen.items()},
-    }
-    if replay is not None:
-        if type(replay) is not dict or set(replay) != set(receipt) | {"seed", "tensor_sha256"}:
-            raise ValueError("invalid compiler verification receipt")
-        if any(replay[key] != value for key, value in receipt.items()):
-            raise ValueError("compiler replay requires the same problem, frozen programs and generator")
-        seed = replay["seed"]
-        if (type(seed) is not str or len(seed) != 64 or
-                any(character not in "0123456789abcdef" for character in seed)):
-            raise ValueError("compiler verification seed must be 256-bit lowercase hexadecimal")
-    else:
-        # Both outputs have been fully consumed before entropy is sampled. The
-        # public workload seed never determines this independent challenge.
-        seed = secrets.token_hex(32)
-    runtime_inputs = tuple(tuple(_runtime_inputs(workload, seed, index, trial)
-                                for trial in range(VERIFICATION_TRIALS))
-                           for index, workload in enumerate(problem["workloads"]))
-    receipt.update(seed=seed, tensor_sha256=_digest(runtime_inputs))
-    if replay is not None and replay["tensor_sha256"] != receipt["tensor_sha256"]:
-        raise ValueError("compiler replay tensor digest does not match")
-    # Persist evidence before simulation, including a failed program's challenge.
-    # The harness binds this receipt to candidate bytes and the task revision.
-    if record is not None:
-        record(receipt)
+    runtime_inputs = verification_challenge(
+        problem, frozen, generator=VERIFICATION_GENERATOR, trials=VERIFICATION_TRIALS,
+        runtime_input=_runtime_inputs, digest_key="tensor_sha256", replay=replay, record=record)
     return {role: _verify_frozen(problem, output, runtime_inputs)
             for role, output in frozen.items()}
 
 
 class LayoutAwarePipelineCompilerTask:
     name = "layout_aware_pipeline_compiler"
-    task_version = "3.1.0"
+    task_version = "3.1.1"
     display_name = TASK_CATALOG[name].display_name
     default_n = 32
     grading_cases = (32, 48)

@@ -10,21 +10,21 @@ If a pair appears at multiple ranks, its earliest rank wins and determines the e
 
 Return the final tokens as a built-in list or tuple of nonnegative exact Python `int` values.
 
-Direct grading uses 3000 input bytes; managed grading uses 3000 and 6000. Scores are reference time divided by candidate time in host milliseconds. Problem generation and verification are outside the timer; candidate preparation is inside it.
+Direct grading uses 6,000 input bytes. Managed grading uses 6,000 and 12,000. Each timing sample sums two independent inputs from the same merge family. Scores compare reference and candidate times in host milliseconds. Candidate preparation is timed.
 
 Implement the ranked merge rule yourself. Existing tokenizer engines (`tokenizers`, `tiktoken`, `sentencepiece`, `transformers`, `subword_nmt`, `youtokentome`) are forbidden imports. Ordinary Python containers, heaps, and byte operations are allowed.
 
 ## Reference and verification
 
-The verifier uses a linked-token priority queue that merges one lowest-rank, leftmost pair at a time, independently of the reference whole-list passes. The executable checker is `_verify_encoding` in `task_spec.py`.
+The grader compares timed outputs with the reference. `_verify_encoding` independently checks a small seeded input using a linked-token queue that selects the lowest rank and then the leftmost occurrence.
 
 The reference repeatedly scans the full token list to find the next rank and rebuilds it to apply merges. Candidates can use linked neighbors, occurrence indexes, heaps with stale-entry checks, or compact arrays. All tokenization work is timed.
 
 ## Workload distribution
 
-- **Size:** n is byte-string length; merge-table target is min(128,max(32,n//20+16)).
+- **Size:** `n` is byte-string length. Merge-table size is `min(768, max(32, n // 12 + 16))`, giving 516 and 768 rules at the grading sizes.
 - **Selection:** seed % 3 selects shallow byte-pair rules, deep chains, or balanced merge construction.
-- **Randomized:** Sample 8–24 byte values; six random motifs of lengths 8–24 plus repeated-byte, alternating-pair, and overlapping motifs. Rules are built from the motifs' actual current tokenization: shallow uses byte-only pairs, chains merge leftmost, balanced merges adjacent tokens with shortest combined expansion. Additional legal rules fill the target. Data sample these motifs with a byte mutation probability of 0.20 for shallow or 0.08 otherwise.
+- **Randomized:** The generator samples 32–64 byte values and builds 12–96 motifs with shared prefixes and varied tails. It adds repeated-byte, alternating-pair, and overlapping motifs. Rules derive from actual motif tokenizations. Shallow rules use byte pairs, chains merge leftmost, and balanced rules merge adjacent tokens with the shortest combined expansion. Legal filler rules bring the table to its target size. Sampled data mutate one byte in a motif with probability 0.20 for shallow and 0.08 otherwise.
 - **Fixed structure:** All three families obey the same ranked BPE semantics. Structural motif classes remain deliberate, but their bytes, lengths, tables, and data vary. Three consecutive grading seeds cover all three merge families.
 
 The executable definition is [`task_spec.py`](task_spec.py), `generate_problem` and its helpers. See [sampling and coverage](../../GUIDE.md#sampling) for how the grader chooses and records seeds.

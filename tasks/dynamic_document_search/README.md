@@ -12,15 +12,15 @@ Building the search index is the task. Delegating to an existing SQL or search e
 
 ## Reference and verification
 
-The verifier counts query terms in raw document token lists, independently of the reference frequency-map implementation. The executable checker is `_verify_search` in `task_spec.py`.
+The grader compares timed outputs with the reference. Each sample also runs an untimed stream with replacement, deletion, repeated terms, a tied ranking, and large document IDs. `_verify_search` checks that stream by counting terms in raw token lists.
 
-The reference stores per-document term counts and scans every live document for every query. Candidates can maintain an inverted index, update postings incrementally, accumulate sparse scores, and select the top results without a full sort. All updates and searches are timed.
+The reference stores per-document term counts and scans every live document for every query. Candidates can maintain an inverted index, update postings incrementally, accumulate sparse scores, and select the top results without a full sort. The score includes every update and search in the timed stream.
 
 ## Workload distribution
 
 - **Size:** n is exact operation count; normal grading uses 800 and 1600.
-- **Selection:** Each stream begins with n//8 additions, then four equal-length phases with query probabilities 0.85, 0.25, 0.90, and 0.45.
-- **Randomized:** Vocabulary size is max(160,min(768,n//3)), with eight sampled hot terms. Documents draw 65% of words from hot terms; lengths are 8–24 or 80–160, with long-document probability 0.75 in phases two/four and 0.15 otherwise. Queries draw hot terms with probabilities 0.15/0.80/0.85/0.25, use 2–6 terms plus an optional absent term, and request 3/10/30 hits. Mutation steps choose deletion with probability 0.15, otherwise replacement with probability 0.65 or insertion.
+- **Selection:** The grading streams begin with 500 or 1,000 distinct documents. The remaining operations form four phases with query probabilities 0.85, 0.25, 0.90, and 0.45.
+- **Randomized:** The 2,400- or 4,800-term vocabulary is assigned a seeded rank order. Document terms are sampled with Zipf weights proportional to inverse rank. Document lengths are 8–24 or 80–160. Long-document probabilities are 0.75 in phases two and four and 0.15 otherwise. Each query uses 2–6 terms, sometimes adds an absent term, and requests 3, 10, or 30 hits. Query terms come from the most common 5% with probabilities 0.15, 0.80, 0.85, and 0.25 across the phases. Other query terms come uniformly from the tail. Mutation steps choose deletion with probability 0.15. For remaining mutations, replacement has probability 0.65 when the corpus is nonempty.
 - **Fixed structure:** Every normal-size stream spans different update/query pressures. Phase probabilities and monotonic IDs are prescribed; exact operation schedules, contents, and term frequencies vary. Tiny inputs have at least one warmup addition when nonempty.
 
 The executable definition is [`task_spec.py`](task_spec.py), `generate_problem` and its helpers. See [sampling and coverage](../../GUIDE.md#sampling) for how the grader chooses and records seeds.

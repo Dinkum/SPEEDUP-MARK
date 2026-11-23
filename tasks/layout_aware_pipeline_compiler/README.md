@@ -74,6 +74,8 @@ Pipeline constants, such as stencil coefficients, remain available to compilatio
 | `("vperm", dst, a, b, mask)` | lane `i` takes `a[mask[i]]` if `mask[i] < lanes`, else `b[mask[i] - lanes]` | perm | 1 |
 | `("vred", dst, src)` | lane 0 becomes the wrapping sum of `src`; other lanes zero | alu | 5 |
 
+Every scratch source and destination must be an integer from zero through `machine["scratch"] - 1`.
+
 A packet is a tuple of instructions issued in one cycle, ordered. Reads observe
 the pre-write state of the cycle. An earlier instruction in the packet reserves its destination immediately, so a later instruction cannot read that slot in the same packet, even to request its old value. A producer's value is readable at the start of
 `issue + latency`. A slot may not be read or rewritten before its producer

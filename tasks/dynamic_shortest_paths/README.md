@@ -6,16 +6,18 @@ Process changes and exact distance queries on directed graphs with positive Pyth
 
 Operations are `("set", source, target, weight)`, `("delete", source, target)`, and `("query", source, target)`. A set inserts an edge or replaces its weight, including reopening a deleted edge. Delete removes only that direction; deleting a missing edge is a no-op. Return one list or tuple per scenario with one shortest-distance answer per query, in order. The outer result may also be a built-in list or tuple. An unreachable target returns `None`; a source equal to its target returns integer zero, even if isolated. Distances must be exact Python integers; booleans and floats are rejected. General legal inputs can include positive self-loops.
 
-Every generated problem contains a directed grid, a graph with high-degree hubs, and two sparse regions connected by a narrow bottleneck. Sizes 400 and 800 each run every family. `n` controls vertices per scenario and roughly twice that many stream operations. Each stream mixes repeated sources, repeated targets, cold queries, and bursts of edge updates. Bottleneck scenarios explicitly close both bridge directions, query the disconnected graph, and reopen the bridge. Weight replacements include increases and decreases.
+Every timed problem contains a directed grid, a graph with high-degree hubs, and two sparse regions connected by a narrow bottleneck. Sizes 400 and 800 each run every family. `n` controls vertices per scenario and roughly twice that many stream operations. Each stream mixes repeated sources, repeated targets, cold queries, and bursts of edge updates. Bottleneck scenarios explicitly close both bridge directions, query the disconnected graph, and reopen the bridge. Weight replacements include increases and decreases.
 
 ## Reference and verification
 
-The starting reference builds adjacency maps and runs heap-based Dijkstra with target early termination for each query. An independent bidirectional search checks the answers. Candidate improvements can combine bidirectional search, source/target distance caches, dependency-aware invalidation, shortest-path-tree repair, batched query planning, and topology-specific indexes. All candidate preprocessing, updates, and queries are timed; no prebuilt input-specific state is provided. There is no separately enforced memory budget. The task remains exact: approximation, stale caches, and route estimates are invalid.
+Each sample also checks a three-vertex graph whose reachable path exceeds the largest signed 64-bit integer. The reverse direction is unreachable. The seed sets the weights. This small graph is untimed. A wrong answer fails the sample.
+
+The starting reference builds adjacency maps and runs heap-based Dijkstra with target early termination for each query. The grader compares timed outputs with the reference. An independent bidirectional search checks small seeded graphs and a case with distances beyond signed 64-bit range. Candidate improvements can combine bidirectional search, source/target distance caches, dependency-aware invalidation, shortest-path-tree repair, batched query planning, and topology-specific indexes. The score includes all candidate preprocessing, updates, and queries on the timed workload. There is no separately enforced memory budget. The task remains exact: approximation, stale caches, and route estimates are invalid.
 
 ## Workload distribution
 
 - **Size:** n scales graph vertices, clamped to at least 8.
-- **Selection:** Every input contains grid, hubs, and bottleneck graphs.
+- **Selection:** Every timed input contains grid, hubs, and bottleneck graphs.
 - **Randomized:** Edge weights (initially 1–30), updates (1–80), graph choices, and hot/cold query endpoints.
 - **Fixed structure:** Each graph has roughly 2*n operations; phase query probabilities are 0.95, 0.70, 0.15, and 0.90, with scheduled bridge closures and reopenings.
 

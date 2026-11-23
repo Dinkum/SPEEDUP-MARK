@@ -6,11 +6,12 @@ sandbox against code deliberately modifying the interpreter or loading binaries.
 
 import ast
 import builtins
-import functools
 import importlib
 import importlib.util
 import pathlib
 import sys
+
+from speedupmark.task import read_task_metadata
 
 
 class DependencyViolation(ValueError):
@@ -26,26 +27,7 @@ class GradingEnvironmentError(RuntimeError):
 
 
 def declared_dependencies(task_file):
-    """Read literal module metadata without importing the task or candidate."""
-    source = pathlib.Path(task_file)
-    tree = ast.parse(source.read_text(), filename=str(source))
-    values = [node.value for node in tree.body
-              if isinstance(node, ast.Assign)
-              and any(isinstance(target, ast.Name) and target.id == "ALLOWED_EXTERNAL_IMPORTS"
-                      for target in node.targets)]
-    if not values:
-        return ()
-    if len(values) != 1:
-        raise ValueError(f"{source.parent.name}: duplicate ALLOWED_EXTERNAL_IMPORTS")
-    try:
-        roots = ast.literal_eval(values[0])
-    except (ValueError, TypeError):
-        raise ValueError(f"{source.parent.name}: ALLOWED_EXTERNAL_IMPORTS must be a literal tuple") from None
-    if (type(roots) is not tuple
-            or any(type(root) is not str or not root.isidentifier() for root in roots)
-            or len(set(roots)) != len(roots)):
-        raise ValueError(f"{source.parent.name}: ALLOWED_EXTERNAL_IMPORTS must contain distinct module roots")
-    return roots
+    return read_task_metadata(task_file).external_imports
 
 
 # A speedup must come from the algorithm and its implementation, not from the
@@ -60,12 +42,12 @@ DENIED_STDLIB_ROOTS = frozenset({
 
 
 class CandidateImports:
-    def __init__(self, task_file):
+    def __init__(self, task_file, forbidden_roots=()):
         self.path = pathlib.Path(task_file).resolve().with_name("candidate.py")
         self.task = self.path.parent.name
         self.external = declared_dependencies(task_file)
         self.allowed = ((sys.stdlib_module_names | set(self.external) | {"__future__"})
-                        - DENIED_STDLIB_ROOTS)
+                        - DENIED_STDLIB_ROOTS - set(forbidden_roots))
         self._stack = []
         self.violation = None
 
@@ -118,19 +100,22 @@ class CandidateImports:
             raise self.violation
 
 
-def checked_candidate(task_file, loader):
-    policy = CandidateImports(task_file)
+class CandidateSolver:
+    def __init__(self, solve, imports):
+        self.solve = solve
+        self.imports = imports
+
+    def __call__(self, problem):
+        with self.imports:
+            return self.solve(problem)
+
+
+def checked_candidate(task_file, loader, forbidden_roots=()):
+    policy = CandidateImports(task_file, forbidden_roots)
     policy.validate_source()
     with policy:
         module = loader()
-    solve = module.solve
-
-    @functools.wraps(solve)
-    def checked_solve(*args, **kwargs):
-        with policy:
-            return solve(*args, **kwargs)
-
-    module.solve = checked_solve
+    module.solve = CandidateSolver(module.solve, policy)
     return module
 
 

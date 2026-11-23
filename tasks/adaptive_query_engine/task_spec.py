@@ -20,7 +20,7 @@ import random
 from itertools import groupby
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import load_reference
+from speedupmark.task import load_reference, same_plain_structure
 
 
 _reference = load_reference(__file__)
@@ -30,7 +30,7 @@ _reference = load_reference(__file__)
 # violation, not an optimization; a vector or dictionary primitive is fine.
 ENGINE_ROOTS = ("sqlite3", "_sqlite3", "duckdb", "_duckdb", "sqlalchemy", "apsw",
                 "polars", "pandas", "datafusion", "pyarrow", "sqlglot", "pandasql")
-AGGREGATES = ("sum", "count", "min", "max")
+COLUMN_AGGREGATES = ("sum", "min", "max")
 
 
 def _verify_node(node, tables):
@@ -134,7 +134,7 @@ def _vary_plans(family, rng):
         elif kind == "group":
             keys, aggregates = list(node[2]), list(node[3])
             rng.shuffle(keys)
-            aggregates = [(rng.choice(AGGREGATES) if col is not None else "count", col)
+            aggregates = [(rng.choice(COLUMN_AGGREGATES) if col is not None else "count", col)
                           for _, col in aggregates]
             rng.shuffle(aggregates)
             result = (kind, vary(node[1]), tuple(keys), tuple(aggregates))
@@ -189,25 +189,6 @@ def _vary_plans(family, rng):
     return family | {"tables": tables, "queries": tuple(map(rename, queries))}
 
 
-def _materialized(value):
-    """Plain containers only: reject subclasses that defer work until verification."""
-    if type(value) is int:
-        return True
-    if type(value) in (tuple, list):
-        return all(_materialized(item) for item in value)
-    return False
-
-
-def _same_materialized(actual, expected):
-    if isinstance(expected, tuple):
-        return (
-            isinstance(actual, (tuple, list))
-            and len(actual) == len(expected)
-            and all(_same_materialized(a, e) for a, e in zip(actual, expected))
-        )
-    return type(actual) is type(expected) and actual == expected
-
-
 def _orders(rng, rows, customers):
     return {
         "columns": ("o_id", "cust", "region", "amount"),
@@ -260,10 +241,14 @@ def _events(rng, rows, customers, regions):
 class AdaptiveQueryEngineTask:
     forbidden_import_roots = ENGINE_ROOTS
     name = "adaptive_query_engine"
-    task_version = "2.1.0"
+    task_version = "2.1.2"
     display_name = TASK_CATALOG[name].display_name
     default_n = 2400
     grading_cases = (2400, 3600)
+    uses_reference_output = True
+
+    def correctness_problem(self, seed):
+        return self.generate_problem(32, seed)
 
     def generate_problem(self, n=800, random_seed=0):
         if n < 32:
@@ -410,11 +395,10 @@ class AdaptiveQueryEngineTask:
     solve = staticmethod(_reference.solve)
 
 
-    def is_solution(self, problem, proposed):
+    def is_solution(self, problem, proposed, *, reference_output=None):
         try:
-            if not _materialized(proposed):
-                return False
-            return _same_materialized(proposed, _verified_answer(problem))
+            expected = _verified_answer(problem) if reference_output is None else reference_output
+            return same_plain_structure(proposed, expected)
         except (KeyError, TypeError, ValueError, IndexError):
             return False
 

@@ -6,7 +6,7 @@ Maintain the exact weighted triangle aggregate `sum(R[a,b] * S[b,c] * T[c,a])` o
 
 The input is `{"scenarios": (...)}`. Each independent scenario contains a descriptive `family`, initial `relations` mapping `R`, `S`, and `T` to sequences of unique `(source, target, weight)` rows, and an `operations` sequence. Operations are `("set", relation, source, target, weight)`, `("delete", relation, source, target)`, and `("query",)`. A set replaces the previous weight; setting zero is equivalent to deletion; deleting a missing pair is a no-op. `R` coordinates are `(a,b)`, `S` coordinates `(b,c)`, and `T` coordinates `(c,a)`. Return one list or tuple per scenario containing the aggregate at every query, in order. The outer result may also be a built-in list or tuple. Booleans and floating-point values are not valid answers.
 
-Every generated problem contains uniform, hub-skewed, and dense/bursty scenarios. Sizes 1,200 and 2,400 each run all families; `n` controls each scenario's operation count and coordinate-domain size. Updates include replacements, insertions, deletions, signed weights, and zero weights. Dense scenarios alternate update-heavy and query-heavy phases, including a phase concentrated on one relation.
+Every generated problem contains uniform, hub-skewed, and dense-burst scenarios. Sizes 4,000 and 8,000 exercise all three families at domain sides of 504 and 712. Updates include replacements, insertions, deletions, signed weights, and zero weights.
 
 Return built-in lists or tuples, including each scenario's answers. Scores are reference time divided by candidate time in host milliseconds.
 
@@ -14,14 +14,14 @@ Maintaining the join is the task. Existing relational engines (`sqlite3`, `_sqli
 
 ## Reference and verification
 
-The reference builds both directions of each relation and maintains the aggregate with a first-order delta: changing one edge intersects its two neighboring adjacency maps. It is already incremental and indexed. The independent checker reconstructs the aggregate by enumerating two-edge paths at each query. Opportunities include maintaining selected two-relation products, choosing intermediates around skew, handling high-degree vertices separately, batching changes between queries, and switching strategies as update/query ratios change. Each strategy has initialization, maintenance, and memory costs; all candidate input-dependent preparation and operations are timed. There is no separate enforced memory budget.
+The reference builds both directions of each relation and maintains the aggregate with a first-order delta. Changing one edge intersects its two neighboring adjacency maps. The grader compares timed outputs with the reference and checks a small seeded stream by independently enumerating two-edge paths. Candidates can maintain selected two-relation products, handle high-degree vertices separately, or combine repeated edits between queries. Candidate preparation and operation processing are both timed.
 
 ## Workload distribution
 
-- **Size:** n is operation count per scenario; key-domain side is max(8,2*isqrt(n)).
+- **Size:** Each scenario has `n` operations plus an opening and closing query. Each key domain has side `max(8, 8 * isqrt(n))`.
 - **Selection:** Every input contains uniform, hub_skew, and dense_bursts.
-- **Randomized:** Weighted R/S/T edges and updates. Hub endpoints are concentrated with probability 0.8; updates choose existing edges with probability 0.65 and deletion with probability 0.23.
-- **Fixed structure:** Query intervals are 9/23 for uniform/hubs, and alternate 97/3 for dense bursts. Every scenario begins and ends with a query; dense phases include one-relation bursts.
+- **Randomized:** All relations start with sparse background edges. In each skewed scenario two relations also have high-degree rows with overlapping neighborhoods. The seed chooses the relation targeted by concentrated updates and permutes all three key domains.
+- **Fixed structure:** Uniform and hub scenarios query every 9 and 11 operations. The hub scenario directs 95% of edits at edges joining busy rows. Dense bursts switch between query intervals of 113 and 3. Each 113-operation block allows edits to either supporting relation near its start and concentrates the remaining edits on up to six edges.
 
 The executable definition is [`task_spec.py`](task_spec.py), `generate_problem` and its helpers. See [sampling and coverage](../../GUIDE.md#sampling) for how the grader chooses and records seeds.
 

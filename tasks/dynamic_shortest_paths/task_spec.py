@@ -76,10 +76,20 @@ def _checked_queries(problem):
 
 class DynamicShortestPathsTask:
     name = "dynamic_shortest_paths"
-    task_version = "2.1.0"
+    task_version = "2.2.1"
     display_name = TASK_CATALOG[name].display_name
     default_n = 400
     grading_cases = (400, 800)
+    uses_reference_output = True
+
+    def correctness_problem(self, seed):
+        weight = (1 << 62) + random.Random(seed).randrange(1 << 20)
+        problem = self.generate_problem(16, seed)
+        return {"scenarios": (*problem["scenarios"], {
+            "family": "hubs", "node_count": 3,
+            "edges": ((0, 1, weight), (1, 2, weight)),
+            "operations": (("query", 0, 2), ("query", 2, 0)),
+        },)}
 
     def generate_problem(self, n=400, random_seed=0):
         if type(n) is not int or n < 0:
@@ -167,7 +177,7 @@ class DynamicShortestPathsTask:
     solve = staticmethod(_reference.solve)
 
 
-    def is_solution(self, problem, proposed):
+    def is_solution(self, problem, proposed, *, reference_output=None):
         if not plain_containers(proposed) or type(proposed) not in (tuple, list) or len(proposed) != len(problem["scenarios"]):
             return False
         if any(
@@ -176,7 +186,8 @@ class DynamicShortestPathsTask:
             for answers in proposed
         ):
             return False
-        return tuple(tuple(answers) for answers in proposed) == _checked_queries(problem)
+        expected = _checked_queries(problem) if reference_output is None else reference_output
+        return tuple(tuple(answers) for answers in proposed) == expected
 
 
 TASK = DynamicShortestPathsTask()

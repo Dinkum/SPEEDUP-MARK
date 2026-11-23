@@ -47,7 +47,7 @@ structure to match exactly, including types.
 
 ## Reference and verification
 
-The verifier independently intersects rays with triangle planes and uses oriented-edge inclusion tests in exact integer arithmetic. It does not reuse the reference barycentric intersection routine. The executable checker is `_verify_rays` in `task_spec.py`.
+The grader compares timed outputs with the reference. The independent checker `_verify_rays` verifies smaller seeded scenes from every family using exact plane intersections and oriented-edge tests.
 
 `solve` tests every live triangle against every ray with the exact
 predicate. Candidates can precompute triangle data, reject triangles with
@@ -72,7 +72,7 @@ for a better build/refit/traverse strategy, and `moving_bursts` versus
 
 - **Size:** n scales scene triangle and ray counts (minimum 8).
 - **Selection:** Every input contains static_coherent, moving_bursts, mixed_sizes, and incoherent.
-- **Randomized:** Mesh heights, coherent/incoherent rays, and triangle movement jitter within bounded integer coordinates.
+- **Randomized:** The static coherent mesh is horizontal. Each other family has a seeded incline and axis order. The same integer transformation applies to triangle updates, ray origins, and ray directions, preserving exact hits and ties. Ray targets and triangle movements also vary.
 - **Fixed structure:** Family-specific geometry scales, phase counts, shared-edge probes, and add/remove schedules are fixed. The four scene builders define exact counts and coordinate bounds.
 
 The executable definition is [`task_spec.py`](task_spec.py), `generate_problem` and its helpers. See [sampling and coverage](../../GUIDE.md#sampling) for how the grader chooses and records seeds.

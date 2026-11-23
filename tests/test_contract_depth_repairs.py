@@ -67,6 +67,13 @@ class ContractDepthRepairTests(unittest.TestCase):
         benchmark = task('adaptive_query_engine')
         programs, shapes = {}, {}
         def shape(node):
+            if node[0] == 'group':
+                for op, column in node[3]:
+                    if op == 'count':
+                        self.assertIsNone(column)
+                    else:
+                        self.assertIn(op, ('sum', 'min', 'max'))
+                        self.assertIsInstance(column, str)
             if node[0] == 'scan':
                 return ('scan',)
             if node[0] == 'join':

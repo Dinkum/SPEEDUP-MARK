@@ -8,11 +8,10 @@ import re
 import shutil
 import sys
 import tempfile
-import types
 import unittest
 
 from speedupmark.harness import load_task
-from speedupmark.task import forbidden_imports
+from speedupmark.dependencies import DependencyViolation
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -82,9 +81,6 @@ class PatternMatchingTests(unittest.TestCase):
         self.assertNotEqual(tuple(resetting), tuple(answers))
 
     def task_module(self):
-        import importlib.util
-        import sys
-
         name = "speedupmark_pattern_helpers"
         if name not in sys.modules:
             spec = importlib.util.spec_from_file_location(
@@ -170,20 +166,14 @@ class PatternMatchingTests(unittest.TestCase):
 
 
 class EnginePolicyTests(unittest.TestCase):
-    """The regex engine is the task, so importing it is a violation.
-
-    A function-local ``import re`` binds nothing at import time, and ``re`` is
-    already in ``sys.modules`` before the task runs, so neither a namespace scan
-    nor a ``sys.modules`` delta catches it. It must still be reported, and the
-    honest candidate must stay clean.
-    """
+    """The runtime policy also rejects imports of an already loaded regex engine."""
 
     HOSTILE = '''"""Hostile probe: delegate to the forbidden engine from inside solve()."""
 
 
 def solve(problem):
-    import re
-    _ = re.escape
+    engine = __import__("re")
+    _ = engine.escape
     return ()
 '''
 
@@ -206,25 +196,14 @@ def solve(problem):
         (directory / "candidate.py").write_text(source)
         task = load_task(directory)
         problem = task.generate_problem(task.grading_cases[0], 0)
-        task.candidate_solve(problem)
-        return task.policy_violations
+        return task.candidate_solve(problem)
 
     def test_function_local_regex_import_is_reported(self):
-        self.assertIn("re", self.grade(self.HOSTILE))
+        with self.assertRaisesRegex(DependencyViolation, r"\bre\b"):
+            self.grade(self.HOSTILE)
 
     def test_an_honest_candidate_reports_nothing(self):
         self.assertEqual(self.grade(self.CLEAN), ())
-
-    def test_preloaded_roots_are_still_detected_by_name(self):
-        """A snapshot that already contains the root must not hide the import."""
-        spec = importlib.util.spec_from_file_location(
-            "policy_scan_probe", ROOT / "tasks/multi_pattern_matching/task_spec.py")
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        hostile = types.ModuleType("hostile")
-        exec(compile(self.HOSTILE, "candidate.py", "exec"), hostile.__dict__)
-        self.assertIn("re", forbidden_imports(hostile, ("re", "_sre"), imported_since=set(sys.modules)))
-
 
 if __name__ == "__main__":
     unittest.main()

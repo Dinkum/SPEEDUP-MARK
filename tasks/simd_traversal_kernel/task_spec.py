@@ -5,13 +5,11 @@ Compilation sees descriptors only. Programs are frozen before runtime data exist
 """
 
 import hashlib
-import json
 import random
-import secrets
 import struct
 
 from speedupmark.catalog import TASK_CATALOG
-from speedupmark.task import SolutionEvaluation, load_reference
+from speedupmark.task import SolutionEvaluation, load_reference, verification_challenge
 
 
 _reference = load_reference(__file__)
@@ -27,11 +25,6 @@ GENERATOR = "simd_traversal_kernel-shake256-v1"
 TRIALS = 3
 # Arithmetic issue capacity is shared by scalar and vector instructions.
 ENGINES = {"alu": 2, "mul": 1, "load": 1, "store": 1, "perm": 1}
-
-
-def _digest(value):
-    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":"),
-                                    allow_nan=False).encode("ascii")).hexdigest()
 
 
 def _integer(value, low, high):
@@ -189,8 +182,9 @@ class Machine:
                 ready = max(self.memory_ready[address] for address in unique)
                 self.stats["dependency_stalls"] += max(0, ready - self.cycle)
                 self._advance(ready)
-                bank_counts = [sum(address % BANKS == bank for address in unique)
-                               for bank in range(BANKS)]
+                bank_counts = [0] * BANKS
+                for address in unique:
+                    bank_counts[address % BANKS] += 1
                 ready = max(self.banks[bank] for bank, count in enumerate(bank_counts) if count)
                 self.stats["bank_stalls"] += max(0, ready - self.cycle)
                 self._advance(ready)
@@ -274,30 +268,9 @@ def _evaluate_submissions(problem, outputs, *, replay=None, record=None):
             frozen[role] = _freeze(output, workloads)
         except ValueError:
             frozen[role] = None
-    receipt = {
-        "generator_version": GENERATOR,
-        "problem_sha256": _digest(problem),
-        "program_sha256": {role: _digest(program) for role, program in frozen.items()},
-    }
-    if replay is None:
-        seed = secrets.token_hex(32)
-    else:
-        if type(replay) is not dict or set(replay) != set(receipt) | {"seed", "memory_sha256"}:
-            raise ValueError("invalid SIMD Traversal Kernel verification receipt")
-        if any(replay[key] != value for key, value in receipt.items()):
-            raise ValueError("replay requires identical descriptors, programs and generator")
-        seed = replay["seed"]
-        if (type(seed) is not str or len(seed) != 64
-                or any(char not in "0123456789abcdef" for char in seed)):
-            raise ValueError("invalid verification seed")
-    memories = tuple(tuple(_runtime_memory(workload, seed, index, trial)
-                            for trial in range(TRIALS))
-                     for index, workload in enumerate(workloads))
-    receipt.update(seed=seed, memory_sha256=_digest(memories))
-    if replay is not None and replay["memory_sha256"] != receipt["memory_sha256"]:
-        raise ValueError("replay memory digest mismatch")
-    if record is not None:
-        record(receipt)
+    memories = verification_challenge(
+        problem, frozen, generator=GENERATOR, trials=TRIALS, runtime_input=_runtime_memory,
+        digest_key="memory_sha256", hash_missing_programs=True, replay=replay, record=record)
     return {role: _verify(workloads, program, memories) for role, program in frozen.items()}
 
 
